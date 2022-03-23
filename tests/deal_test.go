@@ -16,13 +16,13 @@ func TestSaveDeal(t *testing.T) {
 	conf := infra.SetConfig(ctx, "../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealService := deal.NewService(dealCollection)
 	timeValue := time.Now()
 	market := "BTC-USDT"
 	d1 := &domain.Deal{
-		Price:  "52.300",
+		Price:  "102.300",
 		Volume: 0.0031,
 		DealId: "1234567",
 		Market: "BTC-USDT",
@@ -48,6 +48,7 @@ func TestSaveDeal(t *testing.T) {
 	}
 
 	candles, _ := candle.NewService(dealCollection).GetMinuteCandles(ctx, market)
+	candle, _ := candle.NewService(dealCollection).GetLastCandle(ctx, market)
 
-	log.Print(candles)
+	log.Print(candles, candle)
 }

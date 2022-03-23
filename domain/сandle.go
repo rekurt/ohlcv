@@ -1,9 +1,12 @@
 package domain
 
+import "time"
+
 type Candle struct {
-	Open   string
-	High   string
-	Low    string
-	Close  string
-	Volume float64
+	Open   string `json:"open"`
+	High   string `json:"high"`
+	Low    string `json:"low"`
+	Close  string `json:"close"`
+	Volume float64 `json:"volume"`
+	Timestamp time.Time `json:"timestamp"`
 }

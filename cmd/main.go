@@ -4,6 +4,8 @@ import (
 	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
+	"bitbucket.org/novatechnologies/ohlcv/api/http"
+	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
@@ -12,10 +14,11 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"os"
+	"os/signal"
 	"strconv"
 	"time"
 )
-//https://bitbucket.org/novatechnologies/ohlcv/src/master/
+
 func main() {
 	ctx := infra.GetContext()
 	ctx, _ = context.WithTimeout(ctx, time.Second*15)
@@ -27,7 +30,9 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	deal2Collection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealService := deal.NewService(dealCollection)
+	candleService := candle.NewService(deal2Collection)
 
 	group.Go(func() error {
 		//todo check topic name!
@@ -52,4 +57,19 @@ func main() {
 			return nil
 		})
 	})
+
+	candleService.Start(ctx)
+
+	server := http.NewServer(candleService)
+	server.Start(ctx)
+
+	//shutdown
+	signalCh := make(chan os.Signal)
+	signal.Notify(signalCh, os.Interrupt)
+
+	_ = <-signalCh
+
+	server.Stop(ctx)
+
+	return
 }
