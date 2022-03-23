@@ -7,7 +7,6 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 	"context"
@@ -15,7 +14,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 )
 
@@ -32,35 +30,25 @@ func main() {
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	deal2Collection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealService := deal.NewService(dealCollection)
-	candleService := candle.NewService(deal2Collection)
+	candleService := candle.NewService(deal2Collection, getMarkets())
+
+	server := http.NewServer(candleService)
 
 	group.Go(func() error {
-		//todo check topic name!
-		return consumer.Consume(ctx, topics.MatcherMDOrders, func(ctx context.Context, msg []byte) error {
-			orderDeal := matcher.Order{}
-			if er := proto.Unmarshal(msg, &orderDeal); er != nil {
+		return consumer.Consume(ctx, topics.MatcherMDDeals, func(ctx context.Context, msg []byte) error {
+			dealMessage := matcher.Deal{}
+			if er := proto.Unmarshal(msg, &dealMessage); er != nil {
 				logger.FromContext(ctx).WithField("method", "consumer.deals.Unmarshal").Errorf("%v", er)
 				os.Exit(1)
 			}
 
-			floatAmount, _ := strconv.ParseFloat( orderDeal.Deal.Amount, 64)
-
-			d := &domain.Deal{
-				Price:  orderDeal.Deal.Price,
-				Volume: floatAmount,
-				DealId: orderDeal.Deal.Id,
-				Market: orderDeal.Market,
-				Time:   time.Unix(orderDeal.Deal.CreatedAt, 0),
-			}
-
-			dealService.SaveDeal(ctx, d)
+			dealService.SaveDeal(ctx, dealMessage)
+			candleService.PushLastUpdatedCandle(ctx, dealMessage.Market)
 			return nil
 		})
 	})
 
-	candleService.Start(ctx)
-
-	server := http.NewServer(candleService)
+	candleService.CronCandleGenerationStart(ctx)
 	server.Start(ctx)
 
 	//shutdown
@@ -72,4 +60,26 @@ func main() {
 	server.Stop(ctx)
 
 	return
+}
+
+func getMarkets() []string {
+	return []string{
+/*		"USDT_TRX",
+		"USDT_ETH",
+		"USDT_LTC",
+		"USDT_BCH",
+		"BTC_XRP",
+		"USDT_BTC",
+		"BTC_BCH",
+		"ETH_TRX",
+		"BTC_ETH",
+		"BTC_LINK",
+		"USDT_LINK",
+		"ETH_LINK",
+		"ETH_LTC",
+		"BTC_LTC",
+		"ETH_XRP",
+		"BTC_TRX",*/
+		"BTC-USDT",
+	}
 }

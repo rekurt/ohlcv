@@ -9,36 +9,40 @@ import (
 	"time"
 )
 
-
 type Service struct {
 	DealsDbCollection *mongo.Collection
-	UpdatedCandles chan domain.Candle
-
+	Markets           []string
+	UpdatedCandles    chan *domain.Candle
 }
 
-func NewService(dealsDbCollection *mongo.Collection) *Service {
-	return &Service{DealsDbCollection: dealsDbCollection}
+func NewService(dealsDbCollection *mongo.Collection, markets []string) *Service {
+	return &Service{DealsDbCollection: dealsDbCollection, Markets: markets}
 }
 
-func (s Service) Start(ctx context.Context)  {
-	ticker := time.NewTicker(10 * time.Second)
-	quit := make(chan struct{})
+//Generation for websocket pushing new candle every min (example: empty candles)
+func (s Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		done := make(chan bool)
 		for {
 			select {
-			case <- ticker.C:
-				logger.FromContext(ctx).WithField("market", "BTC-USDT").Infof("Get new candle.")
-				candle, _ := s.GetLastCandle(ctx, "BTC-USDT")
-				s.UpdatedCandles <- candle
-			case <- quit:
-				ticker.Stop()
+			case <-done:
 				return
+			case <-ticker.C:
+				for _, market := range s.Markets {
+					logger.FromContext(ctx).WithField("market", market).Infof("[CronCandleGenerationStart]Getting new candle for the market.")
+					s.PushLastUpdatedCandle(ctx, market)
+				}
+			default:
+				logger.FromContext(ctx).Infof("[CronCandleGenerationStart]Waiting...")
+				time.Sleep(10 *time.Second)
 			}
+
 		}
 	}()
 }
 
-func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]domain.Candle, error) {
+func (s Service) GetMinuteCandles(ctx context.Context, market string, interval string) ([]*domain.Candle, error) {
 	logger.FromContext(ctx).WithField("market", market).Infof("[CandleService] Call GetMinuteCandles")
 	matchStage := bson.D{{"$match", bson.D{{"market", market}}}}
 	groupStage := bson.D{{"$group", bson.D{
@@ -59,7 +63,6 @@ func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]domain.
 	},
 	}}
 
-
 	sortStage := bson.D{{"$sort", bson.D{
 		{
 			"_id.time", 1,
@@ -69,9 +72,10 @@ func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]domain.
 
 	if err != nil {
 		logger.FromContext(ctx).WithField("error", err).Errorf("[CandleService]Failed apply a aggregation function on the collection.")
+		return nil, err
 	}
 
-	var candles []domain.Candle
+	var candles []*domain.Candle
 	err = cursor.All(ctx, &candles)
 	if err != nil {
 		logger.FromContext(ctx).WithField("error", err).Errorf("[CandleService]Failed apply a aggregation function on the collection.")
@@ -86,14 +90,19 @@ func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]domain.
 	return candles, err
 }
 
-func (s Service) GetLastCandle(ctx context.Context, market string) (domain.Candle, error) {
+func (s Service) GetLastCandle(ctx context.Context, market string) (*domain.Candle, error) {
 	cs, err := s.GetMinuteCandles(ctx, market)
-	last := cs[len(cs)-1]
+	if err == nil {
+		last := cs[len(cs)-1]
+		return last, err
+	}
 
-	return last, err
-
+	return nil, err
 }
 
-func (s Service) Observe(ctx context.Context) domain.Candle {
-	return <- s.UpdatedCandles
+func (s Service) PushLastUpdatedCandle(ctx context.Context, market string) {
+	candle, _ := s.GetLastCandle(ctx, market)
+	if candle != nil {
+		s.UpdatedCandles <- candle
+	}
 }

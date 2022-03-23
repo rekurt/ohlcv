@@ -37,7 +37,6 @@ func (s *Server) Start(ctx context.Context) {
 	s.srv.BaseContext = func(listener net.Listener) context.Context {
 		return ctx
 	}
-
 	go func() {
 		log.Info("[*] Http server is started")
 		for err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed; {

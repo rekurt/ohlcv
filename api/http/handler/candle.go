@@ -14,17 +14,18 @@ import (
 
 type CandleHandler struct{
 	CandleService *candle.Service
+	Upgrader *websocket.Upgrader
+
 }
 
 func NewCandleHandler(candleService *candle.Service) *CandleHandler {
-	return &CandleHandler{candleService}
+	return &CandleHandler{candleService, &websocket.Upgrader{}}
 }
 
-var upgrader = websocket.Upgrader{}
 
 func (h CandleHandler) GetUpdatedCandle(w http.ResponseWriter, r *http.Request) {
 	ctx := infra.GetContext()
-	c, err := upgrader.Upgrade(w, r, nil)
+	c, err := h.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
@@ -32,12 +33,12 @@ func (h CandleHandler) GetUpdatedCandle(w http.ResponseWriter, r *http.Request) 
 	defer c.Close()
 	quit := make(chan struct{})
 	go func() {
-		var message domain.Candle
+		var message *domain.Candle
 		for {
 			select {
 			case message = <- h.CandleService.UpdatedCandles:
 				encodeM, err := json.Marshal(message)
-				logger.FromContext(ctx).Infof("Push candle to websocket")
+				logger.FromContext(ctx).Infof("Push candle to websocket.")
 				err = c.WriteMessage(1, encodeM)
 				if err != nil {
 					log.Println("write:", err)
