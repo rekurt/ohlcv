@@ -138,8 +138,6 @@ pipelines:
             - config/.env
 
       - step: *building
-
-
       - step: *deploy_k8s
 
     master2:
