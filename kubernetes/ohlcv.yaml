@@ -1,0 +1,50 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: ohlcv
+spec:
+  selector:
+    matchLabels:
+      app: ohlcv
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ohlcv
+    spec:
+      containers:
+        - name: ohlcv
+          image: $ECR_PATH:ohlcv-$VERSION
+          env:
+            - name: KAFKA_HOST
+              value: "$KAFKA_HOST"
+            - name: KAFKA_SSL
+              value: "$KAFKA_SSL"
+            - name: KAFKA_SUBSCRIBER_COUNT
+              value: "$KAFKA_SUBSCRIBER_COUNT"
+            - name: LOG_LEVEL
+              value: "$LOG_LEVEL"
+            - name: SERVICE_NAME
+              value: "$SERVICE_NAME"
+            - name: MONGODB_HOST
+              value: "$MONGODB_HOST"
+            - name: MONGODB_NAME
+              value: "$MONGODB_NAME"
+            - name: MONGODB_TIMEOUT
+              value: "$MONGODB_TIMEOUT"
+            - name: MONGODB_DEAL_COLLECTION_NAME
+              value: "$MONGODB_DEAL_COLLECTION_NAME"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ohlcv
+  labels:
+    app: ohlcv
+spec:
+  ports:
+    - port: 8082
+      name: tcp-8082
+  selector:
+    app: ohlcv
