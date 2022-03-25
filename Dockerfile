@@ -2,7 +2,7 @@ FROM golang:1.17.2-alpine as builder
 RUN apk add git libc-dev gcc
 WORKDIR /app
 COPY . /app/
-RUN go mod tidy
+RUN CGO_ENABLED=1 GO111MODULE=on go mod tidy
 RUN CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o go-gateway
 
 

@@ -234,7 +234,7 @@ pipelines:
           name: build-docker-image
           image: docker
           script:
-            - docker build -f Dockerfile-test2 -t ohlcv:last .
+            - docker build -f Dockerfile -t ohlcv:last .
             - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
