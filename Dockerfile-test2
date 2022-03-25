@@ -1,40 +1,8 @@
-# build binary
-FROM golang:1.17.2-alpine AS build
-
-ARG GOOS
-ENV CGO_ENABLED=0 \
-	GOOS=$GOOS \
-	GOARCH=amd64 \
-	CGO_CPPFLAGS="-I/usr/include" \
-	UID=0 GID=0 \
-	CGO_CFLAGS="-I/usr/include" \
-	CGO_LDFLAGS="-L/usr/lib -lpthread -lrt -lstdc++ -lm -lc -lgcc -lz " \
-	PKG_CONFIG_PATH="/usr/lib/pkgconfig"
-
-RUN apk add --no-cache git make
-RUN go get -u golang.org/x/lint/golint
-
-ENV GO111MODULE=off
-ARG APP_PKG_NAME
-WORKDIR /go/src/$APP_PKG_NAME
-COPY . .
-
-ARG SVC
-ARG BUILD_DATE
-ARG GIT_COMMIT
-RUN go vet ./...
-RUN golint -set_exit_status $(go list ./...)
-RUN out=$(go fmt ./...) && if [[ -n "$out" ]]; then echo "$out"; exit 1; fi
-RUN go test ./...
-RUN go build -v \
-	-o /out/service \
-	-ldflags "-w -s \
-	-X 'main.BuildDate=$BUILD_DATE' \
-	-X 'main.BuildCommit=$GIT_COMMIT'" \
-	./cmd/$SVC
-
-# copy to alpine image
-FROM alpine:3.8
+FROM golang:1.17.2-alpine
+RUN mkdir /app
+ADD docker /app
 WORKDIR /app
-COPY --from=build /out/service /app/service
-CMD ["/app/service"]
+COPY . /app/
+RUN apk add git libc-dev gcc vim && go mod tidy
+RUN CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv
+CMD ["/app/ohlcv"]
