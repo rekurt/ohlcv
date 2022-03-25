@@ -238,7 +238,7 @@ pipelines:
           script:
             - apk add git libc-dev gcc
             - ls -la
-            - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
+            - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - cat ~/.gitconfig
             - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
           artifacts:
