@@ -229,6 +229,24 @@ pipelines:
             - kubernetes/ohlcv.yaml
             - config/.env
 
-      - step: *building
+      - step:
+          name: build-app
+          image: golang:1.17.2-alpine
+          script:
+            - source global.env
+            - apk add git libc-dev gcc
+            - go mod tidy
+            - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o go-gateway
+          artifacts:
+            - ohlcv
+
+      - step:
+          name: build-app
+          image: docker
+          script:
+            - docker build -f Dockerfile-test -t ohlcv:last .
+            - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
+            - eval $(aws ecr get-login --no-include-email)
+            - docker push $ECR_PATH:ohlcv-$VERSION
 
       - step: *deploy_k8s
