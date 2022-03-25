@@ -234,7 +234,7 @@ pipelines:
           image: golang:1.17.2-alpine
           script:
             - apk add git libc-dev gcc
-            - go mod tidy
+            # - go mod tidy
             - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o go-gateway
           artifacts:
             - ohlcv
