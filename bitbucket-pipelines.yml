@@ -232,22 +232,22 @@ pipelines:
 
 
 
-      - step:
-          name: build-app
-          image: golang:1.17.2-alpine
-          script:
-            - apk add git libc-dev gcc
-            - ls -la
-            - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
-            - cat ~/.gitconfig
-            - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
-          artifacts:
-            - ohlcv
+      # - step:
+      #     name: build-app
+      #     image: golang:1.17.2-alpine
+      #     script:
+      #       - apk add git libc-dev gcc
+      #       - ls -la
+      #       - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
+      #       - cat ~/.gitconfig
+      #       - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
+      #     artifacts:
+      #       - ohlcv
+
       - step:
           name: build-docker-image
-          image: docker
           script:
-            - docker build -f Dockerfile-test -t ohlcv:last .
+            - docker build -f Dockerfile -t ohlcv:last .
             - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
