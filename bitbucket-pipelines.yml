@@ -248,7 +248,7 @@ pipelines:
       - step:
           name: build-docker-image
           script:
-            - docker build -f Dockerfile -t ohlcv:last .
+            - docker build -f Dockerfile -t ohlcv:last --build-arg BITBUCKET_USER=x-token-auth --build-arg BITBUCKET_PASS=$REPOSITORY_OAUTH_ACCESS_TOKEN .
             - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
