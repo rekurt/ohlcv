@@ -239,7 +239,7 @@ pipelines:
             - apk add git libc-dev gcc openssh
             - ls -la ~/.ssh/
             - cat ~/.ssh/config
-            - git config --global url."git@bitbucket.org:".insteadOf "https://api.bitbucket.org/"
+            - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
             - cat ~/.gitconfig
             - export CGO_ENABLED=1
