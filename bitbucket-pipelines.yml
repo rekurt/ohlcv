@@ -238,6 +238,7 @@ pipelines:
           script:
             - apk add git libc-dev gcc
             - ls -la ~/.ssh/
+            - cat ~/.ssh/config
             - cp ~/.ssh/config ~/.ssh/id_rsa
             - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - cat ~/.gitconfig
