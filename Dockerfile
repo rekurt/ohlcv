@@ -10,6 +10,8 @@ ARG GONOPROXY="bitbucket.org/novatechnologies"
 ARG CGO_ENABLED=1
 ARG GO111MODULE=on
 RUN apk add git libc-dev gcc make mercurial openssh
+RUN mkdir ~/.ssh
+COPY /opt/atlassian/pipelines/agent/ssh/id_rsa ~/.ssh/id_rsa
 ARG GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 RUN git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
 RUN go env
