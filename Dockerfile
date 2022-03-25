@@ -3,7 +3,7 @@ RUN apk add git libc-dev gcc
 WORKDIR /app
 COPY . /app/
 RUN CGO_ENABLED=1 GO111MODULE=on go mod tidy
-RUN CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o go-gateway
+RUN CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
 
 
 FROM alpine:3.15 as release

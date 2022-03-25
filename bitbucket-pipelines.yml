@@ -238,7 +238,7 @@ pipelines:
           script:
             - apk add git libc-dev gcc
             - ls -la
-            - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv
+            - CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
           artifacts:
             - ohlcv
       - step:
