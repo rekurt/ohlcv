@@ -248,8 +248,6 @@ pipelines:
       - step:
           name: build-docker-image
           script:
-            - yum install -y make curl wget tar gzip git mercurial gcc awscli
-            - git config --global url."git@bitbucket.org:".insteadOf "https://api.bitbucket.org/"
             - docker build -f Dockerfile -t ohlcv:last .
             - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
             - eval $(aws ecr get-login --no-include-email)
