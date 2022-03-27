@@ -252,6 +252,7 @@ pipelines:
       - step:
           name: build-docker-image
           script:
+            - yum install -y awscli
             - docker build -f Dockerfile-test -t ohlcv:last  .
             - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
             - eval $(aws ecr get-login --no-include-email)
