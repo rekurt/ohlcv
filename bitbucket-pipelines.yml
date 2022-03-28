@@ -61,11 +61,8 @@ pipelines:
           image: golang:1.17.2-alpine
           script:
             - apk add git libc-dev gcc openssh
-            - ls -la ~/.ssh/
-            - cat ~/.ssh/config
             - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-            - cat ~/.gitconfig
             - export CGO_ENABLED=1
             - export GO111MODULE=on
             - go mod tidy -v
@@ -77,6 +74,7 @@ pipelines:
           name: build-docker-image
           script:
             - yum install -y awscli
+            - source global.env
             - docker build -f Dockerfile-test -t $ECR_PATH:ohlcv-$VERSION  .
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
