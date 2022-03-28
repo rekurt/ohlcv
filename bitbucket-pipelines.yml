@@ -75,7 +75,7 @@ pipelines:
           script:
             - yum install -y awscli
             - source global.env
-            - docker build -f Dockerfile-test -t $ECR_PATH:ohlcv-$VERSION  .
+            - docker build -f Dockerfile -t $ECR_PATH:ohlcv-$VERSION  .
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
 
@@ -194,56 +194,8 @@ pipelines:
       - step: *deploy_k8s
 
   default:
-    # - step:
-    #     name: prepare env
-    #     script:
-    #       - echo "Staging pipeline is not implemented yet."
-    #       - exit 1
-      - step:
-          name: prepare env
-          script:
-            - yum install -y gettext
-            - export PATH=`pwd`:$PATH
-            # Set environment variables
-            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-            - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
-            - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-            - export NAMESPACE=xch-test
-            #- export NAMESPACE=xch-master2
-            - export STAGE=Staging # ICO-267
-            - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
-            - export KUBECONFIG=kubernetes/staging-cluster.pointpay.io.conf
-            - export APP_DEBUG=true
-            - export APP_ENV=staging
-            # Set services hostnames
-
-            - export MONGODB_HOST=$STAGING_MONGODB_HOST
-            - export MONGODB_NAME=$MONGODB_NAME
-            - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT
-            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_USER=$MONGODB_USER
-            - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
-            - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
-            - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-            - export KAFKA_HOST=$STAGING_KAFKA_HOST
-            - export KAFKA_SSL="1"
-
-            - export LOG_LEVEL=$STAGE_LOG_LEVEL
-            - export SERVICE_NAME="ohlcv"
-
-            - cp ./config/.env.deploy ./config/.env
-
-            - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
-            - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
-            - cat kubernetes/ohlcv.yaml
-            - export -p > global.env
-          artifacts:
-            - global.env
-            - kubernetes/**
-            - kubernetes/ohlcv.yaml
-            - config/.env
-
-
-      - step: *building
-      - step: *packing_docker
-      - step: *deploy_k8s
+    - step:
+        name: prepare env
+        script:
+          - echo "Staging pipeline is not implemented yet."
+          - exit 1
