@@ -45,7 +45,7 @@ pipelines:
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
 
-
+            - cp ./config/.env.deploy ./config/.env
             - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
             - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
             - cat kubernetes/ohlcv.yaml
@@ -128,6 +128,7 @@ pipelines:
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
 
+            - cp ./config/.env.deploy ./config/.env
 
             - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
             - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
@@ -176,6 +177,7 @@ pipelines:
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
 
+            - cp ./config/.env.deploy ./config/.env
 
             - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
             - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
@@ -229,6 +231,7 @@ pipelines:
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
 
+            - cp ./config/.env.deploy ./config/.env
 
             - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
             - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
