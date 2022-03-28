@@ -77,8 +77,7 @@ pipelines:
           name: build-docker-image
           script:
             - yum install -y awscli
-            - docker build -f Dockerfile-test -t ohlcv:last  .
-            - docker tag ohlcv:last $ECR_PATH:ohlcv-$VERSION
+            - docker build -f Dockerfile-test -t $ECR_PATH:ohlcv-$VERSION  .
             - eval $(aws ecr get-login --no-include-email)
             - docker push $ECR_PATH:ohlcv-$VERSION
 
@@ -121,7 +120,7 @@ pipelines:
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_USER=$STAGE_MONGODB_USER
+            - export MONGODB_USER=$MONGODB_USER
             - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
@@ -169,7 +168,7 @@ pipelines:
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_USER=$STAGE_MONGODB_USER
+            - export MONGODB_USER=$MONGODB_USER
             - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
@@ -222,7 +221,7 @@ pipelines:
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_USER=$STAGE_MONGODB_USER
+            - export MONGODB_USER=$MONGODB_USER
             - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT

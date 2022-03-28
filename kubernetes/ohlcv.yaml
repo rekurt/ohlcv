@@ -34,6 +34,12 @@ spec:
               value: "$MONGODB_TIMEOUT"
             - name: MONGODB_DEAL_COLLECTION_NAME
               value: "$MONGODB_DEAL_COLLECTION_NAME"
+            - name: MONGODB_ROOT_PASSWORD
+              value: "$MONGODB_ROOT_PASSWORD"
+            - name: MONGODB_USER
+              value: "$MONGODB_USER"
+            - name: MONGODB_PASSWORD
+              value: "$MONGODB_PASSWORD"
 
 ---
 apiVersion: v1
