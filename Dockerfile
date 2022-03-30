@@ -1,9 +1,6 @@
-FROM golang:1.17.2-alpine
-RUN mkdir /app
-ADD docker /app
+FROM alpine:3.15 as release
 WORKDIR /app
-COPY docker /app/
-COPY . /app/
-RUN apk add git libc-dev gcc vim && go mod tidy
-RUN CGO_ENABLED=1 GO111MODULE=on go build -tags=jsoniter -a -o ohlcv cmd/main.go
+COPY ohlcv .
+COPY ./config/.env ./config/.env
+
 CMD ["/app/ohlcv"]

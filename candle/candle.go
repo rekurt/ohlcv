@@ -42,7 +42,7 @@ func (s Service) CronCandleGenerationStart(ctx context.Context) {
 	}()
 }
 
-func (s Service) GetMinuteCandles(ctx context.Context, market string, interval string) ([]*domain.Candle, error) {
+func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]*domain.Candle, error) {
 	logger.FromContext(ctx).WithField("market", market).Infof("[CandleService] Call GetMinuteCandles")
 	matchStage := bson.D{{"$match", bson.D{{"market", market}}}}
 	groupStage := bson.D{{"$group", bson.D{
