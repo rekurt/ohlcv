@@ -91,7 +91,7 @@ pipelines:
             - cat kubernetes/ohlcv.yaml
             - ./kubectl apply -f kubernetes/ohlcv.yaml -n $NAMESPACE
             - ./helm repo add bitnami https://charts.bitnami.com/bitnami && ./helm repo update;
-            - ./helm upgrade --install mongodb bitnami/mongodb --version 11.1.3 -n $NAMESPACE --set metrics.enabled=true,metrics.serviceMonitor.enabled=true,metrics.serviceMonitor.namespace=monitoring --set auth.rootPassword=${MONGODB_ROOT_PASSWORD},auth.username=${MONGODB_USER},auth.password=${MONGODB_PASSWORD},auth.database=${MONGODB_NAME};
+            - ./helm upgrade --install mongodb bitnami/mongodb --version 11.1.3 -n $NAMESPACE --set metrics.enabled=true,metrics.serviceMonitor.enabled=true,metrics.serviceMonitor.namespace=monitoring,metrics.serviceMonitor.additionalLabels.release=prom-stage --set auth.rootPassword=${MONGODB_ROOT_PASSWORD},auth.username=${MONGODB_USER},auth.password=${MONGODB_PASSWORD},auth.database=${MONGODB_NAME};
 
     master:
       - step:
