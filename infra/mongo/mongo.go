@@ -18,8 +18,7 @@ func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Clie
 		Password: config.Password,
 	}
 	uri := fmt.Sprintf("mongodb://%s", config.Host)
-	clientOptions := options.Client().ApplyURI(uri).SetAuth(credential)
-	logger.FromContext(ctx).Infof("clientOptions type:", reflect.TypeOf(clientOptions))
+	clientOptions := options.Client().ApplyURI(uri).SetAuth(credential).SetMaxPoolSize(100)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {

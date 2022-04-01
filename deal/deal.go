@@ -23,11 +23,12 @@ func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*mongo
 		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
 		return nil, nil
 	}
-	floatAmount, _ := strconv.ParseFloat( dealMessage.Amount, 64)
+	floatVolume, _ := strconv.ParseFloat(dealMessage.Amount, 64)
+	floatPrice, _ := strconv.ParseFloat(dealMessage.Price, 64)
 
 	deal := &domain.Deal{
-		Price:  dealMessage.Price,
-		Volume: floatAmount,
+		Price:  floatPrice,
+		Volume: floatVolume,
 		DealId: dealMessage.Id,
 		Market: dealMessage.Market,
 		Time:   time.Unix(dealMessage.CreatedAt, 0).Truncate(time.Minute),

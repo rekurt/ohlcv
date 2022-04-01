@@ -10,32 +10,26 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 	"context"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"os"
 	"os/signal"
-	"time"
 )
 
 func main() {
 	ctx := infra.GetContext()
-	ctx, _ = context.WithTimeout(ctx, time.Second*15)
 	conf := infra.SetConfig(ctx, "./config/.env")
-
-	group, ctx := errgroup.WithContext(ctx)
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	deal2Collection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealService := deal.NewService(dealCollection)
-	candleService := candle.NewService(deal2Collection, getMarkets())
+	candleService := candle.NewService(dealCollection, getMarkets())
 
 	server := http.NewServer(candleService)
 
-	group.Go(func() error {
-		return consumer.Consume(ctx, topics.MatcherMDDeals, func(ctx context.Context, msg []byte) error {
+	go func() {
+		consumer.Consume(ctx, topics.MatcherMDDeals, func(ctx context.Context, msg []byte) error {
 			dealMessage := matcher.Deal{}
 			if er := proto.Unmarshal(msg, &dealMessage); er != nil {
 				logger.FromContext(ctx).WithField("method", "consumer.deals.Unmarshal").Errorf("%v", er)
@@ -43,12 +37,14 @@ func main() {
 			}
 
 			dealService.SaveDeal(ctx, dealMessage)
-			candleService.PushLastUpdatedCandle(ctx, dealMessage.Market)
+			//candleService.PushLastUpdatedCandle(ctx, dealMessage.Market, domain.Candle1MInterval)
+			//candleService.PushLastUpdatedCandle(ctx, dealMessage.Market, domain.Candle5MInterval)
 			return nil
 		})
-	})
+	}()
 
 	candleService.CronCandleGenerationStart(ctx)
+
 	server.Start(ctx)
 
 	//shutdown
@@ -64,7 +60,7 @@ func main() {
 
 func getMarkets() []string {
 	return []string{
-/*		"USDT_TRX",
+		"USDT_TRX",
 		"USDT_ETH",
 		"USDT_LTC",
 		"USDT_BCH",
@@ -79,7 +75,7 @@ func getMarkets() []string {
 		"ETH_LTC",
 		"BTC_LTC",
 		"ETH_XRP",
-		"BTC_TRX",*/
-		"BTC-USDT",
+		"BTC_TRX",
+		"BTC-USDT",//test
 	}
 }

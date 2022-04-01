@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 	"log"
@@ -35,11 +36,22 @@ func TestSaveDeal(t *testing.T) {
 	}
 	_, err := dealService.SaveDeal(ctx, d1)
 
+	d2 := matcher.Deal{
+		Id:           "1234567",
+		Market:       market,
+		MakerOrderId: "12345",
+		TakerOrderId: "12345",
+		CreatedAt:    time.Now().Add(time.Minute * 5).Unix(),
+		Price:        "152.300",
+		Amount:       "0.0031",
+	}
+	_, err = dealService.SaveDeal(ctx, d2)
+
 	if err != nil {
 		t.Failed()
 	}
 
-	d2 := matcher.Deal{
+	d3 := matcher.Deal{
 		Id:           "1234567",
 		Market:       market,
 		MakerOrderId: "12345",
@@ -48,17 +60,18 @@ func TestSaveDeal(t *testing.T) {
 		Price:        "52.300",
 		Amount:       "0.0121",
 	}
-	_, err = dealService.SaveDeal(ctx, d2)
+	_, err = dealService.SaveDeal(ctx, d3)
 
 	if err != nil {
 		t.Fail()
 	}
 
 	candles, _ := candle.NewService(dealCollection, getTestMarkets()).GetMinuteCandles(ctx, market)
+	chart5Min := candle.NewService(dealCollection, getTestMarkets()).AggregateCandleToChartByInterval(candles, domain.Candle5MInterval, 0)
 	//res := candles[len(candles)-1]
-	candle, _ := candle.NewService(dealCollection, getTestMarkets()).GetLastCandle(ctx, market)
-
-	log.Print(candles, candle)
+	candle, _ := candle.NewService(dealCollection, getTestMarkets()).GetLastCandle(ctx, market, domain.Candle5MInterval)
+	//assert.Equal(t, a, b, "The two words should be the same.")
+	log.Print(candles, candle, chart5Min)
 }
 
 func TestDealGenerator(t *testing.T) {

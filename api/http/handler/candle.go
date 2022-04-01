@@ -3,7 +3,6 @@ package handler
 import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"encoding/json"
 	"github.com/gorilla/websocket"
@@ -30,35 +29,34 @@ func (h CandleHandler) GetUpdatedCandle(w http.ResponseWriter, r *http.Request) 
 		log.Print("upgrade:", err)
 		return
 	}
-	defer c.Close()
+	//defer c.Close()
 	quit := make(chan struct{})
-	go func() {
-		var message *domain.Candle
-		for {
-			select {
-			case message = <- h.CandleService.UpdatedCandles:
-				encodeM, err := json.Marshal(message)
-				logger.FromContext(ctx).Infof("Push candle to websocket.")
-				err = c.WriteMessage(1, encodeM)
-				if err != nil {
-					log.Println("write:", err)
-					break
-				}
-			case <- quit:
-				return
+	for {
+		select {
+		case message := <- h.CandleService.UpdatedCandles:
+			encodeM, err := json.Marshal(message)
+			logger.FromContext(ctx).WithField("CandleTimestamp", message.T[0]).Infof("Push candle to websocket.")
+			err = c.WriteMessage(1, encodeM)
+			if err != nil {
+				log.Println("write:", err)
+				break
 			}
+		case <- quit:
+			return
 		}
-	}()
+	}
 }
 
-func (h CandleHandler) GetCandle(res http.ResponseWriter, req *http.Request) {
+func (h CandleHandler) GetCandleChart(res http.ResponseWriter, req *http.Request) {
 	ctx := infra.GetContext()
 
 	var market string
+	var interval string
 	market = req.URL.Query().Get("market")
-	req.URL.Query().Get("interval")
+	interval = req.URL.Query().Get("interval")
 	candles, _ := h.CandleService.GetMinuteCandles(ctx, market)
-	marshal, err := json.Marshal(candles)
+	result := h.CandleService.AggregateCandleToChartByInterval(candles, interval, 0)
+	marshal, err := json.Marshal(result)
 	if err != nil {
 		return
 	}
