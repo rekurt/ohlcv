@@ -28,7 +28,7 @@ func NewService(dealsDbCollection *mongo.Collection, markets []string) *Service 
 //Generation for websocket pushing new candle every min (example: empty candles)
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(time.Second * 10)
+		ticker := time.NewTicker(time.Minute)
 		done := make(chan bool)
 		for {
 			select {
