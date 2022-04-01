@@ -33,7 +33,7 @@ func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*domai
 		Volume: floatVolume,
 		DealId: dealMessage.Id,
 		Market: marketName,
-		Time:   time.Unix(dealMessage.CreatedAt, 0).Truncate(time.Minute),
+		Time:   time.Unix(0, dealMessage.CreatedAt),
 	}
 
 	_, err := s.DbCollection.InsertOne(ctx, deal)
