@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
@@ -106,7 +105,6 @@ func (s Service) GetLastCandle(ctx context.Context, market string, interval stri
 func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, interval string) {
 	upd, _ := s.GetLastCandle(ctx, market, interval)
 	if upd != nil {
-		fmt.Printf("%v", upd.T[0])
 		s.UpdatedCandles <- upd
 	}
 
@@ -135,7 +133,6 @@ func (s Service) aggregate5MinCandles(candles []*domain.Candle, count int) *doma
 		mod = min % 5
 		mul = time.Duration(mod) * -time.Minute
 		timestamp = candle.Timestamp.Add(mul).Unix()
-		println(timestamp)
 		c := result[timestamp]
 		if c != nil {
 			if c.Timestamp.Unix() < candle.Timestamp.Unix() {
