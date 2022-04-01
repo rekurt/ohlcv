@@ -12,11 +12,11 @@ import (
 
 type Service struct {
 	DealsDbCollection *mongo.Collection
-	Markets           []string
+	Markets           map[string]string
 	UpdatedCandles    chan *domain.Chart
 }
 
-func NewService(dealsDbCollection *mongo.Collection, markets []string) *Service {
+func NewService(dealsDbCollection *mongo.Collection, markets map[string]string) *Service {
 	c := make(chan *domain.Chart, 100)
 	return &Service{
 		DealsDbCollection: dealsDbCollection,
@@ -106,7 +106,7 @@ func (s Service) GetLastCandle(ctx context.Context, market string, interval stri
 func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, interval string) {
 	upd, _ := s.GetLastCandle(ctx, market, interval)
 	if upd != nil {
-		fmt.Printf("%s", upd.T[0])
+		fmt.Printf("%v", upd.T[0])
 		s.UpdatedCandles <- upd
 	}
 

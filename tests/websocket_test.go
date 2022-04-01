@@ -86,7 +86,7 @@ func TestCentrifuge(t *testing.T) {
 	c := centrifuge2.NewClient(handler)
 	defer func() { _ = c.Close() }()
 
-	sub, err := c.NewSubscription("chat:index")
+	sub, err := c.NewSubscription("candle_chart:$market_$interval")
 	if err != nil {
 		log.Fatalln(err)
 	}

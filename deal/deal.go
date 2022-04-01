@@ -12,13 +12,14 @@ import (
 
 type Service struct {
 	DbCollection *mongo.Collection
+	Markets           map[string]string
 }
 
-func NewService(dbCollection *mongo.Collection) *Service {
-	return &Service{DbCollection: dbCollection}
+func NewService(dbCollection *mongo.Collection, markets map[string]string) *Service {
+	return &Service{DbCollection: dbCollection, Markets: markets}
 }
 
-func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*mongo.InsertOneResult, error) {
+func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*domain.Deal, error) {
 	if dealMessage.TakerOrderId == "" || dealMessage.MakerOrderId == "" {
 		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
 		return nil, nil
@@ -26,15 +27,16 @@ func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*mongo
 	floatVolume, _ := strconv.ParseFloat(dealMessage.Amount, 64)
 	floatPrice, _ := strconv.ParseFloat(dealMessage.Price, 64)
 
+	marketName := s.Markets[dealMessage.Market]
 	deal := &domain.Deal{
 		Price:  floatPrice,
 		Volume: floatVolume,
 		DealId: dealMessage.Id,
-		Market: dealMessage.Market,
+		Market: marketName,
 		Time:   time.Unix(dealMessage.CreatedAt, 0).Truncate(time.Minute),
 	}
 
-	res, err := s.DbCollection.InsertOne(ctx, deal)
+	_, err := s.DbCollection.InsertOne(ctx, deal)
 
 	if err != nil {
 		logger.FromContext(ctx).Errorf("[DealService]Failed save deal. ", err)
@@ -42,5 +44,5 @@ func (s Service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*mongo
 		return nil, err
 	}
 
-	return res, err
+	return deal, err
 }

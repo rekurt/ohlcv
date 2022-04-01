@@ -22,7 +22,7 @@ func TestSaveDeal(t *testing.T) {
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	dealService := deal.NewService(dealCollection)
+	dealService := deal.NewService(dealCollection, getTestMarkets())
 	market := "BTC-USDT"
 
 	d1 := matcher.Deal{
@@ -95,8 +95,8 @@ func TestDealGenerator(t *testing.T) {
 	_ = <-signalCh
 }
 
-func getTestMarkets() []string {
-	return []string{
-		"BTC-USDT",
+func getTestMarkets() map[string]string {
+	return map[string]string{
+		"BTC-USDT":"BTC-USDT",
 	}
 }
