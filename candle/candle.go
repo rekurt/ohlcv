@@ -109,53 +109,133 @@ func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, inter
 	}
 
 }
-
 func (s Service) AggregateCandleToChartByInterval(candles []*domain.Candle, interval string, count int) *domain.Chart {
 	var chart *domain.Chart
 	switch interval {
-	/*case domain.Candle1MInterval:
-	result = candles*/
+	case domain.Candle1MInterval:
+		chart = s.aggregateMinCandlesToChart(candles, 1, count)
+	case domain.Candle3MInterval:
+		chart = s.aggregateMinCandlesToChart(candles, 3, count)
 	case domain.Candle5MInterval:
-		chart = s.aggregate5MinCandles(candles, count)
+		chart = s.aggregateMinCandlesToChart(candles, 5, count)
+	case domain.Candle15MInterval:
+		chart = s.aggregateMinCandlesToChart(candles, 15, count)
+	case domain.Candle30MInterval:
+		chart = s.aggregateMinCandlesToChart(candles, 30, count)
+	case domain.Candle1HInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 1, count)
+	case domain.Candle2HInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 2, count)
+	case domain.Candle4HInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 4, count)
+	case domain.Candle6HInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 6, count)
+	case domain.Candle12HInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 12, count)
+	case domain.Candle1DInterval:
+		chart = s.aggregateHoursCandlesToChart(candles, 24, count)
+	case domain.Candle1MHInterval:
+		chart = s.aggregateMonthCandlesToChart(candles, count)
+	default :
+		logger.FromContext(context.Background()).WithField("interval", interval).Errorf("Unsupported interval.")
 	}
 
 	return chart
 }
 
-func (s Service) aggregate5MinCandles(candles []*domain.Candle, count int) *domain.Chart {
+func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, minute int, count int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
+
 	var min int
 	var mod int
 	var mul time.Duration
 	var timestamp int64
 	for _, candle := range candles {
 		min = int(int64(candle.Timestamp.Minute()))
-		mod = min % 5
+		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
 		timestamp = candle.Timestamp.Add(mul).Unix()
 		c := result[timestamp]
 		if c != nil {
-			if c.Timestamp.Unix() < candle.Timestamp.Unix() {
-				result[timestamp].Open = c.Open
-				result[timestamp].Close = candle.Close
-			} else {
-				result[timestamp].Open = candle.Open
-				result[timestamp].Close = c.Close
-			}
-
-			if c.High < candle.High {
-				result[timestamp].High = candle.High
-			}
-			if c.Low > candle.Low {
-				result[timestamp].Low = candle.Low
-			}
-			result[timestamp].Volume = c.Volume + candle.Volume
-			result[timestamp].Timestamp = candle.Timestamp
+			result[timestamp] = s.compare(c, candle)
 		} else {
 			result[timestamp] = candle
 		}
 	}
 
+	chart := s.GenerateChart(result)
+
+	return chart
+}
+
+
+func (s Service) compare(c *domain.Candle, candle *domain.Candle) *domain.Candle {
+	comparedCandle := &domain.Candle{}
+	if c.Timestamp.Unix() < candle.Timestamp.Unix() {
+		comparedCandle.Open = c.Open
+		comparedCandle.Close = candle.Close
+	} else {
+		comparedCandle.Open = candle.Open
+		comparedCandle.Close = c.Close
+	}
+
+	if c.High < candle.High {
+		comparedCandle.High = candle.High
+	}
+	if c.Low > candle.Low {
+		comparedCandle.Low = candle.Low
+	}
+	comparedCandle.Volume = c.Volume + candle.Volume
+	comparedCandle.Timestamp = candle.Timestamp
+
+	return comparedCandle
+}
+
+func (s *Service) aggregateHoursCandlesToChart(candles []*domain.Candle, hour int, count int) *domain.Chart {
+	result := make(map[int64]*domain.Candle)
+
+	var min int
+	var mod int
+	var mul time.Duration
+	var timestamp int64
+	for _, candle := range candles {
+		min = int(int64(candle.Timestamp.Hour()))
+		mod = min % hour
+		mul = time.Duration(mod) * -time.Hour
+		timestamp = candle.Timestamp.Add(mul).Unix()
+		c := result[timestamp]
+		if c != nil {
+			result[timestamp] = s.compare(c, candle)
+		} else {
+			result[timestamp] = candle
+		}
+	}
+
+	chart := s.GenerateChart(result)
+
+	return chart
+}
+
+func (s *Service) aggregateMonthCandlesToChart(candles []*domain.Candle, count int) *domain.Chart {
+	result := make(map[int64]*domain.Candle)
+
+	var timestamp int64
+	for _, candle := range candles {
+		timestamp = time.Date(candle.Timestamp.Year(), candle.Timestamp.Month(), 1, 0, 0, 0, 0, time.Local).Unix()
+		c := result[timestamp]
+		if c != nil {
+			result[timestamp] = s.compare(c, candle)
+		} else {
+			result[timestamp] = candle
+		}
+	}
+
+	chart := s.GenerateChart(result)
+
+	return chart
+}
+
+func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
 		O: make([]float64, 0),
 		H: make([]float64, 0),
