@@ -19,7 +19,6 @@ func NewServer(candleService *candle.Service) *Server {
 
 	candleHandler := handler.NewCandleHandler(candleService)
 	mux.HandleFunc("/api/candles", candleHandler.GetCandleChart)
-	//mux.HandleFunc("/ws/candles", candleHandler.GetUpdatedCandle)
 
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", 8082),

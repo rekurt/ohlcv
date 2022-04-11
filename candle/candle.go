@@ -10,17 +10,21 @@ import (
 )
 
 type Service struct {
-	DealsDbCollection *mongo.Collection
-	Markets           map[string]string
-	UpdatedCandles    chan *domain.Chart
+	DealsDbCollection  *mongo.Collection
+	Markets            map[string]string
+	UpdatedCandles     chan *domain.Chart
+	AvailableIntervals []string
 }
 
-func NewService(dealsDbCollection *mongo.Collection, markets map[string]string) *Service {
-	c := make(chan *domain.Chart, 100)
+const CurrentTimestamp = "current"
+
+func NewService(dealsDbCollection *mongo.Collection, markets map[string]string, availableIntervals []string) *Service {
+	c := make(chan *domain.Chart, 200)
 	return &Service{
 		DealsDbCollection: dealsDbCollection,
 		Markets:           markets,
 		UpdatedCandles:    c,
+		AvailableIntervals: availableIntervals,
 	}
 }
 
@@ -36,7 +40,7 @@ func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 			case <-ticker.C:
 				for _, market := range s.Markets {
 					logger.FromContext(ctx).WithField("market", market).Infof("[CronCandleGenerationStart]Getting new candle for the market.")
-					s.PushLastUpdatedCandle(ctx, market, domain.Candle5MInterval)
+					s.PushUpdatedCandleEvent(ctx, market)
 				}
 			}
 		}
@@ -91,19 +95,21 @@ func (s Service) GetMinuteCandles(ctx context.Context, market string) ([]*domain
 	return candles, err
 }
 
-func (s Service) GetLastCandle(ctx context.Context, market string, interval string) (*domain.Chart, error) {
+func (s Service) GetCurrentCandle(ctx context.Context, market string, interval string) (*domain.Chart, error) {
 	cs, err := s.GetMinuteCandles(ctx, market)
-	s.AggregateCandleToChartByInterval(cs, interval, 1)
-	/*if err == nil {
-		last := cs[len(cs)-1]
-		return last, err
-	}*/
+	chart := s.AggregateCandleToChartByInterval(cs, interval, 1)
+	chart.SetMarket(market)
+	chart.SetInterval(interval)
 
-	return nil, err
+	return chart, err
 }
 
 func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, interval string) {
-	upd, _ := s.GetLastCandle(ctx, market, interval)
+	logger.FromContext(context.Background()).
+		WithField("interval", interval).
+		WithField("market", market).
+		Infof("[CandleService] Call PushLastUpdatedCandle method.")
+	upd, _ := s.GetCurrentCandle(ctx, market, interval)
 	if upd != nil {
 		s.UpdatedCandles <- upd
 	}
@@ -111,6 +117,8 @@ func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, inter
 }
 func (s Service) AggregateCandleToChartByInterval(candles []*domain.Candle, interval string, count int) *domain.Chart {
 	var chart *domain.Chart
+
+	logger.FromContext(context.Background()).WithField("interval", interval).Infof("[CandleService] Call AggregateCandleToChartByInterval method.")
 	switch interval {
 	case domain.Candle1MInterval:
 		chart = s.aggregateMinCandlesToChart(candles, 1, count)
@@ -136,7 +144,7 @@ func (s Service) AggregateCandleToChartByInterval(candles []*domain.Candle, inte
 		chart = s.aggregateHoursCandlesToChart(candles, 24, count)
 	case domain.Candle1MHInterval:
 		chart = s.aggregateMonthCandlesToChart(candles, count)
-	default :
+	default:
 		logger.FromContext(context.Background()).WithField("interval", interval).Errorf("Unsupported interval.")
 	}
 
@@ -150,16 +158,25 @@ func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, minute int
 	var mod int
 	var mul time.Duration
 	var timestamp int64
+	now := time.Now()
+	currentTs := now.Add(time.Duration(now.Minute() % minute) * -time.Minute).Unix()
 	for _, candle := range candles {
+		var comparedCandle *domain.Candle
 		min = int(int64(candle.Timestamp.Minute()))
 		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
 		timestamp = candle.Timestamp.Add(mul).Unix()
 		c := result[timestamp]
+
 		if c != nil {
-			result[timestamp] = s.compare(c, candle)
+			comparedCandle = s.compare(c, candle)
 		} else {
-			result[timestamp] = candle
+			comparedCandle = candle
+		}
+
+		result[timestamp] = comparedCandle
+		if currentTs == timestamp  {
+			result[currentTs] = comparedCandle
 		}
 	}
 
@@ -167,7 +184,6 @@ func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, minute int
 
 	return chart
 }
-
 
 func (s Service) compare(c *domain.Candle, candle *domain.Candle) *domain.Candle {
 	comparedCandle := &domain.Candle{}
@@ -255,4 +271,10 @@ func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	}
 
 	return chart
+}
+
+func (s *Service) PushUpdatedCandleEvent(ctx context.Context, market string) {
+	for _, interval := range s.AvailableIntervals {
+		s.PushLastUpdatedCandle(ctx, market, interval)
+	}
 }

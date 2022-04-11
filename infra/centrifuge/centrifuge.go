@@ -5,9 +5,9 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"encoding/json"
+	"fmt"
 	"github.com/centrifugal/centrifuge-go"
 )
-
 
 type eventHandler struct{}
 
@@ -16,7 +16,7 @@ func NewEventHandler() *eventHandler {
 }
 
 func (h *eventHandler) OnConnect(_ *centrifuge.Client, e centrifuge.ConnectEvent) {
-	logger.FromContext(infra.GetContext()).Infof("Connected to chat with ID %s", e.ClientID)
+	logger.FromContext(infra.GetContext()).Infof("Connected to channel with ID %s", e.ClientID)
 }
 
 func (h *eventHandler) OnError(_ *centrifuge.Client, e centrifuge.ErrorEvent) {
@@ -28,7 +28,7 @@ func (h *eventHandler) OnMessage(_ *centrifuge.Client, e centrifuge.MessageEvent
 }
 
 func (h *eventHandler) OnDisconnect(_ *centrifuge.Client, e centrifuge.DisconnectEvent) {
-	logger.FromContext(infra.GetContext()).Infof("Disconnected from chat: %s", e.Reason)
+	logger.FromContext(infra.GetContext()).Infof("Disconnected from channel: %s", e.Reason)
 }
 
 func (h *eventHandler) OnServerSubscribe(_ *centrifuge.Client, e centrifuge.ServerSubscribeEvent) {
@@ -57,15 +57,7 @@ func (h *eventHandler) OnPublish(sub *centrifuge.Subscription, e centrifuge.Publ
 	if err != nil {
 		return
 	}
-	logger.FromContext(infra.GetContext()).Infof("Someone says via channel %s: %s", sub.Channel(), candle.Timestamp)
-}
-
-func (h *eventHandler) OnJoin(sub *centrifuge.Subscription, e centrifuge.JoinEvent) {
-	logger.FromContext(infra.GetContext()).Infof("Someone joined %s: user id %s, client id %s", sub.Channel(), e.User, e.Client)
-}
-
-func (h *eventHandler) OnLeave(sub *centrifuge.Subscription, e centrifuge.LeaveEvent) {
-	logger.FromContext(infra.GetContext()).Infof("Someone left %s: user id %s, client id %s", sub.Channel(), e.User, e.Client)
+	logger.FromContext(infra.GetContext()).Infof("Updated candle publish via channel %s: %s", sub.Channel(), candle.Timestamp)
 }
 
 func (h *eventHandler) OnSubscribeSuccess(sub *centrifuge.Subscription, e centrifuge.SubscribeSuccessEvent) {
@@ -81,8 +73,8 @@ func (h *eventHandler) OnUnsubscribe(sub *centrifuge.Subscription, _ centrifuge.
 }
 
 
-func NewClient(handler *eventHandler, ) *centrifuge.Client {
-	wsURL := "ws://localhost:8000/connection/websocket"
+func NewClient(handler *eventHandler, config infra.CentrifugeConfig) *centrifuge.Client {
+	wsURL := fmt.Sprintf("ws://%s/connection/websocket", config.Host)
 	c := centrifuge.NewJsonClient(wsURL, centrifuge.DefaultConfig())
 
 	// Uncomment to make it work with Centrifugo and its JWT auth.

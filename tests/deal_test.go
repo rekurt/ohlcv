@@ -66,10 +66,10 @@ func TestSaveDeal(t *testing.T) {
 		t.Fail()
 	}
 
-	candles, _ := candle.NewService(dealCollection, getTestMarkets()).GetMinuteCandles(ctx, market)
-	chart5Min := candle.NewService(dealCollection, getTestMarkets()).AggregateCandleToChartByInterval(candles, domain.Candle5MInterval, 0)
+	candles, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetMinuteCandles(ctx, market)
+	chart5Min := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).AggregateCandleToChartByInterval(candles, domain.Candle5MInterval, 0)
 	//res := candles[len(candles)-1]
-	candle, _ := candle.NewService(dealCollection, getTestMarkets()).GetLastCandle(ctx, market, domain.Candle5MInterval)
+	candle, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetCurrentCandle(ctx, market, domain.Candle5MInterval)
 	//assert.Equal(t, a, b, "The two words should be the same.")
 	log.Print(candles, candle, chart5Min)
 }
@@ -81,7 +81,7 @@ func TestDealGenerator(t *testing.T) {
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	candleService := candle.NewService(dealCollection, getTestMarkets())
+	candleService := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals())
 
 	candleService.CronCandleGenerationStart(ctx)
 

@@ -13,6 +13,7 @@ var config Config
 type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
 	ConsumerCount int    `envconfig:"KAFKA_CONSUMER_COUNT" required:"true"`
+	TopicPrefix   string `envconfig:"KAFKA_TOPIC_PREFIX" required:"true"`
 }
 
 type MongoDbConfig struct {
@@ -25,12 +26,12 @@ type MongoDbConfig struct {
 }
 
 type CentrifugeConfig struct {
-	Host               string `envconfig:"MONGODB_HOST" required:"true"`
+	Host string `envconfig:"CENTRIFUGE_HOST" required:"true"`
 }
 
 type Config struct {
-	KafkaConfig   KafkaConfig
-	MongoDbConfig MongoDbConfig
+	KafkaConfig      KafkaConfig
+	MongoDbConfig    MongoDbConfig
 	CentrifugeConfig CentrifugeConfig
 }
 
