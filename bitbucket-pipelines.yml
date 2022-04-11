@@ -113,7 +113,6 @@ pipelines:
             - export APP_ENV=staging
             # Set services hostnames
 
-
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
