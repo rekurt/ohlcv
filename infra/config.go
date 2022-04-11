@@ -24,9 +24,14 @@ type MongoDbConfig struct {
 	Password           string `envconfig:"MONGODB_PASSWORD" required:"true"`
 }
 
+type CentrifugeConfig struct {
+	Host               string `envconfig:"MONGODB_HOST" required:"true"`
+}
+
 type Config struct {
 	KafkaConfig   KafkaConfig
 	MongoDbConfig MongoDbConfig
+	CentrifugeConfig CentrifugeConfig
 }
 
 func SetConfig(ctx context.Context, configPath string) Config {

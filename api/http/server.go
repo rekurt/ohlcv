@@ -18,8 +18,8 @@ func NewServer(candleService *candle.Service) *Server {
 	mux := http.NewServeMux()
 
 	candleHandler := handler.NewCandleHandler(candleService)
-	mux.HandleFunc("/api/candles", candleHandler.GetCandle)
-	mux.HandleFunc("/api/ws/candles", candleHandler.GetUpdatedCandle)
+	mux.HandleFunc("/api/candles", candleHandler.GetCandleChart)
+	//mux.HandleFunc("/ws/candles", candleHandler.GetUpdatedCandle)
 
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", 8082),
@@ -40,7 +40,7 @@ func (s *Server) Start(ctx context.Context) {
 	go func() {
 		log.Info("[*] Http server is started")
 		for err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed; {
-			log.Info("listen and serve")
+			log.Info(err)
 		}
 	}()
 }
