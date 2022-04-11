@@ -14,8 +14,9 @@ import (
 
 func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Client {
 	credential := options.Credential{
-		Username: config.User,
-		Password: config.Password,
+		AuthSource:              config.DbName,
+		Username:                config.User,
+		Password:                config.Password,
 	}
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.User, config.Password, config.Host)
 	clientOptions := options.Client().ApplyURI(uri).
