@@ -19,7 +19,7 @@ type Service struct {
 const CurrentTimestamp = "current"
 
 func NewService(dealsDbCollection *mongo.Collection, markets map[string]string, availableIntervals []string) *Service {
-	c := make(chan *domain.Chart, 200)
+	c := make(chan *domain.Chart, 2000)
 	return &Service{
 		DealsDbCollection: dealsDbCollection,
 		Markets:           markets,
@@ -111,7 +111,7 @@ func (s Service) PushLastUpdatedCandle(ctx context.Context, market string, inter
 		Infof("[CandleService] Call PushLastUpdatedCandle method.")
 	upd, _ := s.GetCurrentCandle(ctx, market, interval)
 	if upd != nil {
-		s.UpdatedCandles <- upd
+		//s.UpdatedCandles <- upd
 	}
 
 }
