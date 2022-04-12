@@ -41,7 +41,7 @@ pipelines:
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
             - export KAFKA_HOST=$KAFKA_HOST
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-
+            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
 
@@ -123,6 +123,7 @@ pipelines:
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
             - export KAFKA_HOST=$STAGING_KAFKA_HOST
             - export KAFKA_SSL="1"
+            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
 
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
@@ -172,6 +173,7 @@ pipelines:
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
             - export KAFKA_HOST=$STAGING_KAFKA_HOST
             - export KAFKA_SSL="1"
+            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
 
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"

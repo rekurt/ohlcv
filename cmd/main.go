@@ -32,7 +32,8 @@ func main() {
 	server.Start(ctx)
 
 	go func() {
-		consumer.Consume(ctx, fmt.Sprintf("%s%s", conf.KafkaConfig.TopicPrefix, topics.MatcherMDDeals), func(ctx context.Context, msg []byte) error {
+		topicPrefix := fmt.Sprintf("%s%s", conf.KafkaConfig.TopicPrefix, "_")
+		consumer.Consume(ctx, fmt.Sprintf("%s%s", topicPrefix, topics.MatcherMDDeals), func(ctx context.Context, msg []byte) error {
 
 			dealMessage := matcher.Deal{}
 			if er := proto.Unmarshal(msg, &dealMessage); er != nil {

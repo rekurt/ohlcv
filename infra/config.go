@@ -13,7 +13,7 @@ var config Config
 type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
 	ConsumerCount int    `envconfig:"KAFKA_CONSUMER_COUNT" required:"true"`
-	TopicPrefix   string `envconfig:"KAFKA_TOPIC_PREFIX" required:"true" default:"master_"`
+	TopicPrefix   string `envconfig:"KAFKA_TOPIC_PREFIX" required:"true" default:"master"`
 }
 
 type MongoDbConfig struct {
