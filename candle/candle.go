@@ -6,6 +6,7 @@ import (
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"bitbucket.org/novatechnologies/ohlcv/domain"
@@ -74,9 +75,13 @@ func (s Service) GetMinuteCandles(
 	if len(period) == 2 {
 		from, to := period[0], period[1]
 		matchStage[0].Value = append(
-			matchStage[0].Value.([]bson.E),
-			bson.E{Key: "time", Value: bson.M{"$gte": from}},
-			bson.E{Key: "time", Value: bson.M{"$lte": to}},
+			matchStage[0].Value.(bson.D),
+			bson.E{Key: "time", Value: bson.D{
+				{"$gte", primitive.NewDateTimeFromTime(from)},
+			}},
+			bson.E{Key: "time", Value: bson.D{
+				{"$lte", primitive.NewDateTimeFromTime(to)},
+			}},
 		)
 	}
 
@@ -95,8 +100,7 @@ func (s Service) GetMinuteCandles(
 		{"close", bson.D{{"$last", "$price"}}},
 		{"volume", bson.D{{"$sum", "$volume"}}},
 		{"timestamp", bson.D{{"$first", "$time"}}},
-	},
-	}}
+	}}}
 
 	sortStage := bson.D{{"$sort", bson.D{
 		{

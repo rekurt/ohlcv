@@ -6,27 +6,39 @@ import (
 	"os"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"github.com/AlekSi/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"bitbucket.org/novatechnologies/ohlcv/infra"
 )
 
-func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Client {
+func NewMongoClient(
+	ctx context.Context,
+	config infra.MongoDbConfig,
+) *mongo.Client {
 	credential := options.Credential{
 		AuthSource: config.DbName,
 		Username:   config.User,
 		Password:   config.Password,
 	}
-	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.User, config.Password, config.Host)
+	uri := fmt.Sprintf(
+		"mongodb://%s:%s@%s",
+		config.User,
+		config.Password,
+		config.Host,
+	)
 	clientOptions := options.Client().ApplyURI(uri).
 		SetAuth(credential).
 		SetMaxPoolSize(100)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		logger.FromContext(ctx).Errorf("[infra.Mongo] Failed connect to mongo ERROR:", err)
+		logger.FromContext(ctx).Errorf(
+			"[infra.Mongo] Failed connect to mongo ERROR:",
+			err,
+		)
 		os.Exit(1)
 	}
 
@@ -35,15 +47,25 @@ func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Clie
 
 //InitDealCollection runs manually now
 //goland:noinspection GoUnusedExportedFunction
-func InitDealCollection(ctx context.Context, client *mongo.Client, config infra.MongoDbConfig) {
+func InitDealCollection(
+	ctx context.Context,
+	client *mongo.Client,
+	config infra.MongoDbConfig,
+) {
 	_ = client.Database(config.DbName).Collection(config.DealCollectionName).Drop(ctx)
-	opt := options.CreateCollection().SetTimeSeriesOptions(&options.TimeSeriesOptions{
-		TimeField:   "time",
-		MetaField:   pointer.ToString("market"),
-		Granularity: pointer.ToString("minutes"),
-	})
+	opt := options.CreateCollection().SetTimeSeriesOptions(
+		&options.TimeSeriesOptions{
+			TimeField:   "time",
+			MetaField:   pointer.ToString("market"),
+			Granularity: pointer.ToString("minutes"),
+		},
+	)
 
-	err := client.Database(config.DbName).CreateCollection(ctx, config.DealCollectionName, opt)
+	err := client.Database(config.DbName).CreateCollection(
+		ctx,
+		config.DealCollectionName,
+		opt,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +80,14 @@ func InitDealCollection(ctx context.Context, client *mongo.Client, config infra.
 
 }
 
-func GetCollection(ctx context.Context, client *mongo.Client, config infra.MongoDbConfig) *mongo.Collection {
-	logger.FromContext(ctx).Infof("[infra.Mongo] Try get collection %s", config.DealCollectionName)
+func GetCollection(
+	ctx context.Context,
+	client *mongo.Client,
+	config infra.MongoDbConfig,
+) *mongo.Collection {
+	logger.FromContext(ctx).Infof(
+		"[infra.Mongo] Try get collection %s",
+		config.DealCollectionName,
+	)
 	return client.Database(config.DbName).Collection(config.DealCollectionName)
 }
