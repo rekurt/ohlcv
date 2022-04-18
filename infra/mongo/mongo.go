@@ -1,22 +1,23 @@
 package mongo
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"context"
 	"fmt"
+	"os"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/infra"
+	"github.com/AlekSi/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
-	"reflect"
 )
 
 func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Client {
 	credential := options.Credential{
-		AuthSource:              config.DbName,
-		Username:                config.User,
-		Password:                config.Password,
+		AuthSource: config.DbName,
+		Username:   config.User,
+		Password:   config.Password,
 	}
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.User, config.Password, config.Host)
 	clientOptions := options.Client().ApplyURI(uri).
@@ -32,14 +33,14 @@ func NewMongoClient(ctx context.Context, config infra.MongoDbConfig) *mongo.Clie
 	return client
 }
 
+//InitDealCollection runs manually now
+//goland:noinspection GoUnusedExportedFunction
 func InitDealCollection(ctx context.Context, client *mongo.Client, config infra.MongoDbConfig) {
-	client.Database(config.DbName).Collection(config.DealCollectionName).Drop(ctx)
-	metaField := "market"
-	granularity := "minutes"
+	_ = client.Database(config.DbName).Collection(config.DealCollectionName).Drop(ctx)
 	opt := options.CreateCollection().SetTimeSeriesOptions(&options.TimeSeriesOptions{
-		TimeField: "time",
-		MetaField: &metaField,
-		Granularity: &granularity,
+		TimeField:   "time",
+		MetaField:   pointer.ToString("market"),
+		Granularity: pointer.ToString("minutes"),
 	})
 
 	err := client.Database(config.DbName).CreateCollection(ctx, config.DealCollectionName, opt)
@@ -58,9 +59,6 @@ func InitDealCollection(ctx context.Context, client *mongo.Client, config infra.
 }
 
 func GetCollection(ctx context.Context, client *mongo.Client, config infra.MongoDbConfig) *mongo.Collection {
-	logger.FromContext(ctx).Infof("[infra.Mongo] Try get collection", "CollectionName: ", config.DealCollectionName)
-	col := client.Database(config.DbName).Collection(config.DealCollectionName)
-	logger.FromContext(ctx).Infof("Collection type:", reflect.TypeOf(col))
-
-	return col
+	logger.FromContext(ctx).Infof("[infra.Mongo] Try get collection %s", config.DealCollectionName)
+	return client.Database(config.DbName).Collection(config.DealCollectionName)
 }

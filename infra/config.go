@@ -2,13 +2,11 @@ package infra
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
-
-var config Config
 
 type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
@@ -36,21 +34,17 @@ type Config struct {
 	CentrifugeConfig CentrifugeConfig
 }
 
-func SetConfig(ctx context.Context, configPath string) Config {
+func SetConfig(configPath string) Config {
 	err := godotenv.Load(configPath)
 	if err != nil {
 		panic(err)
 	}
 
 	var cfg Config
-
 	if err := envconfig.Process("", &cfg); err != nil {
 		fmt.Println("msg", "failed to load configuration", "err", err)
 		panic(err)
 	}
-	bs, _ := json.Marshal(cfg)
-	fmt.Println("CONFIG:", string(bs))
-
 	return cfg
 }
 

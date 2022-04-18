@@ -1,6 +1,11 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+
 	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
@@ -10,16 +15,12 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
-	"context"
-	"fmt"
 	"google.golang.org/protobuf/proto"
-	"os"
-	"os/signal"
 )
 
 func main() {
 	ctx := infra.GetContext()
-	conf := infra.SetConfig(ctx, "./config/.env")
+	conf := infra.SetConfig("./config/.env")
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 
@@ -28,24 +29,30 @@ func main() {
 	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
 	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableIntervals())
 
-	server := http.NewServer(candleService)
+	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	go func() error {
-		topicName := fmt.Sprintf("%s%s%s", conf.KafkaConfig.TopicPrefix, "_", topics.MatcherMDDeals)
-		return consumer.Consume(ctx, topicName, func(ctx context.Context, metadata map[string]string, msg []byte) error {
+	go func() {
+		err := func() error {
+			topicName := fmt.Sprintf("%s%s%s", conf.KafkaConfig.TopicPrefix, "_", topics.MatcherMDDeals)
+			return consumer.Consume(ctx, topicName, func(ctx context.Context, metadata map[string]string, msg []byte) error {
 
-			dealMessage := matcher.Deal{}
-			if er := proto.Unmarshal(msg, &dealMessage); er != nil {
-				logger.FromContext(ctx).WithField("method", "consumer.deals.Unmarshal").Errorf("%v", er)
-				os.Exit(1)
-			}
+				dealMessage := matcher.Deal{}
+				if er := proto.Unmarshal(msg, &dealMessage); er != nil {
 
-			d, _ := dealService.SaveDeal(ctx, dealMessage)
-			candleService.PushUpdatedCandleEvent(ctx, d.Market)
+					logger.FromContext(ctx).WithField("method", "consumer.deals.Unmarshal").Errorf("%v", er)
+					os.Exit(1)
+				}
 
-			return nil
-		})
+				d, _ := dealService.SaveDeal(ctx, dealMessage)
+				candleService.PushUpdatedCandleEvent(ctx, d.Market)
+
+				return nil
+			})
+		}()
+		if err != nil {
+			logger.FromContext(ctx).WithField("error", err.Error()).Errorf("[DealService]Failed Kafka consumer")
+		}
 	}()
 
 	candleService.CronCandleGenerationStart(ctx)
