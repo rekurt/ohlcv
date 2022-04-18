@@ -1,6 +1,6 @@
 module bitbucket.org/novatechnologies/ohlcv
 
-go 1.18
+go 1.17
 
 require (
 	bitbucket.org/novatechnologies/common v0.11.4-0.20220407085209-2e11250fffd8
