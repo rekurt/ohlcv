@@ -1,0 +1,110 @@
+openapi: '3.0.2'
+info:
+  title: PointPay.io Public Spot API (draft)
+  description: |-
+    OpenAPI Specifications for the PointPay.io Public Spot API
+  version: '0.1.0'
+
+servers:
+  - url: https://trade.exchange.pointpay.io
+  - url: https://master.trade.stage.exchange.pointpay.io
+
+tags:
+  - name: Market
+    description: Market Data
+  - name: Trade
+    description: Account/Trade
+  - name: Wallet
+    description: Wallet Endpoints
+paths:
+  /api/v1/trades:
+    get:
+      summary: Recent Trades List
+      description: |-
+        Get recent trades.
+
+        Weight(IP): 1
+      tags:
+        - Market
+      parameters:
+        - $ref: '#/components/parameters/symbol'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Trade list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/trade'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+components:
+  parameters:
+    symbol:
+      name: symbol
+      in: query
+      required: true
+      description: Trading symbol, e.g. PXPUSDT
+      schema:
+        type: string
+        example: 'PXPUSDT'
+    limit:
+      name: limit
+      in: query
+      description: Default 500; max 1000.
+      schema:
+        type: integer
+        format: int32
+        example: 500
+  schemas:
+    trade:
+      type: object
+      properties:
+        id:
+          type: string
+        price:
+          type: number
+          format: double
+        qty:
+          type: number
+          format: double
+        quoteQty:
+          type: number
+          format: double
+        time:
+          type: integer
+          format: int64
+          description: Trade executed timestamp, as same as `T` in the stream
+          example: 1592887772684
+        isBuyerMaker:
+          type: boolean
+        isBestMatch:
+          type: boolean
+      required:
+        - id
+        - price
+        - qty
+        - quoteQty
+        - time
+        - isBuyerMaker
+        - isBestMatch
+    error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int64
+          description: Error code
+        msg:
+          type: string
+          description: Error message
+          example: "error message"
+      required:
+        - code
+        - msg
