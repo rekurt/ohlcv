@@ -134,7 +134,7 @@ func (s Service) GetMinuteCandles(
 		logger.FromContext(ctx).WithField(
 			"candleCount",
 			len(candles),
-		).WithField("err", err).Infof("Candles not found.")
+		).WithField("err", err).WithField("err", period).Infof("Candles not found.")
 		return nil, err
 	}
 	logger.FromContext(ctx).WithField(
