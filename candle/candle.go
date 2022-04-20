@@ -50,7 +50,7 @@ func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 						"market",
 						market,
 					).Infof("[CronCandleGenerationStart]Getting new candle for the market.")
-					s.PushUpdatedCandleEvent(ctx, market)
+					// s.PushUpdatedCandleEvent(ctx, market)
 				}
 			}
 		}
@@ -172,6 +172,7 @@ func (s Service) PushLastUpdatedCandle(
 	}
 
 }
+
 func (s Service) AggregateCandleToChartByInterval(
 	candles []*domain.Candle,
 	interval string,

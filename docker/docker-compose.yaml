@@ -2,7 +2,7 @@ version: '3'
 
 services:
   ohlcv-mongo:
-    image: mongo
+    image: mongo:5.0
     ports:
       - 27017:27017
     environment:

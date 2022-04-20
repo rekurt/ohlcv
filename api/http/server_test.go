@@ -19,11 +19,13 @@ func Test_Server_manual(t *testing.T) {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+
 	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
 	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableIntervals())
 
 	server := NewServer(candleService, dealService)
 	server.Start(ctx)
+
 	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)

@@ -57,19 +57,17 @@ func main() {
 					metadata map[string]string,
 					msg []byte,
 				) error {
-
 					dealMessage := matcher.Deal{}
 					if er := proto.Unmarshal(msg, &dealMessage); er != nil {
-
 						logger.FromContext(ctx).WithField(
 							"method",
 							"consumer.deals.Unmarshal",
 						).Errorf("%v", er)
 						os.Exit(1)
 					}
-
-					d, _ := dealService.SaveDeal(ctx, dealMessage)
-					candleService.PushUpdatedCandleEvent(ctx, d.Market)
+					_, _ = dealService.SaveDeal(ctx, dealMessage)
+					// d, _ := dealService.SaveDeal(ctx, dealMessage)
+					// candleService.PushUpdatedCandleEvent(ctx, d.Market)
 
 					return nil
 				},
@@ -83,7 +81,7 @@ func main() {
 		}
 	}()
 
-	candleService.CronCandleGenerationStart(ctx)
+	//	candleService.CronCandleGenerationStart(ctx)
 
 	//shutdown
 	signalCh := make(chan os.Signal)
