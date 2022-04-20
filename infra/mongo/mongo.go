@@ -73,7 +73,7 @@ func InitDealCollection(
 	_, err = coll.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
-			Keys:    bson.D{{Key: "deal_id", Value: 1}},
+			Keys:    bson.D{{Key: "dealid", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	)

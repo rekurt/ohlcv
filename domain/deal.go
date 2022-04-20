@@ -11,6 +11,6 @@ type Deal struct {
 	Volume       primitive.Decimal128 `json:"volume"`
 	Time         time.Time            `json:"time"`
 	Market       string               `json:"market"`
-	DealId       string               `json:"dealId"`
-	IsBuyerMaker bool                 `json:"isBuyerMaker"`
+	DealId       string               `json:"dealid"`
+	IsBuyerMaker bool                 `json:"isbuyermaker"`
 }
