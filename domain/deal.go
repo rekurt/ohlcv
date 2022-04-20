@@ -8,6 +8,6 @@ type Deal struct {
 	Volume       float64   `json:"volume"`
 	Time         time.Time `json:"time"`
 	Market       string    `json:"market"`
-	DealId       string    `json:"deal_id"`
-	IsBuyerMaker bool      `json:"is_buyer_maker"`
+	DealId       string    `json:"dealId"`
+	IsBuyerMaker bool      `json:"isBuyerMaker"`
 }

@@ -26,6 +26,9 @@ func main() {
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+
+	mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
