@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -32,6 +33,7 @@ func (h CandleHandler) GetCandleChart(
 	ctx := req.Context()
 
 	market := req.URL.Query().Get("market")
+	market = strings.Replace(market, "/", "_", -1)
 	resolution := req.URL.Query().Get("resolution")
 
 	candleDuration := domain.StrIntervalToDuration(resolution)
