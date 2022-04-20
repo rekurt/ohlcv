@@ -2,7 +2,7 @@ package deal
 
 import (
 	"context"
-	"strconv"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
 	"time"
 
@@ -28,13 +28,14 @@ func (s service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*domai
 		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
 		return nil, nil
 	}
-	floatVolume, _ := strconv.ParseFloat(dealMessage.Amount, 64)
-	floatPrice, _ := strconv.ParseFloat(dealMessage.Price, 64)
+
+	price, _ := primitive.ParseDecimal128(dealMessage.Price)
+	volume, _ := primitive.ParseDecimal128(dealMessage.Amount)
 
 	marketName := s.Markets[dealMessage.Market]
 	deal := &domain.Deal{
-		Price:        floatPrice,
-		Volume:       floatVolume,
+		Price:        price,
+		Volume:       volume,
 		DealId:       dealMessage.Id,
 		Market:       marketName,
 		Time:         time.Unix(0, dealMessage.CreatedAt),
