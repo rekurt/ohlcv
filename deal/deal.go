@@ -52,6 +52,8 @@ func (s service) SaveDeal(ctx context.Context, dealMessage matcher.Deal) (*domai
 }
 
 func (s service) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]domain.Deal, error) {
+	ctx, cancelFunc := context.WithTimeout(ctx, time.Second)
+	defer cancelFunc()
 	if strings.TrimSpace(symbol) == "" || limit <= 0 || limit >= 1000 {
 		logger.FromContext(ctx).Infof("Incorrect args: symbol='%s', limit=%d", symbol, limit)
 		return nil, nil
