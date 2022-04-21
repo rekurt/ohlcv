@@ -70,7 +70,7 @@ func TestSaveDeal(t *testing.T) {
 	}
 
 	candles, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetMinuteCandles(ctx, market)
-	chart5Min := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).AggregateCandleToChartByInterval(candles, domain.Candle5MInterval, 0)
+	chart5Min := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).AggregateCandleToChartByInterval(candles, market, domain.Candle5MInterval, 0)
 	//res := candles[len(candles)-1]
 	candle, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetCurrentCandle(ctx, market, domain.Candle5MInterval)
 	//assert.Equal(t, a, b, "The two words should be the same.")

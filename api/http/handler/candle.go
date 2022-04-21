@@ -71,7 +71,7 @@ func (h CandleHandler) GetCandleChart(
 
 	candles, _ := h.CandleService.GetMinuteCandles(ctx, market, from, to)
 	result := h.CandleService.AggregateCandleToChartByInterval(
-		candles, resolution, 0,
+		candles, market, resolution, 0,
 	)
 
 	marshal, err := json.Marshal(result)

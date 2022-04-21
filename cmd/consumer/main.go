@@ -1,15 +1,8 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"os/signal"
-
-	"bitbucket.org/novatechnologies/common/events/topics"
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/interfaces/matcher"
-	"google.golang.org/protobuf/proto"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -23,11 +16,11 @@ func main() {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("./config/.env")
 
-	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
+	_ = infra.NewConsumer(ctx, conf.KafkaConfig)
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 
 	dealCollection := mongo.GetCollection(
 		ctx,
@@ -43,7 +36,7 @@ func main() {
 
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
-
+/*
 	go func() {
 		err := func() error {
 			topicName := fmt.Sprintf(
@@ -82,7 +75,7 @@ func main() {
 				err.Error(),
 			).Errorf("[DealService]Failed Kafka consumer")
 		}
-	}()
+	}()*/
 
 	//	candleService.CronCandleGenerationStart(ctx)
 

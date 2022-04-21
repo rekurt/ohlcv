@@ -1,13 +1,16 @@
 package domain
 
-import "time"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
+)
 
 type Candle struct {
-	Open      float64   `json:"open"`
-	High      float64   `json:"high"`
-	Low       float64   `json:"low"`
-	Close     float64   `json:"close"`
-	Volume    float64   `json:"volume"`
+	Open      primitive.Decimal128   `json:"open"`
+	High      primitive.Decimal128   `json:"high"`
+	Low       primitive.Decimal128   `json:"low"`
+	Close     primitive.Decimal128   `json:"close"`
+	Volume    primitive.Decimal128   `json:"volume"`
 	Timestamp time.Time `json:"timestamp"`
 }
 

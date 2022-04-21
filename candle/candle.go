@@ -2,11 +2,12 @@ package candle
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"bitbucket.org/novatechnologies/ohlcv/domain"
@@ -72,7 +73,7 @@ func (s Service) GetMinuteCandles(
 		},
 		}}
 
-	if len(period) == 2 {
+	/*if len(period) == 2 {
 		from, to := period[0], period[1]
 		matchStage[0].Value = append(
 			matchStage[0].Value.(bson.D),
@@ -83,15 +84,17 @@ func (s Service) GetMinuteCandles(
 				{"$lte", primitive.NewDateTimeFromTime(to)},
 			}},
 		)
-	}
+	}*/
 
 	groupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
 			{"market", "$market"},
 			{"time", bson.D{
-				{"date", "$time"},
-				{"unit", "$minute"},
-				{"binSize", 1},
+				{" $dateTrunc", bson.D{
+					{"date", "$time"},
+					{"unit", "$minute"},
+					{"binSize", 5},
+				}},
 			}},
 		}},
 		{"high", bson.D{{"$max", "$price"}}},
@@ -107,9 +110,14 @@ func (s Service) GetMinuteCandles(
 			"_id.time", 1,
 		},
 	}}}
+
+	options := options.Aggregate()
+	adu := true
+	options.AllowDiskUse = &adu
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
 		mongo.Pipeline{matchStage, groupStage, sortStage},
+		options,
 	)
 
 	if err != nil {
@@ -120,8 +128,10 @@ func (s Service) GetMinuteCandles(
 		return nil, err
 	}
 
-	var candles []*domain.Candle
+	candles := make([]*domain.Candle, 0)
+
 	err = cursor.All(ctx, &candles)
+
 	if err != nil {
 		logger.FromContext(ctx).WithField(
 			"error",
@@ -150,7 +160,7 @@ func (s Service) GetCurrentCandle(
 	interval string,
 ) (*domain.Chart, error) {
 	cs, err := s.GetMinuteCandles(ctx, market)
-	chart := s.AggregateCandleToChartByInterval(cs, interval, 1)
+	chart := s.AggregateCandleToChartByInterval(cs, market, interval, 1)
 	chart.SetMarket(market)
 	chart.SetInterval(interval)
 
@@ -175,6 +185,7 @@ func (s Service) PushLastUpdatedCandle(
 
 func (s Service) AggregateCandleToChartByInterval(
 	candles []*domain.Candle,
+	market string,
 	interval string,
 	count int,
 ) *domain.Chart {
@@ -186,29 +197,29 @@ func (s Service) AggregateCandleToChartByInterval(
 	).Infof("[CandleService] Call AggregateCandleToChartByInterval method.")
 	switch interval {
 	case domain.Candle1MInterval:
-		chart = s.aggregateMinCandlesToChart(candles, 1, count)
+		chart = s.aggregateMinCandlesToChart(candles, market, 1, count)
 	case domain.Candle3MInterval:
-		chart = s.aggregateMinCandlesToChart(candles, 3, count)
+		chart = s.aggregateMinCandlesToChart(candles, market, 3, count)
 	case domain.Candle5MInterval:
-		chart = s.aggregateMinCandlesToChart(candles, 5, count)
+		chart = s.aggregateMinCandlesToChart(candles, market, 5, count)
 	case domain.Candle15MInterval:
-		chart = s.aggregateMinCandlesToChart(candles, 15, count)
+		chart = s.aggregateMinCandlesToChart(candles, market, 15, count)
 	case domain.Candle30MInterval:
-		chart = s.aggregateMinCandlesToChart(candles, 30, count)
+		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
 	case domain.Candle1HInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 1, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
 	case domain.Candle2HInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 2, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
 	case domain.Candle4HInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 4, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
 	case domain.Candle6HInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 6, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
 	case domain.Candle12HInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 12, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
 	case domain.Candle1DInterval:
-		chart = s.aggregateHoursCandlesToChart(candles, 24, count)
+		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
 	case domain.Candle1MHInterval:
-		chart = s.aggregateMonthCandlesToChart(candles, count)
+		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"interval",
@@ -219,11 +230,7 @@ func (s Service) AggregateCandleToChartByInterval(
 	return chart
 }
 
-func (s Service) aggregateMinCandlesToChart(
-	candles []*domain.Candle,
-	minute int,
-	count int,
-) *domain.Chart {
+func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, market string, minute int, count int, ) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -270,7 +277,8 @@ func (s Service) compare(
 		comparedCandle.Close = c.Close
 	}
 
-	if c.High < candle.High {
+	
+	if c.High.String() < candle.High {
 		comparedCandle.High = candle.High
 	}
 	if c.Low > candle.Low {
@@ -282,11 +290,7 @@ func (s Service) compare(
 	return comparedCandle
 }
 
-func (s *Service) aggregateHoursCandlesToChart(
-	candles []*domain.Candle,
-	hour int,
-	count int,
-) *domain.Chart {
+func (s *Service) aggregateHoursCandlesToChart(candles []*domain.Candle, market string, hour int, count int, ) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -311,10 +315,7 @@ func (s *Service) aggregateHoursCandlesToChart(
 	return chart
 }
 
-func (s *Service) aggregateMonthCandlesToChart(
-	candles []*domain.Candle,
-	count int,
-) *domain.Chart {
+func (s *Service) aggregateMonthCandlesToChart(candles []*domain.Candle, market string, count int, ) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var timestamp int64
@@ -352,14 +353,14 @@ func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 		T: make([]int64, 0),
 	}
 
-	for t, aggregatedCandle := range result {
-		chart.O = append(chart.O, aggregatedCandle.Open)
+	//for t, aggregatedCandle := range result {
+	/*	chart.O = append(chart.O, aggregatedCandle.Open)
 		chart.H = append(chart.H, aggregatedCandle.High)
 		chart.L = append(chart.L, aggregatedCandle.Low)
 		chart.C = append(chart.C, aggregatedCandle.Close)
-		chart.V = append(chart.V, aggregatedCandle.Volume)
-		chart.T = append(chart.T, t)
-	}
+		chart.V = append(chart.V, aggregatedCandle.Volume)*/
+	//	chart.T = append(chart.T, t)
+	//}
 
 	return chart
 }
