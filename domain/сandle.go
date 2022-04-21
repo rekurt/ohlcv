@@ -17,11 +17,11 @@ type Candle struct {
 type Chart struct {
 	market   string
 	interval string
-	O        []float64 `json:"o"`
-	H        []float64 `json:"h"`
-	L        []float64 `json:"l"`
-	C        []float64 `json:"c"`
-	V        []float64 `json:"v"`
+	O        []string `json:"o"`
+	H        []string `json:"h"`
+	L        []string `json:"l"`
+	C        []string `json:"c"`
+	V        []string `json:"v"`
 	T        []int64   `json:"t"`
 }
 

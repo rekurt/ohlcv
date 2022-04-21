@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
+	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -151,6 +152,7 @@ func (s Service) GetMinuteCandles(
 		"candleCount",
 		len(candles),
 	).Infof("Success get candles.")
+
 	return candles, err
 }
 
@@ -230,7 +232,7 @@ func (s Service) AggregateCandleToChartByInterval(
 	return chart
 }
 
-func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, market string, minute int, count int, ) *domain.Chart {
+func (s Service) aggregateMinCandlesToChart(candles []*domain.Candle, market string, minute int, count int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -277,14 +279,18 @@ func (s Service) compare(
 		comparedCandle.Close = c.Close
 	}
 
-	
-	if c.High.String() < candle.High {
+	cHight, _ := CompareDecimal128(c.High, candle.High)
+	if  cHight == -1 {
 		comparedCandle.High = candle.High
 	}
-	if c.Low > candle.Low {
+	cLow, _ := CompareDecimal128(c.Low, candle.Low)
+	if cLow == 1{
 		comparedCandle.Low = candle.Low
 	}
-	comparedCandle.Volume = c.Volume + candle.Volume
+	dv1, _ := decimal.NewFromString(c.Volume.String())
+	dv2, _ := decimal.NewFromString(candle.Volume.String())
+	resultVolume, _ :=  primitive.ParseDecimal128(dv1.Add(dv2).String())
+	comparedCandle.Volume = resultVolume
 	comparedCandle.Timestamp = candle.Timestamp
 
 	return comparedCandle
@@ -345,22 +351,22 @@ func (s *Service) aggregateMonthCandlesToChart(candles []*domain.Candle, market 
 
 func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
-		O: make([]float64, 0),
-		H: make([]float64, 0),
-		L: make([]float64, 0),
-		C: make([]float64, 0),
-		V: make([]float64, 0),
+		O: make([]string, 0),
+		H: make([]string, 0),
+		L: make([]string, 0),
+		C: make([]string, 0),
+		V: make([]string, 0),
 		T: make([]int64, 0),
 	}
 
-	//for t, aggregatedCandle := range result {
-	/*	chart.O = append(chart.O, aggregatedCandle.Open)
-		chart.H = append(chart.H, aggregatedCandle.High)
-		chart.L = append(chart.L, aggregatedCandle.Low)
-		chart.C = append(chart.C, aggregatedCandle.Close)
-		chart.V = append(chart.V, aggregatedCandle.Volume)*/
-	//	chart.T = append(chart.T, t)
-	//}
+	for t, aggregatedCandle := range result {
+		chart.O = append(chart.O, aggregatedCandle.Open.String())
+		chart.H = append(chart.H, aggregatedCandle.High.String())
+		chart.L = append(chart.L, aggregatedCandle.Low.String())
+		chart.C = append(chart.C, aggregatedCandle.Close.String())
+		chart.V = append(chart.V, aggregatedCandle.Volume.String())
+		chart.T = append(chart.T, t)
+	}
 
 	return chart
 }
@@ -368,5 +374,42 @@ func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 func (s *Service) PushUpdatedCandleEvent(ctx context.Context, market string) {
 	for _, interval := range s.AvailableIntervals {
 		s.PushLastUpdatedCandle(ctx, market, interval)
+	}
+}
+
+func CompareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
+	b1, exp1, err := d1.BigInt()
+	if err != nil {
+		return 0, err
+	}
+	b2, exp2, err := d2.BigInt()
+	if err != nil {
+		return 0, err
+	}
+
+	sign := b1.Sign()
+	if sign != b2.Sign() {
+		if b1.Sign() > 0 {
+			return 1, nil
+		} else {
+			return -1, nil
+		}
+	}
+
+	if exp1 == exp2 {
+		return b1.Cmp(b2), nil
+	}
+
+	if sign < 0 {
+		if exp1 < exp2 {
+			return 1, nil
+		}
+		return -1, nil
+	} else {
+		if exp1 < exp2 {
+			return -1, nil
+		}
+
+		return 1, nil
 	}
 }

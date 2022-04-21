@@ -53,6 +53,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
 	github.com/segmentio/encoding v0.2.19 // indirect
 	github.com/segmentio/kafka-go v0.4.19 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/twitchtv/twirp v8.1.1+incompatible // indirect
 	github.com/uber/jaeger-client-go v2.29.1+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
