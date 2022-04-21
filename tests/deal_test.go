@@ -1,6 +1,12 @@
 package tests
 
 import (
+	"log"
+	"os"
+	"os/signal"
+	"testing"
+	"time"
+
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -8,16 +14,13 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
-	"log"
-	"os"
-	"os/signal"
-	"testing"
-	"time"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSaveDeal(t *testing.T) {
 	ctx := infra.GetContext()
-	conf := infra.SetConfig(ctx, "../config/.env")
+	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
@@ -67,7 +70,7 @@ func TestSaveDeal(t *testing.T) {
 	}
 
 	candles, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetMinuteCandles(ctx, market)
-	chart5Min := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).AggregateCandleToChartByInterval(candles, domain.Candle5MInterval, 0)
+	chart5Min := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).AggregateCandleToChartByInterval(candles, market, domain.Candle5MInterval, 0)
 	//res := candles[len(candles)-1]
 	candle, _ := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals()).GetCurrentCandle(ctx, market, domain.Candle5MInterval)
 	//assert.Equal(t, a, b, "The two words should be the same.")
@@ -76,16 +79,17 @@ func TestSaveDeal(t *testing.T) {
 
 func TestDealGenerator(t *testing.T) {
 	ctx := infra.GetContext()
-	conf := infra.SetConfig(ctx, "../config/.env")
+	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
 	candleService := candle.NewService(dealCollection, getTestMarkets(), domain.GetAvailableIntervals())
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService)
+	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
 	//shutdown
@@ -97,6 +101,22 @@ func TestDealGenerator(t *testing.T) {
 
 func getTestMarkets() map[string]string {
 	return map[string]string{
-		"BTC-USDT":"BTC-USDT",
+		"BTC-USDT": "BTC-USDT",
+	}
+}
+
+func Test_GetLastTrades(t *testing.T) {
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealService := deal.NewService(dealCollection, getTestMarkets())
+	trades, err := dealService.GetLastTrades(ctx, "ETH_LTC", 10)
+	require.NoError(t, err)
+	assert.Len(t, trades, 10)
+	for _, tr := range trades {
+		assert.Equal(t, "ETH_LTC", tr.Market)
 	}
 }
