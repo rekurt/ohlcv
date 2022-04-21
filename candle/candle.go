@@ -94,7 +94,7 @@ func (s Service) GetMinuteCandles(
 				{" $dateTrunc", bson.D{
 					{"date", "$time"},
 					{"unit", "$minute"},
-					{"binSize", 5},
+					{"binSize", 1},
 				}},
 			}},
 		}},
