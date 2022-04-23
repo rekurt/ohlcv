@@ -58,6 +58,7 @@ func (h CandleHandler) GetCandleChart(
 		int64(toUnix),
 		0,
 	).Add(candleDuration).Truncate(candleDuration)
+
 	if to.Sub(from) < 0 || to.Sub(from) > 24*364*5*time.Hour {
 		illegalUnixTimestamp(
 			fmt.Errorf(
@@ -67,6 +68,7 @@ func (h CandleHandler) GetCandleChart(
 	}
 
 	candles, _ := h.CandleService.GetMinuteCandles(ctx, market, from, to)
+
 	result := h.CandleService.AggregateCandleToChartByInterval(
 		candles, market, resolution, 10,
 	)
