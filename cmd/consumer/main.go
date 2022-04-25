@@ -25,8 +25,6 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
@@ -65,10 +63,11 @@ func main() {
 						).Errorf("%v", er)
 						os.Exit(1)
 					}
-					_, _ = dealService.SaveDeal(ctx, dealMessage)
-					// d, _ := dealService.SaveDeal(ctx, dealMessage)
-					// candleService.PushUpdatedCandleEvent(ctx, d.Market)
-
+					//_, _ = dealService.SaveDeal(ctx, dealMessage)
+					 d, _ := dealService.SaveDeal(ctx, dealMessage)
+					if d != nil {
+						candleService.PushUpdatedCandleEvent(ctx, d.Market)
+					}
 					return nil
 				},
 			)

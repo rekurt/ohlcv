@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"github.com/centrifugal/centrifuge-go"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 	"os"
@@ -43,16 +44,27 @@ func TestCentrifuge(t *testing.T) {
 	}
 
 	pubText := func(text string) error {
-		msg := &domain.Candle{
-			Open:      12,
-			High:      34,
-			Low:       8,
-			Close:     41,
-			Volume:    0,
-			Timestamp: time.Time{},
+		o, _ := primitive.ParseDecimal128("12")
+		h, _ := primitive.ParseDecimal128("34")
+		l, _ := primitive.ParseDecimal128("8")
+		cl, _ := primitive.ParseDecimal128("41")
+		v, _ := primitive.ParseDecimal128("500")
+
+		type message struct {
+			Input *domain.Candle `json:"input"`
 		}
+		var msg = message{Input:&domain.Candle{
+			Open:      o,
+			High:      h,
+			Low:       l,
+			Close:     cl,
+			Volume:    v,
+			Timestamp: time.Time{},
+		}}
 		data, _ := json.Marshal(msg)
-		_, err := sub.Publish(data)
+
+		_, err = sub.Publish(data)
+
 		return err
 	}
 
@@ -71,10 +83,10 @@ func TestCentrifuge(t *testing.T) {
 		for {
 			text, _ := reader.ReadString('\n')
 			println(text)
-			//err := pubText(text)
-			/*if err != nil {
+			err := pubText(text)
+			if err != nil {
 				log.Printf("Error publish: %s", err)
-			}*/
+			}
 		}
 	}(sub)
 

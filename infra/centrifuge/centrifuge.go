@@ -77,8 +77,7 @@ func NewClient(handler *eventHandler, config infra.CentrifugeConfig) *centrifuge
 	wsURL := fmt.Sprintf("ws://%s/connection/websocket", config.Host)
 	c := centrifuge.NewJsonClient(wsURL, centrifuge.DefaultConfig())
 
-	// Uncomment to make it work with Centrifugo and its JWT auth.
-	//c.SetToken(connToken("49", 0))
+	c.SetToken(config.Token)
 
 	c.OnConnect(handler)
 	c.OnDisconnect(handler)

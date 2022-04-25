@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
@@ -68,24 +69,17 @@ func (s Service) GetMinuteCandles(
 		"market",
 		market,
 	).Infof("[CandleService] Call GetMinuteCandles")
+	from, to := period[0], period[1]
+
 	matchStage := bson.D{
 		{"$match", bson.D{
 			{"market", market},
-		},
-		}}
-
-	/*if len(period) == 2 {
-		from, to := period[0], period[1]
-		matchStage[0].Value = append(
-			matchStage[0].Value.(bson.D),
-			bson.E{Key: "time", Value: bson.D{
-				{"$gte", primitive.NewDateTimeFromTime(from)},
+			{"time", bson.D{
+				{"$gt", primitive.NewDateTimeFromTime(from)},
+				{"$lt", primitive.NewDateTimeFromTime(to)},
 			}},
-			bson.E{Key: "time", Value: bson.D{
-				{"$lte", primitive.NewDateTimeFromTime(to)},
-			}},
-		)
-	}*/
+		}},
+	}
 
 	groupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
@@ -129,9 +123,11 @@ func (s Service) GetMinuteCandles(
 		return nil, err
 	}
 
+	_ = make([]*domain.Deal, 0)
 	candles := make([]*domain.Candle, 0)
 
 	err = cursor.All(ctx, &candles)
+	log.Print(candles)
 
 	if err != nil {
 		logger.FromContext(ctx).WithField(
@@ -161,7 +157,11 @@ func (s Service) GetCurrentCandle(
 	market string,
 	interval string,
 ) (*domain.Chart, error) {
-	cs, err := s.GetMinuteCandles(ctx, market)
+	candleDuration := domain.StrIntervalToDuration(interval)
+	from := time.Now().Add(-candleDuration).Truncate(candleDuration)
+	to := time.Now()
+
+	cs, err := s.GetMinuteCandles(ctx, market, from, to)
 	chart := s.AggregateCandleToChartByInterval(cs, market, interval, 1)
 	chart.SetMarket(market)
 	chart.SetInterval(interval)
@@ -189,7 +189,7 @@ func (s Service) AggregateCandleToChartByInterval(
 	candles []*domain.Candle,
 	market string,
 	interval string,
-	count int,
+	count int, //is not used. 0 for unlimit request
 ) *domain.Chart {
 	var chart *domain.Chart
 
