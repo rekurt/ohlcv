@@ -26,7 +26,7 @@ type MongoDbConfig struct {
 
 type CentrifugeConfig struct {
 	Host  string `envconfig:"CENTRIFUGE_HOST" required:"true"`
-	Token string `envconfig:"CENTRIFUGE_TOKEN" required:"true"`
+	Token string `envconfig:"CENTRIFUGE_TOKEN" required:"true" default:"token"`
 }
 
 type Config struct {

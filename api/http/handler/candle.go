@@ -33,7 +33,7 @@ func (h CandleHandler) GetCandleChart(
 	ctx := req.Context()
 
 	market := req.URL.Query().Get("market")
-	market = strings.Replace(market, "%2F", "_", -1)
+	market = strings.Replace(market, "/", "_", -1)
 
 	resolution := req.URL.Query().Get("resolution")
 
