@@ -20,6 +20,9 @@ func (s Agregator) AggregateCandleToChartByResolution(
 ) *domain.Chart {
 	var chart *domain.Chart
 
+	if candles == nil {
+		return &domain.Chart{}
+	}
 	logger.FromContext(context.Background()).WithField(
 		"resolution",
 		resolution,
@@ -238,4 +241,73 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 
 		return 1, nil
 	}
+}
+
+func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
+	now := time.Now()
+	var ts int64
+	logger.FromContext(context.Background()).WithField(
+		"resolution",
+		resolution,
+	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
+	switch resolution {
+	case domain.Candle1MResolution:
+		ts = getStartMinuteTs(now, 1)
+	case domain.Candle3MResolution:
+		ts = getStartMinuteTs(now, 3)
+	case domain.Candle5MResolution:
+		ts = getStartMinuteTs(now, 5)
+	case domain.Candle15MResolution:
+		ts = getStartMinuteTs(now, 15)
+	case domain.Candle30MResolution:
+		ts = getStartMinuteTs(now, 30)
+	case domain.Candle1HResolution:
+		ts = getStartHourTs(now, 1)
+	case domain.Candle2HResolution:
+		ts = getStartHourTs(now, 2)
+	case domain.Candle4HResolution:
+		ts = getStartHourTs(now, 4)
+	case domain.Candle6HResolution:
+		ts = getStartHourTs(now, 6)
+	case domain.Candle12HResolution:
+		ts = getStartHourTs(now, 12)
+	case domain.Candle1DResolution:
+		ts = getStartHourTs(now, 24)
+	case domain.Candle1MHResolution:
+		ts = getStartMonthTs(now, 1)
+	default:
+		logger.FromContext(context.Background()).WithField(
+			"resolution",
+			resolution,
+		).Errorf("Unsupported resolution.")
+	}
+
+	return ts
+}
+
+func getStartMinuteTs(candleTime time.Time, minute int) int64 {
+	currentTs := candleTime.Add(time.Duration(candleTime.Minute()%minute) * -time.Minute).Truncate(time.Minute).Unix()
+
+	return currentTs
+}
+
+func getStartHourTs(candleTime time.Time, h int) int64 {
+	currentTs := candleTime.Add(time.Duration(candleTime.Hour()%h) * -time.Hour).Truncate(time.Hour).Unix()
+
+	return currentTs
+}
+
+func getStartMonthTs(candleTime time.Time, m int) int64 {
+	currentTs := time.Date(
+		candleTime.Year(),
+		candleTime.Month(),
+		1,
+		0,
+		0,
+		0,
+		0,
+		time.Local,
+	).Unix()
+
+	return currentTs
 }

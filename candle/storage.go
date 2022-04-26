@@ -36,16 +36,25 @@ func (s Storage) GetMinuteCandles(
 		}},
 	}
 
-	groupStage := bson.D{{"$group", bson.D{
-		{"_id", bson.D{
-			{"market", "$market"},
+	projectStage := bson.D{
+		{"$project", bson.D{
 			{"time", bson.D{
-				{" $dateTrunc", bson.D{
+				{"$dateTrunc", bson.D{
 					{"date", "$time"},
 					{"unit", "$minute"},
 					{"binSize", 1},
 				}},
 			}},
+			{"price", "$price"},
+			{"volume", "$volume"},
+			{"market", "$market"},
+		}},
+	}
+
+	groupStage := bson.D{{"$group", bson.D{
+		{"_id", bson.D{
+			{"market", "$market"},
+			{"time", "$time"},
 		}},
 		{"high", bson.D{{"$max", "$price"}}},
 		{"low", bson.D{{"$min", "$price"}}},
@@ -66,7 +75,7 @@ func (s Storage) GetMinuteCandles(
 	options.AllowDiskUse = &adu
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, groupStage, sortStage},
+		mongo.Pipeline{matchStage,projectStage, groupStage, sortStage},
 		options,
 	)
 

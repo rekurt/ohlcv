@@ -45,3 +45,18 @@ func generateCandle(o string, h string, l string, cl string, v string, ts int64)
 		Timestamp: ts1,
 	}
 }
+
+func  TestService_getMinuteCurrentTs(t *testing.T)  {
+	tm := time.Unix(1650964257, 0)
+	startMinuteTs := getStartMinuteTs(tm, 3)
+	resultMinuteTime := time.Unix(startMinuteTs, 0)
+	println(resultMinuteTime.Format("RFC850"))
+
+	startHourTs := getStartHourTs(tm, 3)
+	resultHourTime := time.Unix(startHourTs, 0)
+	println(resultHourTime.Format("RFC850"))
+
+	startMonthTs := getStartMonthTs(tm, 3)
+	resultMonthTime := time.Unix(startMonthTs, 0)
+	println(resultMonthTime.Format("RFC850"))
+}

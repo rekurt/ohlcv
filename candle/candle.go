@@ -46,8 +46,7 @@ func (s Service) GetCurrentCandle(
 	market string,
 	resolutions string,
 ) (*domain.Chart, error) {
-	candleDuration := domain.StrResolutionToDuration(resolutions)
-	from := time.Now().Add(-candleDuration).Truncate(candleDuration)
+	from := time.Unix(s.Aggregator.GetCurrentResolutionStartTimestamp(resolutions), 0)
 	to := time.Now()
 	cs, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
 	chart := s.Aggregator.AggregateCandleToChartByResolution(cs, market, resolutions, 1)
