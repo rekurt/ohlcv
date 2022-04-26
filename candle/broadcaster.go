@@ -22,7 +22,7 @@ func (b broadcaster) BroadcastCandleCharts(ctx context.Context, cht []*domain.Ch
 	messages := make([]centrifuge.MessageData, len(cht))
 
 	for _, chart := range cht {
-		logger.FromContext(ctx).WithField("marketId", chart.Market()).Infof("[Broadcaster.BroadcastCandleCharts]Broadcasting charts")
+		logger.FromContext(ctx).WithField("market", chart.Market()).WithField("reolution", chart.Resolution()).Infof("[Broadcaster.BroadcastCandleCharts]Broadcasting charts")
 
 		channel := b.Channels[chart.Market()][chart.Resolution()]
 		payload, _ := json.Marshal(cht)
