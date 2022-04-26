@@ -32,6 +32,8 @@ pipelines:
             - export APP_ENV=production
             # Set services hostnames
 
+            - export CENTRIFUGE_HOST=$CENTRIFUGE_HOST
+            - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$MONGODB_HOST
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
@@ -113,6 +115,8 @@ pipelines:
             - export APP_ENV=staging
             # Set services hostnames
 
+            - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
+            - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
@@ -163,6 +167,8 @@ pipelines:
             - export APP_ENV=staging
             # Set services hostnames
 
+            - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
+            - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
