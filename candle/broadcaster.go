@@ -19,19 +19,20 @@ func NewBroadcaster(centrifuge centrifuge.Centrifuge, channels map[string]map[st
 }
 
 func (b broadcaster) BroadcastCandleCharts(ctx context.Context, cht []*domain.Chart) {
-	messages := make([]centrifuge.MessageData, len(cht))
+	messages := make([]centrifuge.MessageData, 0)
 
 	for _, chart := range cht {
-		logger.FromContext(ctx).WithField("market", chart.Market()).WithField("reolution", chart.Resolution()).Infof("[Broadcaster.BroadcastCandleCharts]Broadcasting charts")
+		logger.FromContext(ctx).WithField("market", chart.Market()).WithField("reolution", chart.Resolution()).Infof("[Broadcaster.BroadcastCandleCharts]Broadcasting charts.")
 
 		channel := b.Channels[chart.Market()][chart.Resolution()]
-		payload, _ := json.Marshal(cht)
+		payload, _ := json.Marshal(chart)
 		messages = append(messages, centrifuge.MessageData{
 			Channel: channel.Name,
 			Data:    string(payload),
 		})
 	}
 
+	logger.FromContext(ctx).WithField("messageCount", len(messages)).Infof("[Broadcaster.BroadcastCandleCharts]Push charts to centrifuge.")
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 

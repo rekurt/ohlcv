@@ -12,7 +12,7 @@ import (
 )
 
 type Storage struct {
-	DealsDbCollection  *mongo.Collection
+	DealsDbCollection *mongo.Collection
 }
 
 func (s Storage) GetMinuteCandles(
@@ -41,7 +41,7 @@ func (s Storage) GetMinuteCandles(
 			{"time", bson.D{
 				{"$dateTrunc", bson.D{
 					{"date", "$time"},
-					{"unit", "$minute"},
+					{"unit", "minute"},
 					{"binSize", 1},
 				}},
 			}},
@@ -75,7 +75,7 @@ func (s Storage) GetMinuteCandles(
 	options.AllowDiskUse = &adu
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage,projectStage, groupStage, sortStage},
+		mongo.Pipeline{matchStage, projectStage, groupStage, sortStage},
 		options,
 	)
 
@@ -87,7 +87,6 @@ func (s Storage) GetMinuteCandles(
 		return nil, err
 	}
 
-	_ = make([]*domain.Deal, 0)
 	candles := make([]*domain.Candle, 0)
 
 	err = cursor.All(ctx, &candles)
