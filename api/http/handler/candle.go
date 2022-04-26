@@ -14,13 +14,12 @@ import (
 
 type CandleHandler struct {
 	CandleService *candle.Service
-	Broadcaster   domain.Broadcaster
 }
 
 const defaultDuration = 5 * time.Minute
 
-func NewCandleHandler(candleService *candle.Service, broadcaster domain.Broadcaster) *CandleHandler {
-	return &CandleHandler{candleService, broadcaster}
+func NewCandleHandler(candleService *candle.Service) *CandleHandler {
+	return &CandleHandler{candleService}
 }
 
 func (h CandleHandler) GetCandleChart(

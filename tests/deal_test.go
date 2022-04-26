@@ -99,7 +99,7 @@ func TestDealGenerator(t *testing.T) {
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, nil)
 	server.Start(ctx)
 
 	//shutdown

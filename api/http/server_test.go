@@ -23,7 +23,7 @@ func Test_Server_manual(t *testing.T) {
 	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
 	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableResolutions())
 
-	server := NewServer(candleService, dealService)
+	server := NewServer(candleService, dealService, nil)
 	server.Start(ctx)
 
 	//shutdown
