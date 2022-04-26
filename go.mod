@@ -22,6 +22,8 @@ require (
 	github.com/Shopify/sarama v1.26.0 // indirect
 	github.com/ThreeDotsLabs/watermill v1.1.1 // indirect
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.1 // indirect
+	github.com/centrifugal/gocent v2.2.0+incompatible // indirect
+	github.com/centrifugal/gocent/v3 v3.2.0 // indirect
 	github.com/centrifugal/protocol v0.7.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect

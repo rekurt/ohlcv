@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 	"context"
 	"fmt"
@@ -25,18 +26,21 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
+
+	centrifugeClient := centrifuge.New(conf.CentrifugeConfig)
+	broadcaster := candle.NewBroadcaster(centrifugeClient, candle.GetChartsChannels())
 	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
 	candleService := candle.NewService(
-		dealCollection,
+		&candle.Storage{DealsDbCollection: dealCollection},
+		&candle.Agregator{},
+		broadcaster,
 		domain.GetAvailableMarkets(),
-		domain.GetAvailableIntervals(),
+		domain.GetAvailableResolutions(),
 	)
 
 	server := http.NewServer(candleService, dealService)
@@ -65,10 +69,10 @@ func main() {
 						).Errorf("%v", er)
 						os.Exit(1)
 					}
-					_, _ = dealService.SaveDeal(ctx, dealMessage)
-					// d, _ := dealService.SaveDeal(ctx, dealMessage)
-					// candleService.PushUpdatedCandleEvent(ctx, d.Market)
-
+					 d, _ := dealService.SaveDeal(ctx, dealMessage)
+					if d != nil {
+						candleService.PushUpdatedCurrentCharts(ctx, d.Market)
+					}
 					return nil
 				},
 			)
