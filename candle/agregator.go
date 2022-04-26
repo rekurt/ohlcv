@@ -142,7 +142,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, marke
 		min = int(int64(candle.Timestamp.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
