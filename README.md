@@ -4,4 +4,4 @@ PointPay.io Exchange OHLCV data service
 
 ```bash
 go mod tidy -v
-go build -tags=jsoniter -a -o ./bin/ohlcv cmd/main.go
+go build -tags=jsoniter -a -o ./bin/ohlcv cmd/consumer/main.go
