@@ -21,7 +21,7 @@ func Test_Server_manual(t *testing.T) {
 	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 
 	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
-	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableIntervals())
+	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableResolutions())
 
 	server := NewServer(candleService, dealService)
 	server.Start(ctx)
