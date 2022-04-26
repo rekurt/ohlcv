@@ -49,7 +49,6 @@ func (s Service) GetCurrentCandle(
 	candleDuration := domain.StrResolutionToDuration(resolutions)
 	from := time.Now().Add(-candleDuration).Truncate(candleDuration)
 	to := time.Now()
-
 	cs, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
 	chart := s.Aggregator.AggregateCandleToChartByResolution(cs, market, resolutions, 1)
 	chart.SetMarket(market)
@@ -59,7 +58,7 @@ func (s Service) GetCurrentCandle(
 }
 
 func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
-	chts := make([]*domain.Chart, len(s.AvailableResolutions))
+	chts := make([]*domain.Chart, 0)
 	for _, resolution := range s.AvailableResolutions {
 		logger.FromContext(context.Background()).
 			WithField("resolution", resolution).
