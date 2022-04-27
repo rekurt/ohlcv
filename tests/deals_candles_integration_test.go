@@ -13,7 +13,7 @@ import (
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
-	cfge "github.com/centrifugal/centrifuge-go"
+	"github.com/centrifugal/centrifuge-go"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
@@ -23,12 +23,13 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	mg "go.mongodb.org/mongo-driver/mongo"
 
+	cfgo "bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
+
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
-	cfgo "bitbucket.org/novatechnologies/ohlcv/infra/centrifugo"
-	"bitbucket.org/novatechnologies/ohlcv/infra/inmemo"
+	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -118,23 +119,23 @@ func mongoWait(conf infra.MongoDbConfig) waitStrategy {
 }
 
 type wsPublishHandler struct {
-	outCh chan cfge.ServerPublishEvent
+	outCh chan centrifuge.ServerPublishEvent
 }
 
 func newWSPublishHandler() wsPublishHandler {
 	return wsPublishHandler{
-		outCh: make(chan cfge.ServerPublishEvent),
+		outCh: make(chan centrifuge.ServerPublishEvent),
 	}
 }
 
 func (h wsPublishHandler) OnServerPublish(
-	_ *cfge.Client,
-	pubEvent cfge.ServerPublishEvent,
+	_ *centrifuge.Client,
+	pubEvent centrifuge.ServerPublishEvent,
 ) {
 	h.outCh <- pubEvent
 }
 
-func (h wsPublishHandler) OnDisconnect(_ *cfge.Client, _ cfge.DisconnectEvent) {
+func (h wsPublishHandler) OnDisconnect(_ *centrifuge.Client, _ centrifuge.DisconnectEvent) {
 	close(h.outCh)
 }
 
@@ -142,7 +143,7 @@ func (h wsPublishHandler) OnDisconnect(_ *cfge.Client, _ cfge.DisconnectEvent) {
 // then empty zero-value event struct returning with false bool flag.
 // If timeout is not specified ( less than zero) than it's interpreted as infinite.
 func (h wsPublishHandler) GetPublishEvent(timeout time.Duration) (
-	cfge.ServerPublishEvent, bool,
+	centrifuge.ServerPublishEvent, bool,
 ) {
 	if timeout < 0 {
 		timeout = math.MaxInt64
@@ -152,11 +153,11 @@ func (h wsPublishHandler) GetPublishEvent(timeout time.Duration) (
 	case msg, ok := <-h.outCh:
 		// Channel has been closed (possible disconnect from the WS server).
 		if !ok {
-			return cfge.ServerPublishEvent{}, false
+			return centrifuge.ServerPublishEvent{}, false
 		}
 		return msg, true
 	case <-time.After(timeout):
-		return cfge.ServerPublishEvent{}, false
+		return centrifuge.ServerPublishEvent{}, false
 	}
 }
 
@@ -176,8 +177,8 @@ type candlesIntegrationTestSuite struct {
 	dealsTopic string
 	candles    *candle.Service
 
-	wsPub            *cfgo.ApiClient
-	wsSub            *cfge.Client
+	wsPub            cfgo.Centrifuge
+	wsSub            *centrifuge.Client
 	wsPublishHandler wsPublishHandler
 }
 
@@ -201,7 +202,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	suite.dealsCollection = dealsCollection
 
 	// Internal bus setup
-	marketDataBus := inmemo.NewInMemory()
+	marketDataBus := broker.NewInMemory()
 
 	// Deals service setup
 	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
@@ -215,12 +216,12 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	suite.candles = candle.NewService(
 		dealsCollection,
 		domain.GetAvailableMarkets(),
-		domain.GetAvailableIntervals(),
+		domain.GetAvailableResolutions(),
 		marketDataBus,
 	)
 
 	// WS publisher of the market data setup
-	suite.wsPub, err = cfgo.NewAPIClient(
+	suite.wsPub, err = cfgo.New(
 		conf.CentrifugoClientConfig,
 		marketDataBus,
 	)
@@ -229,7 +230,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	}
 
 	// WS subscriber setup for the correctness check
-	suite.wsSub, err = cfgo.NewWSClient(conf.CentrifugoClientConfig)
+	suite.wsSub, err = cfgo.NewClient(conf.CentrifugoClientConfig)
 	if err != nil {
 		return err
 	}

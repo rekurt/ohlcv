@@ -1,4 +1,4 @@
-package inmemo
+package broker
 
 import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
@@ -6,30 +6,33 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-var _ domain.EventManager = new(InMemory)
+var _ domain.EventsBroker = new(EventsInMemory)
 
-// InMemory is in-memory manager which stores subscribtions and run
+// EventsInMemory is in-memory manager which stores subscribtions and run
 // handlers as separate goroutines.
 // It's thread unsafe cause of supposed timing of read/write ops while it'll
 // be using.
-type InMemory struct {
+type EventsInMemory struct {
 	log         logger.Logger
 	subscribers map[domain.EventType][]domain.EventHandler
 }
 
-func NewInMemory() *InMemory {
-	return &InMemory{
+func NewInMemory() *EventsInMemory {
+	return &EventsInMemory{
 		log:         logger.DefaultLogger,
 		subscribers: make(map[domain.EventType][]domain.EventHandler),
 	}
 }
 
-func (ps *InMemory) WithLogger(lg logger.Logger) *InMemory {
+func (ps *EventsInMemory) WithLogger(lg logger.Logger) *EventsInMemory {
 	ps.log = lg
 	return ps
 }
 
-func (ps *InMemory) Subscribe(tp domain.EventType, h domain.EventHandler) {
+func (ps *EventsInMemory) Subscribe(
+	tp domain.EventType,
+	h domain.EventHandler,
+) {
 	if tp == "" && h == nil {
 		return
 	}
@@ -37,7 +40,7 @@ func (ps *InMemory) Subscribe(tp domain.EventType, h domain.EventHandler) {
 	ps.subscribers[tp] = append(ps.subscribers[tp], h)
 }
 
-func (ps *InMemory) Publish(tp domain.EventType, ev *domain.Event) {
+func (ps *EventsInMemory) Publish(tp domain.EventType, ev *domain.Event) {
 	for _, handler := range ps.subscribers[tp] {
 		currHandler := handler
 

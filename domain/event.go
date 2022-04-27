@@ -5,16 +5,16 @@ import "context"
 type EventType = string
 
 const (
-	ETypeTrades = "trades"
-	ETypeCharts = "charts"
+	EvTypeDeals  = "trades"
+	EvTypeCharts = "charts"
 )
 
 type EventHandler = func(m *Event) error
 
-// EventManager describes abstract pub-sub messaging system for internal events
+// EventsBroker describes abstract pub-sub messaging system for internal events
 // among components. Each event can contain payload and meta info, so they can
 // be used not for notification purposes only.
-type EventManager interface {
+type EventsBroker interface {
 	Subscribe(tp EventType, h EventHandler)
 	Publish(tp EventType, data *Event)
 }
@@ -28,13 +28,13 @@ type (
 	}
 )
 
-func NewEvent(ctx context.Context, payload interface{}) *Event {
+func NewEvent(ctx context.Context, payloadItems interface{}) *Event {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	return &Event{
-		payload: payload,
+		payload: payloadItems,
 		Ctx:     ctx,
 		meta:    nil,
 	}
@@ -70,12 +70,12 @@ func (m *Event) GetMeta(key string) string {
 	return m.meta[key]
 }
 
-func (m *Event) MustGetChart() Chart {
-	return m.payload.(Chart)
+func (m *Event) MustGetCharts() []*Chart {
+	return m.payload.([]*Chart)
 }
 
-func (m *Event) MustGetDeal() Deal {
-	return m.payload.(Deal)
+func (m *Event) MustGetDeals() []*Deal {
+	return m.payload.([]*Deal)
 }
 
 func (m *Event) Payload() interface{} {

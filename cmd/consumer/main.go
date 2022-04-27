@@ -11,14 +11,8 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
-	"bitbucket.org/novatechnologies/ohlcv/infra/inmemo"
+	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
-	"context"
-	"fmt"
-	"google.golang.org/protobuf/proto"
-	"os"
-	"os/signal"
 )
 
 func main() {
@@ -26,7 +20,7 @@ func main() {
 	conf := infra.SetConfig("./config/.env")
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
-	marketDataBus := inmemo.NewInMemory()
+	marketDataBus := broker.NewInMemory()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
@@ -45,7 +39,7 @@ func main() {
 	candleService := candle.NewService(
 		dealCollection,
 		domain.GetAvailableMarkets(),
-		domain.GetAvailableIntervals(),
+		domain.GetAvailableResolutions(),
 		marketDataBus,
 	)
 
@@ -57,6 +51,7 @@ func main() {
 	go dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService.CronCandleGenerationStart(ctx)
+	candleService.SubscribeForDeals()
 
 	//shutdown
 	signalCh := make(chan os.Signal)

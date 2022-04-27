@@ -26,13 +26,13 @@ func TopicName(prefix string) string {
 type Service struct {
 	DbCollection *mongo.Collection
 	Markets      map[string]string
-	eventManager domain.EventManager
+	eventManager domain.EventsBroker
 }
 
 func NewService(
 	dbCollection *mongo.Collection,
 	markets map[string]string,
-	eventPublisher domain.EventManager,
+	eventPublisher domain.EventsBroker,
 ) *Service {
 	return &Service{
 		DbCollection: dbCollection,
@@ -79,7 +79,7 @@ func (s Service) SaveDeal(
 		return nil, err
 	}
 
-	go s.eventManager.Publish(domain.ETypeTrades, domain.NewEvent(ctx, deal))
+	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deal))
 
 	return deal, nil
 }
@@ -154,7 +154,7 @@ func (s Service) consumeUntilErrorAppears(
 				return errors.Wrapf(err, "while saving deal %v into DB", deal)
 			} else {
 				s.eventManager.Publish(
-					domain.ETypeTrades,
+					domain.EvTypeDeals,
 					domain.NewEvent(ctx, deal),
 				)
 			}
@@ -169,13 +169,16 @@ func (s Service) RunConsuming(
 	consumer pubsub.Subscriber,
 	topic string,
 ) {
-	for {
-		err := s.consumeUntilErrorAppears(ctx, consumer, topic)
-		if err != nil {
+	go func() {
+		for {
+			err := s.consumeUntilErrorAppears(ctx, consumer, topic)
+			if err == nil {
+				continue
+			}
 			logger.FromContext(ctx).
 				WithField("err", err).
 				WithField("svc", "DealsService").
 				Errorf("Consuming session was finished with error")
 		}
-	}
+	}()
 }
