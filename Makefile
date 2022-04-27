@@ -4,11 +4,13 @@ $(shell cp -u config/example.env config/.env)
 -include config/.env
 export
 
-REGISTRY          ?= bitbucket.org/novatechnologies
+REGISTRY          = bitbucket.org/novatechnologies
 CGO_ENABLED       ?= 0
 GO                =  go
-DOCKER_DIR        =  docker
-BIN_DIR	          ?= ${BIN_DIR:-$(PWD)/bin}## path for the build binaries and 3rd party tools
+DOCKER_DIR        =  docker## docker dir (for compose and Dockerfile)
+COMPOSE_PROFILES  ?= $(shell echo ${DCP-db,broker,ws})## docker-compose profiles
+SCRIPTS_DIR       ?= $(PWD)/scripts## path to the shell scripts-helpers
+BIN_DIR	          ?= $(PWD)/bin## path for the build binaries and 3rd party tools
 CFG_FILE          ?= $(PWD)/config/.env## path for configuration files
 ALL_SERVICES      ?= $(shell basename -s .docker-compose.yml docker/*.docker-compose.yml)
 ALL_COMPOSE_FILES ?= $(addprefix -f ,$(shell ls $(DOCKER_DIR)/*.docker-compose.yml))
@@ -34,23 +36,38 @@ ifeq ($(SVC_NAME),)
 	SVC_NAME := $(ROOT_DIR_NAME)
 endif
 
-export PROJECT_ROOT := $(PWD)
-export GOOS         := $(OSFLAG)
-export CGO_ENABLED  := $(CGO_ENABLED)
-export GOBIN        := $(BIN_DIR)
-export PATH         := $(GOBIN):$(PATH)
-export GO111MODULE  := on
+export CFG_FILE          := $(PWD)/config/.env
+export PROJECT_ROOT 	 := $(PWD)
+export GOOS         	 := $(OSFLAG)
+export CGO_ENABLED  	 := $(CGO_ENABLED)
+export GOBIN        	 := $(PWD)/$(BIN_DIR)
+export PATH         	 := $(GOBIN):$(PATH)
+export GO111MODULE  	 := on
 
 # TODO: docs gen
 .PHONY: init
 init:
-	@mkdir -p $(BIN_DIR)
-	@($(MAKE) install-tools)
+	@($(info $(M) installing tools into $(BIN_DIR))\
+	mkdir -p $(BIN_DIR)\
+	$(MAKE) install-tools)
 
-	@ln -sf docker/.volumes/centrifugo/config.json config/centrifugo.json
-	@sudo chown -R 1001 docker/.volumes/redis
 
-	@docker-compose --project-directory . --env-file $(CFG_FILE) $(COMPOSE_FILES) build
+	@($(info $(M) linking centrifugo config.json from volumes to config)\
+	ln -sf docker/.volumes/centrifugo/config.json config/centrifugo.json)
+
+	@($(info $(M) cp -u $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc for shortcutting)\
+	rsync -aqs $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc;\
+	chmod +x $(SCRIPTS_DIR)/docker-compose.sh; \
+	chmod +x $(BIN_DIR)/dc)
+
+	@($(info $(M) writing "vm.overcommit_memory=1" to /etc/sysctl.d/redis.conf for redis)\
+	sudo sh -c 'echo "vm.overcommit_memory=1" >> /etc/sysctl.conf';\
+	sudo sysctl vm.overcommit_memory=1)
+
+	@($(info $(M) building docker-compose images if needed)\
+	COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+    	up -d --build)
+
 
 .PHONY: all
 all: init gen test docker-build ## Launch almost all processes to make project full build
@@ -79,7 +96,8 @@ build-docker: gen ## Build Docker image, e.g.: make build-docker SVC_NAME=my_ser
 .PHONY: install-tools
 install-tools: ## Install tools required to work with the project
 	$(info $(M) checking for tools needed)
-	@GOBIN=$(BIN_DIR) ./scripts/install-tools.sh
+	@(echo "GOBIN=$(GOBIN) BIN_DIR=$(BIN_DIR) ./scripts/install-tools.sh")
+	@(GOBIN=$(GOBIN) BIN_DIR=$(BIN_DIR) ./scripts/install-tools.sh)
 
 
 .PHONY: lint
@@ -98,13 +116,14 @@ fmt: install-tools ## Do code formatting
 .PHONY: gen
 gen: install-tools api_gen ## Generate code, fixtures, docs etc
 	$(info $(M) run code and docs generation)
-	@(GOBIN=$(BIN_DIR) PROJECT_ROOT=$(PROJECT_ROOT) $(GO) generate ./...)
+	@(GOBIN=$(GOBIN) PROJECT_ROOT=$(PROJECT_ROOT) $(GO) generate ./...)
 
 
 .PHONY: api_gen
 api_gen: ## Generates Go code from local/api/openapi.yaml
-	docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli generate \
+	docker run --rm -v "$(PROJECT_ROOT):/local" openapitools/openapi-generator-cli generate \
 		-i local/api/openapi.yaml -g go-server -o local/api/generated --minimal-update
+	sudo chown $(shell whoami) -R "$(PROJECT_ROOT)"/api/generated
 
 
 .PHONY: test
@@ -122,59 +141,55 @@ test-integration: stop lint ## Run functional/end-to-end integration (slow runni
 
 
 .PHONY: docker-up
-docker-up: ## Starts local dev environment: make docker-up [profiles=db,broker,debug,gui]
+docker-up: ## Starts local dev environment: make docker-up
 	$(info $(M) starting local dev environment...)
-	$(info $(M) building $(ALL_SERVICES) $(ALL_COMPOSE_FILES))
-	@(COMPOSE_PROFILES=$(profiles) docker-compose \
-		--project-directory . \
-		--env-file $(CFG_FILE) \
-		$(ALL_COMPOSE_FILES) \
-		up -d)
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+    		up -d)
 
 
 .PHONY: docker-stop
-docker-stop: ## Stops local dev environment: make docker-stop [profiles=db,broker,debug,gui]
+docker-stop: ## Stops local dev environment: make docker-stop
 	$(info $(M) stopping local dev environment...)
-	@(COMPOSE_PROFILES=$(profiles) docker-compose \
-		--project-directory . \
-		--env-file $(CFG_FILE) \
-		$(ALL_COMPOSE_FILES) \
-		stop)
+	@(echo $(SCRIPTS_DIR)/docker-compose.sh stop)
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh stop)
 
 
-.PHONY: docker-clean ## Cleaning docker images, footprint: make docker-clean [svc=mongo,kafka].
+.PHONY: docker-clean ## Cleaning docker images, footprint: make docker-clean.
 docker-clean: docker-stop
 	$(info $(M) cleaning local docker environment...)
-	@(if [ -z "$(svc)" ]; then \
-	    svc='*'; \
-	else \
-	    svc=$(shell echo "{$(svc)}"); \
-	fi)
 
-	@docker-compose \
-		--project-directory . \
-		--env-file $(CFG_FILE) \
-		$(addprefix "-f",$(shell ls $(DOCKER_DIR)/$(svc).docker-compose.yml)) \
-		down --remove-orphans --rmi local
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+		down --remove-orphans --rmi local)
 
 	@(sudo rm -rf \
-		./docker/.volumes/mongo/db/* \
-		./docker/.volumes/redis/data/* \
+		./docker/.volumes/mongo/db \
+		./docker/.volumes/redis/data \
 	)
+
+.PHONY: db-clean
+db-clean:
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+		stop mongo)
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+    		down --remove-orphans --rmi local)
+	@(sudo rm -rf ./docker/.volumes/mongo/db)
 
 
 .PHONY: clean
-clean: docker-clean ## Clean up the project artefacts (generated code, binaries, configs and other).
+clean: docker-clean ## Clean up the DB footprint, artefacts etc.
 	$(info $(M) cleaning $(BIN_DIR) directory config file and others. You should 'make init')
-	@rm -rf $(BIN_DIR)/* config/.env api/generated/go/*
+	@(rm -rf \
+		$(shell find $(BIN_DIR)/ -type f ! -name ".gitkeep" | xargs) \
+		config/.env \
+		api/generated/go/* \
+		config/centrifugo.json &> /dev/null)
 
 
 .PHONY: db-seed
-db-seed: ## Seeding database with fixtures
-	@($(MAKE) docker-clean svc=mongo)
-	@($(MAKE) docker-up profiles=db)
-
+db-seed: db-clean ## Seeding database with fixtures
 	$(info $(M) seeding local docker environment\: mongo...)
+	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+    		up -d mongo)
 
 	$(BIN_DIR)/mongoimport \
     	--host=${MONGODB_HOST} \
