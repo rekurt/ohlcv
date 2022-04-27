@@ -1,12 +1,15 @@
 package tests
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/domain"
-	"bitbucket.org/novatechnologies/ohlcv/infra"
-	centrifuge2 "bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bufio"
 	"encoding/json"
-	"github.com/centrifugal/centrifuge-go"
+
+	cfge "github.com/centrifugal/centrifuge-go"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"bitbucket.org/novatechnologies/ohlcv/infra"
+	centrifuge2 "bitbucket.org/novatechnologies/ohlcv/infra/centrifugo"
+
 	"log"
 	"net/http"
 	"os"
@@ -19,11 +22,13 @@ func TestCentrifuge(t *testing.T) {
 		log.Println(http.ListenAndServe(":5000", nil))
 	}()
 
-	handler := centrifuge2.NewEventHandler()
+	handler := centrifuge2.NewLoggingEventHandler()
 
-	c := centrifuge2.NewClient(handler, infra.CentrifugeConfig{
-		Host: "localhost:8000",
-	})
+	c, err := centrifuge2.NewWSClient(
+		infra.CentrifugoClientConfig{
+			Addr: "localhost:8000",
+		},
+	)
 
 	defer func() { _ = c.Close() }()
 
@@ -44,11 +49,11 @@ func TestCentrifuge(t *testing.T) {
 
 	pubText := func(text string) error {
 		msg := &domain.Candle{
-			Open:      12,
-			High:      34,
-			Low:       8,
-			Close:     41,
-			Volume:    0,
+			Open:      domain.MustParseDecimal("12"),
+			High:      domain.MustParseDecimal("34"),
+			Low:       domain.MustParseDecimal("8"),
+			Close:     domain.MustParseDecimal("41"),
+			Volume:    domain.MustParseDecimal("0"),
 			Timestamp: time.Time{},
 		}
 		data, _ := json.Marshal(msg)
@@ -66,7 +71,7 @@ func TestCentrifuge(t *testing.T) {
 		log.Printf("Error publish: %s", err)
 	}
 
-	go func(sub *centrifuge.Subscription) {
+	go func(sub *cfge.Subscription) {
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			text, _ := reader.ReadString('\n')
