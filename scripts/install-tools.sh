@@ -2,29 +2,29 @@
 set -e
 
 # Fix for the 3rd party tools and binaries dir path.
-if [ -z "${BIN_DIR}" ]; then BIN_DIR=$(pwd)/third_party; fi
+if [ -z "${BIN_DIR}" ]; then BIN_DIR=$(pwd)/bin; fi
 
-if [[ ! -f "$BIN_DIR/golangci-lint" ]]; then
+if [[ ! -f "$BIN_DIR"/golangci-lint ]]; then
     go install -mod=readonly github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 fi
 
-if [[ ! -f "$BIN_DIR/mockgen" ]]; then
+if [[ ! -f "$BIN_DIR"/mockgen ]]; then
   go install -mod=readonly github.com/golang/mock/mockgen@latest
 fi
 
-if [[ ! -f "$BIN_DIR/goimports" ]]; then
+if [[ ! -f "$BIN_DIR"/goimports ]]; then
   go install -mod=readonly golang.org/x/tools/cmd/goimports@latest
 fi
 
-if [[ ! -f "$BIN_DIR/godotenv" ]]; then
+if [[ ! -f "$BIN_DIR"/godotenv ]]; then
   go install -mod=readonly github.com/joho/godotenv/cmd/godotenv@latest
 fi
 
-if [[ ! -f "$BIN_DIR/gofumpt" ]]; then
+if [[ ! -f "$BIN_DIR"/gofumpt ]]; then
   go install -mod=readonly mvdan.cc/gofumpt@latest
 fi
 
-if [[ ! -f "$BIN_DIR/mongoimport" ]]; then
+if [[ ! -f "$BIN_DIR"/mongoimport ]]; then
   project_dir=$(pwd)/"$BIN_DIR"
   base_dir=/tmp/mongo-tools
   # shellcheck disable=SC2216
@@ -39,6 +39,7 @@ if [[ ! -f "$BIN_DIR/mongoimport" ]]; then
   go build -o bin/mongodump mongodump/main/mongodump.go
   go build -o bin/mongorestore mongorestore/main/mongorestore.go
 
-  cp -u "$base_dir"/bin/* "$project_dir"/
+  echo "$base_dir"/bin/\* "$project_dir"/
+  rsync -aqs "$base_dir"/bin "$project_dir"
   rm -rf /tmp/mongo-tools
 fi
