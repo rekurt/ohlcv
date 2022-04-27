@@ -7,10 +7,10 @@ config/centrifugo.json
 .env
 
 docker/.volumes/*
-!config/.volumes/centrifugo/config.json
+!config/.volumes/centrifugo/.gitkeep
 !docker/.volumes/mongo/*.js
 !docker/.volumes/mongo/*.sh
 !docker/.volumes/zookeeper/.gitkeep
 !docker/.volumes/kafka/.gitkeep
-!docker/.volumes/redis/{.gitkeep,data}
+!docker/.volumes/redis/.gitkeep
 !/docker/builder.key
