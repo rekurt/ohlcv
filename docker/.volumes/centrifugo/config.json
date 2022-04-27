@@ -6,6 +6,6 @@
 	"admin_secret": "45c279fe-0afe-4a60-8150-331a7ca3d31f",
 	"api_key": "32f15963-396b-46c1-9db6-2c5845487cba",
 	"allowed_origins": ["*"],
-	"history_ttl": "12h",
-	"history_size": "10000"
+	"history_ttl": "2m",
+	"history_size": "1000"
 }

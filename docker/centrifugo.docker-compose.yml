@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v3.1.1
+    restart: 'on-failure'
+    command: >
+      sh -c "centrifugo
+      --config config.json
+      --client_insecure=${CENTRIFUGO_CLI_INSECURE:-false}
+      --engine=redis
+      --redis_address redis://redis:6379
+      --admin
+      --health"
+    ports:
+      - "${CENTRIFUGO_PORT:-8000}:8000"
+    volumes:
+      - "./docker/.volumes/centrifugo:/centrifugo"
+    environment:
+      - CENTRIFUGO_NAMESPACES=${CENTRIFUGO_NAMESPACES}
+    profiles: ['ws']
+    ulimits:
+      nproc: 65536
+      nofile:
+        soft: 65536
+        hard: 65536
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    sysctls:
+      net.core.somaxconn: 1024
+    command: redis-server --save 20 1 --loglevel warning
+    profiles: ['redis', 'kv', 'ws']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - './docker/.volumes/redis/data:/data'
+      - './docker/.volumes/redis/sysctl.conf:/etc/sysctl.d/sysctl.conf'
+
+  rebrow:
+    image: marian/rebrow
+    restart: 'on-failure'
+    ports:
+      - "${REDIS_GUI_PORT:-5001}:5001"
+    profiles: ['gui']
+    depends_on:
+      - redis
