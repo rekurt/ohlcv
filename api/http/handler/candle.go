@@ -8,21 +8,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/websocket"
-
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type CandleHandler struct {
 	CandleService *candle.Service
-	Upgrader      *websocket.Upgrader
 }
 
 const defaultDuration = 5 * time.Minute
 
 func NewCandleHandler(candleService *candle.Service) *CandleHandler {
-	return &CandleHandler{candleService, &websocket.Upgrader{}}
+	return &CandleHandler{candleService}
 }
 
 func (h CandleHandler) GetCandleChart(
@@ -30,13 +27,15 @@ func (h CandleHandler) GetCandleChart(
 	req *http.Request,
 ) {
 	ctx := req.Context()
+
 	market := req.URL.Query().Get("market")
+
 	resolution := req.URL.Query().Get("resolution")
 
-	candleDuration := domain.StrIntervalToDuration(resolution)
+	candleDuration := domain.StrResolutionToDuration(resolution)
 	if candleDuration == 0 {
 		candleDuration = defaultDuration
-		resolution = domain.Candle5MInterval
+		resolution = domain.Candle5MResolution
 	}
 
 	fromUnix, err := strconv.Atoi(req.URL.Query().Get("from"))
@@ -58,6 +57,7 @@ func (h CandleHandler) GetCandleChart(
 		int64(toUnix),
 		0,
 	).Add(candleDuration).Truncate(candleDuration)
+
 	if to.Sub(from) < 0 || to.Sub(from) > 24*364*5*time.Hour {
 		illegalUnixTimestamp(
 			fmt.Errorf(
@@ -66,12 +66,9 @@ func (h CandleHandler) GetCandleChart(
 		)
 	}
 
-	candles, _ := h.CandleService.GetMinuteCandles(ctx, market, from, to)
-	result := h.CandleService.AggregateCandleToChartByInterval(
-		candles, market, resolution, 10,
-	)
+	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
 
-	marshal, err := json.Marshal(result)
+	marshal, err := json.Marshal(chart)
 	if err != nil {
 		return
 	}

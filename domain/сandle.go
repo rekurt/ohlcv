@@ -15,22 +15,22 @@ type Candle struct {
 }
 
 type Chart struct {
-	market   string
-	interval string
-	O        []string `json:"o"`
-	H        []string `json:"h"`
-	L        []string `json:"l"`
-	C        []string `json:"c"`
-	V        []string `json:"v"`
-	T        []int64   `json:"t"`
+	market     string
+	resolution string
+	O          []string `json:"o"`
+	H          []string `json:"h"`
+	L          []string `json:"l"`
+	C          []string `json:"c"`
+	V          []string `json:"v"`
+	T          []int64   `json:"t"`
 }
 
-func (c *Chart) Interval() string {
-	return c.interval
+func (c *Chart) Resolution() string {
+	return c.resolution
 }
 
-func (c *Chart) SetInterval(interval string) {
-	c.interval = interval
+func (c *Chart) SetResolution(resolution string) {
+	c.resolution = resolution
 }
 
 func (c *Chart) Market() string {
