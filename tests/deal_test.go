@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
+	mongo2 "go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"os"
 	"os/signal"
@@ -79,64 +81,35 @@ func TestSaveDeal(t *testing.T) {
 		t.Fail()
 	}
 
-	marketDataBus := inmemo.NewInMemory()
-
-	candles, _ := candle.NewService(
-		dealCollection,
-		getTestMarkets(),
-		domain.GetAvailableIntervals(),
-		marketDataBus,
-	).GetMinuteCandles(ctx, market)
-	chart5Min := candle.NewService(
-		dealCollection,
-		getTestMarkets(),
-		domain.GetAvailableIntervals(),
-		marketDataBus,
-	).AggregateCandleToChartByInterval(
-		candles,
-		market,
-		domain.Candle5MInterval,
-		0,
-	)
-	//res := candles[len(candles)-1]
-	candleItem, _ := candle.NewService(
-		dealCollection,
-		getTestMarkets(),
-		domain.GetAvailableIntervals(),
-		marketDataBus,
-	).GetLatestChart(ctx, market, domain.Candle5MInterval)
+	candleService := initCandleService(conf, dealCollection)
+	from := time.Now().Add(-5 * time.Minute)
+	to := time.Now()
+	chart5Min, _ := candleService.GetChart(ctx, market, domain.Candle5MResolution, from, to)
+	currentChart, _ := candleService.GetCurrentCandle(ctx, market, domain.Candle5MResolution)
 	//assert.Equal(t, a, b, "The two words should be the same.")
-	log.Print(candles, candleItem, chart5Min)
+	log.Print(currentChart, chart5Min)
+}
+
+func initCandleService(conf infra.Config, dealCollection *mongo2.Collection) *candle.Service {
+	centrifugeClient := centrifuge.New(conf.CentrifugeConfig)
+	broadcaster := candle.NewBroadcaster(centrifugeClient, candle.GetChartsChannels())
+
+	return candle.NewService(&candle.Storage{dealCollection}, &candle.Agregator{}, broadcaster, getTestMarkets(), domain.GetAvailableResolutions())
 }
 
 func TestDealGenerator(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
-	marketDataBus := inmemo.NewInMemory()
-
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	dealCollection := mongo.GetCollection(
-		ctx,
-		mongoDbClient,
-		conf.MongoDbConfig,
-	)
-	dealService := deal.NewService(
-		dealCollection,
-		domain.GetAvailableMarkets(),
-		marketDataBus,
-	)
-	candleService := candle.NewService(
-		dealCollection,
-		getTestMarkets(),
-		domain.GetAvailableIntervals(),
-		marketDataBus,
-	)
+
+	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
+	candleService := initCandleService(conf, dealCollection)
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, nil)
 	server.Start(ctx)
 
 	//shutdown
@@ -148,7 +121,7 @@ func TestDealGenerator(t *testing.T) {
 
 func getTestMarkets() map[string]string {
 	return map[string]string{
-		"BTC-USDT": "BTC-USDT",
+		"string_with_something_id": "BTC/USDT",
 	}
 }
 
@@ -168,10 +141,10 @@ func Test_GetLastTrades(t *testing.T) {
 		getTestMarkets(),
 		inmemo.NewInMemory(),
 	)
-	trades, err := dealService.GetLastTrades(ctx, "ETH_LTC", 10)
+	trades, err := dealService.GetLastTrades(ctx, "ETH/LTC", 10)
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)
 	for _, tr := range trades {
-		assert.Equal(t, "ETH_LTC", tr.Market)
+		assert.Equal(t, "ETH/LTC", tr.Market)
 	}
 }

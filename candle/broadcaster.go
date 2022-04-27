@@ -58,4 +58,3 @@ func NewChartChannel(market string, resolution string) *domain.ChartChannel {
 		Resolution: resolution,
 	}
 }
-

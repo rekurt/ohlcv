@@ -6,12 +6,12 @@ import (
 )
 
 type Candle struct {
-	Open      primitive.Decimal128   `json:"open"`
-	High      primitive.Decimal128   `json:"high"`
-	Low       primitive.Decimal128   `json:"low"`
-	Close     primitive.Decimal128   `json:"close"`
-	Volume    primitive.Decimal128   `json:"volume"`
-	Timestamp time.Time `json:"timestamp"`
+	Open      primitive.Decimal128 `json:"open"`
+	High      primitive.Decimal128 `json:"high"`
+	Low       primitive.Decimal128 `json:"low"`
+	Close     primitive.Decimal128 `json:"close"`
+	Volume    primitive.Decimal128 `json:"volume"`
+	Timestamp time.Time            `json:"timestamp"`
 }
 
 type Chart struct {
@@ -22,7 +22,7 @@ type Chart struct {
 	L          []string `json:"l"`
 	C          []string `json:"c"`
 	V          []string `json:"v"`
-	T          []int64   `json:"t"`
+	T          []int64  `json:"t"`
 }
 
 func (c *Chart) Resolution() string {

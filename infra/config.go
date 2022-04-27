@@ -1,9 +1,8 @@
 package infra
 
 import (
-	"context"
-
 	"bitbucket.org/novatechnologies/common/infra/logger"
+	"context"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -24,17 +23,22 @@ type MongoDbConfig struct {
 	Password           string `envconfig:"MONGODB_PASSWORD" required:"true"`
 }
 
+type CentrifugeConfig struct {
+	Host  string `envconfig:"CENTRIFUGE_HOST" required:"true"`
+	Token string `envconfig:"CENTRIFUGE_TOKEN" required:"true"`
+}
+
 // CryptoKeyInPEM is string alias just explicitly informing of PEM format:
 // usage https://tools.ietf.org/html/rfc7468
 type CryptoKeyInPEM = string
 
 type CentrifugoClientConfig struct {
 	Debug bool   `envconfig:"DEBUG" default:"false"`
-	Addr  string `envconfig:"CENTRIFUGO_ADDR" required:"true"`
+	Addr  string `envconfig:"CENTRIFUGE_HOST" required:"true"`
 
 	// ServerAPIKey mostly uses for publishing/broadcasting data.
 	// See: https://centrifugal.dev/docs/server/server_api
-	ServerAPIKey    string `envconfig:"CENTRIFUGO_API_KEY" required:"true"`
+	ServerAPIKey    string `envconfig:"CENTRIFUGE_TOKEN" required:"true"`
 	ServerAPIPrefix string `envconfig:"CENTRIFUGO_API_PREFIX" required:"/api"`
 
 	// SignTokenKey mostly uses for subscribing on private channels.
@@ -48,6 +52,7 @@ type CentrifugoClientConfig struct {
 type Config struct {
 	KafkaConfig            KafkaConfig
 	MongoDbConfig          MongoDbConfig
+	CentrifugeConfig       CentrifugeConfig
 	CentrifugoClientConfig CentrifugoClientConfig
 }
 

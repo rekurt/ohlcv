@@ -131,7 +131,7 @@ func (s Agregator) compare(
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, market string, hour int, count int, ) *domain.Chart {
+func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, market string, hour int, count int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -156,7 +156,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, marke
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(candles []*domain.Candle, market string, count int, ) *domain.Chart {
+func (s *Agregator) aggregateMonthCandlesToChart(candles []*domain.Candle, market string, count int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var timestamp int64
