@@ -11,8 +11,14 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/inmemo"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
+	"context"
+	"fmt"
+	"google.golang.org/protobuf/proto"
+	"os"
+	"os/signal"
 )
 
 func main() {

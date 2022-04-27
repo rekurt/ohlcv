@@ -1,6 +1,8 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"time"
 
@@ -13,13 +15,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"time"
 )
 
 const chartsPublishingTimeout = 16 * time.Second
 
 type Service struct {
-	DealsDbCollection  *mongo.Collection
+	Storage            *Storage
+	Aggregator         *Agregator
+	broadcaster        domain.Broadcaster
 	Markets            map[string]string
+	DealsDbCollection  *mongo.Collection
 	AvailableIntervals []string
 	marketDataBus      domain.EventManager
 }
@@ -94,7 +100,7 @@ func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 						"market",
 						market,
 					).Infof("[CronCandleGenerationStart]Getting new candle for the market.")
-					// s.PushUpdatedCandleEvent(ctx, market)
+					s.PushUpdatedCurrentCharts(ctx, market)
 				}
 			}
 		}
@@ -204,12 +210,14 @@ func (s Service) GetMinuteCandles(
 func (s Service) GetLatestChart(
 	ctx context.Context,
 	market string,
-	interval string,
+	resolutions string,
 ) (*domain.Chart, error) {
-	cs, err := s.GetMinuteCandles(ctx, market)
-	chart := s.AggregateCandleToChartByInterval(cs, market, interval, 1)
+	from := time.Unix(s.Aggregator.GetCurrentResolutionStartTimestamp(resolutions), 0)
+	to := time.Now()
+	cs, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
+	chart := s.Aggregator.AggregateCandleToChartByResolution(cs, market, resolutions, 1)
 	chart.SetMarket(market)
-	chart.SetInterval(interval)
+	chart.SetResolution(resolutions)
 
 	return chart, err
 }
@@ -412,6 +420,39 @@ func (s *Service) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	}
 
 	return chart
+}
+
+func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
+	chts := make([]*domain.Chart, 0)
+	for _, resolution := range s.AvailableResolutions {
+		logger.FromContext(context.Background()).
+			WithField("resolution", resolution).
+			WithField("market", market).
+			Infof("[CandleService] Call PushLastUpdatedCandle method.")
+		upd, _ := s.GetCurrentCandle(ctx, market, resolution)
+		if upd != nil {
+			chts = append(chts, upd)
+		}
+	}
+
+	s.broadcaster.BroadcastCandleCharts(ctx, chts)
+}
+func (s *Service) GetChart(ctx context.Context, market string, resolution string, from time.Time, to time.Time) (interface{}, interface{}) {
+	candles, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
+	if err != nil {
+		logger.FromContext(ctx).
+			WithField("err", err).
+			WithField("market", market).
+			WithField("resolution", resolution).
+			Errorf("Cannot get the chart.")
+		return &domain.Chart{}, err
+	}
+
+	chart := s.Aggregator.AggregateCandleToChartByResolution(
+		candles, market, resolution, 0,
+	)
+
+	return chart, nil
 }
 
 func CompareDecimal128(d1, d2 primitive.Decimal128) (int, error) {

@@ -42,6 +42,10 @@ spec:
               value: "$MONGODB_USER"
             - name: MONGODB_PASSWORD
               value: "$MONGODB_PASSWORD"
+            - name: CENTRIFUGE_HOST
+              value: "$CENTRIFUGE_HOST"
+            - name: CENTRIFUGE_TOKEN
+              value: "$CENTRIFUGE_TOKEN"
 ---
 apiVersion: v1
 kind: Service
