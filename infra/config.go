@@ -2,8 +2,8 @@ package infra
 
 import (
 	"context"
-	"fmt"
 
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -24,14 +24,31 @@ type MongoDbConfig struct {
 	Password           string `envconfig:"MONGODB_PASSWORD" required:"true"`
 }
 
-type CentrifugeConfig struct {
-	Host string `envconfig:"CENTRIFUGE_HOST" required:"true"`
+// CryptoKeyInPEM is string alias just explicitly informing of PEM format:
+// usage https://tools.ietf.org/html/rfc7468
+type CryptoKeyInPEM = string
+
+type CentrifugoClientConfig struct {
+	Debug bool   `envconfig:"DEBUG" default:"false"`
+	Addr  string `envconfig:"CENTRIFUGO_ADDR" required:"true"`
+
+	// ServerAPIKey mostly uses for publishing/broadcasting data.
+	// See: https://centrifugal.dev/docs/server/server_api
+	ServerAPIKey    string `envconfig:"CENTRIFUGO_API_KEY" required:"true"`
+	ServerAPIPrefix string `envconfig:"CENTRIFUGO_API_PREFIX" required:"/api"`
+
+	// SignTokenKey mostly uses for subscribing on private channels.
+	// See: https://centrifugal.dev/docs/server/private_channels
+	SignTokenKey CryptoKeyInPEM `envconfig:"CENTRIFUGO_SIGN_TOKEN_KEY"`
+	WSPrefix     string         `envconfig:"CENTRIFUGO_WS_PREFIX" default:"/connection/websocket"`
+	//VerifyTokenKey CryptoKeyInPEM `envconfig:"CENTRIFUGO_VERIFY_TOKEN_KEY"`
+
 }
 
 type Config struct {
-	KafkaConfig      KafkaConfig
-	MongoDbConfig    MongoDbConfig
-	CentrifugeConfig CentrifugeConfig
+	KafkaConfig            KafkaConfig
+	MongoDbConfig          MongoDbConfig
+	CentrifugoClientConfig CentrifugoClientConfig
 }
 
 func SetConfig(configPath string) Config {
@@ -40,11 +57,18 @@ func SetConfig(configPath string) Config {
 		panic(err)
 	}
 
+	return Parse()
+}
+
+func Parse() Config {
 	var cfg Config
 	if err := envconfig.Process("", &cfg); err != nil {
-		fmt.Println("msg", "failed to load configuration", "err", err)
+		logger.DefaultLogger.
+			WithField("err", err).
+			Errorf("failed to load configuration")
 		panic(err)
 	}
+
 	return cfg
 }
 
