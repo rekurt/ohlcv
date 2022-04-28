@@ -10,16 +10,13 @@
 package openapi
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
-
-	"github.com/gorilla/mux"
 )
 
 // MarketApiController binds http requests to an api service and writes the service results to the http response
 type MarketApiController struct {
-	service MarketApiServicer
+	service      MarketApiServicer
 	errorHandler ErrorHandler
 }
 
@@ -34,7 +31,10 @@ func WithMarketApiErrorHandler(h ErrorHandler) MarketApiOption {
 }
 
 // NewMarketApiController creates a default api controller
-func NewMarketApiController(s MarketApiServicer, opts ...MarketApiOption) Router {
+func NewMarketApiController(
+	s MarketApiServicer,
+	opts ...MarketApiOption,
+) Router {
 	controller := &MarketApiController{
 		service:      s,
 		errorHandler: DefaultErrorHandler,
@@ -49,7 +49,7 @@ func NewMarketApiController(s MarketApiServicer, opts ...MarketApiOption) Router
 
 // Routes returns all the api routes for the MarketApiController
 func (c *MarketApiController) Routes() Routes {
-	return Routes{ 
+	return Routes{
 		{
 			"ApiV1TradesGet",
 			strings.ToUpper("Get"),
@@ -60,7 +60,10 @@ func (c *MarketApiController) Routes() Routes {
 }
 
 // ApiV1TradesGet - Recent Trades List
-func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Request) {
+func (c *MarketApiController) ApiV1TradesGet(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	query := r.URL.Query()
 	symbolParam := query.Get("symbol")
 	limitParam, err := parseInt32Parameter(query.Get("limit"), false)
@@ -68,7 +71,11 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
 		return
 	}
-	result, err := c.service.ApiV1TradesGet(r.Context(), symbolParam, limitParam)
+	result, err := c.service.ApiV1TradesGet(
+		r.Context(),
+		symbolParam,
+		limitParam,
+	)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

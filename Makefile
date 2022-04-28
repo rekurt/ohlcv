@@ -114,7 +114,7 @@ fmt: install-tools ## Do code formatting
 
 
 .PHONY: gen
-gen: install-tools api_gen ## Generate code, fixtures, docs etc
+gen: install-tools ## Generate code, fixtures, docs etc
 	$(info $(M) run code and docs generation)
 	@(GOBIN=$(GOBIN) PROJECT_ROOT=$(PROJECT_ROOT) $(GO) generate ./...)
 

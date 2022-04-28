@@ -106,18 +106,18 @@ func initCandleService(
 	conf infra.Config,
 	dealCollection *mongo2.Collection,
 ) *candle.Service {
-	centrifugeClient := centrifuge.New(conf.CentrifugeConfig)
+	eventsBroker := broker.NewInMemory()
 	broadcaster := centrifuge.NewBroadcaster(
-		centrifugeClient,
-		centrifuge.GetChartsChannels(),
+		centrifuge.NewPublisher(conf.CentrifugeConfig),
+		eventsBroker,
 	)
+	broadcaster.SubscribeForCharts()
 
 	return candle.NewService(
-		&candle.Storage{dealCollection},
-		&candle.Agregator{},
-		broadcaster,
-		getTestMarkets(),
+		dealCollection,
+		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
+		broker.NewInMemory(),
 	)
 }
 
@@ -125,6 +125,7 @@ func TestDealGenerator(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
+	eventsBroker := broker.NewInMemory()
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
 	dealCollection := mongo.GetCollection(
@@ -132,12 +133,16 @@ func TestDealGenerator(t *testing.T) {
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
-	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
+	dealService := deal.NewService(
+		dealCollection,
+		domain.GetAvailableMarkets(),
+		eventsBroker,
+	)
 	candleService := initCandleService(conf, dealCollection)
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService, dealService, nil)
+	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
 	//shutdown

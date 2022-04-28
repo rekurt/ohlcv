@@ -23,7 +23,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	mg "go.mongodb.org/mongo-driver/mongo"
 
-	cfgo "bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
+	cfge "bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
@@ -122,7 +122,7 @@ type wsPublishHandler struct {
 	outCh chan centrifuge.ServerPublishEvent
 }
 
-func newWSPublishHandler() wsPublishHandler {
+func newWebsocketPublishHandler() wsPublishHandler {
 	return wsPublishHandler{
 		outCh: make(chan centrifuge.ServerPublishEvent),
 	}
@@ -135,7 +135,10 @@ func (h wsPublishHandler) OnServerPublish(
 	h.outCh <- pubEvent
 }
 
-func (h wsPublishHandler) OnDisconnect(_ *centrifuge.Client, _ centrifuge.DisconnectEvent) {
+func (h wsPublishHandler) OnDisconnect(
+	_ *centrifuge.Client,
+	_ centrifuge.DisconnectEvent,
+) {
 	close(h.outCh)
 }
 
@@ -164,7 +167,7 @@ func (h wsPublishHandler) GetPublishEvent(timeout time.Duration) (
 type candlesIntegrationTestSuite struct {
 	suite.Suite
 
-	compose testcontainers.LocalDockerCompose
+	compose *testcontainers.LocalDockerCompose
 	cancel  context.CancelFunc
 
 	mongoCli        *mg.Client
@@ -177,7 +180,10 @@ type candlesIntegrationTestSuite struct {
 	dealsTopic string
 	candles    *candle.Service
 
-	wsPub            cfgo.Centrifuge
+	eventsBroker domain.EventsBroker
+	broadcaster  domain.Broadcaster
+
+	wsPub            cfge.Centrifuge
 	wsSub            *centrifuge.Client
 	wsPublishHandler wsPublishHandler
 }
@@ -201,15 +207,15 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	)
 	suite.dealsCollection = dealsCollection
 
-	// Internal bus setup
-	marketDataBus := broker.NewInMemory()
+	// Internal domain events broker
+	eventsBroker := broker.NewInMemory()
 
 	// Deals service setup
 	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
 	suite.deals = deal.NewService(
 		dealsCollection,
 		domain.GetAvailableMarkets(),
-		marketDataBus,
+		eventsBroker,
 	)
 
 	// Candles service setup
@@ -217,26 +223,23 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 		dealsCollection,
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
-		marketDataBus,
+		eventsBroker,
 	)
 
-	// WS publisher of the market data setup
-	suite.wsPub, err = cfgo.New(
-		conf.CentrifugoClientConfig,
-		marketDataBus,
-	)
-	if err != nil {
-		return err
-	}
+	// WS publisher and broadcaster of the market data setup
+	suite.wsPub = cfge.NewPublisher(conf.CentrifugeConfig)
+	broadcaster := cfge.NewBroadcaster(suite.wsPub, eventsBroker)
+	broadcaster.SubscribeForCharts()
+	suite.broadcaster = broadcaster
 
 	// WS subscriber setup for the correctness check
-	suite.wsSub, err = cfgo.NewClient(conf.CentrifugoClientConfig)
+	suite.wsSub, err = cfge.NewClient(conf.CentrifugeConfig)
 	if err != nil {
 		return err
 	}
 
 	// WS server-side publish event handler setup
-	suite.wsPublishHandler = newWSPublishHandler()
+	suite.wsPublishHandler = newWebsocketPublishHandler()
 	suite.wsSub.OnServerPublish(suite.wsPublishHandler)
 
 	return nil
@@ -248,22 +251,25 @@ func (suite *candlesIntegrationTestSuite) SetupSuite() {
 	composePaths := make([]string, len(services))
 	for i, svcName := range services {
 		composePaths[i] = fmt.Sprintf(
-			"../docker/%s.docker-compose.yml",
+			"./docker/%s.docker-compose.yml",
 			svcName,
 		)
 	}
 
-	suite.compose = testcontainers.LocalDockerCompose{
-		Executable:       "docker-compose",
-		ComposeFilePaths: composePaths,
-		Identifier:       "ohlcv_test",
-		Cmd:              []string{"up", "-d"},
-		Env:              getEnvsMap(),
-	}
+	suite.compose = testcontainers.NewLocalDockerCompose(
+		composePaths,
+		"ohlcv_test",
+	)
 
-	execErr := suite.compose.Invoke()
+	execErr := suite.compose.
+		WithCommand([]string{"up", "-d"}).
+		WithEnv(getEnvsMap()).
+		Invoke()
 	if execErr.Error != nil {
-		log.Panicf("Failed when running: %v", execErr.Command)
+		log.Println("docker-compose output:", execErr.Stdout)
+		log.Panicf(
+			"Failed when running %v: %v", execErr.Command, execErr.Error,
+		)
 	}
 
 	conf := infra.Parse()

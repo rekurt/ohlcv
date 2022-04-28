@@ -11,26 +11,29 @@ import (
 )
 
 type broadcaster struct {
-	Centrifuge Centrifuge
-	Channels   map[string]map[string]*domain.ChartChannel
-	eventsSub  domain.EventsBroker
+	Centrifuge   Centrifuge
+	Channels     map[string]map[string]*domain.ChartChannel
+	eventsBroker domain.EventsBroker
 }
 
 func NewBroadcaster(
-	centrifuge Centrifuge,
-	eventsSub domain.EventsBroker,
-	channels map[string]map[string]*domain.ChartChannel,
+	publisher Centrifuge,
+	eventsBroker domain.EventsBroker,
 ) *broadcaster {
-	b := &broadcaster{Centrifuge: centrifuge, Channels: channels}
+	return &broadcaster{
+		Centrifuge:   publisher,
+		Channels:     GetChartsChannels(),
+		eventsBroker: eventsBroker,
+	}
+}
 
-	eventsSub.Subscribe(
+func (b broadcaster) SubscribeForCharts() {
+	b.eventsBroker.Subscribe(
 		domain.EvTypeCharts, func(e *domain.Event) error {
-			b.BroadcastCandleCharts(e.Ctx, e.MustGetDeals())
+			b.BroadcastCandleCharts(e.Ctx, e.MustGetCharts())
 			return nil
 		},
 	)
-
-	return b
 }
 
 func (b broadcaster) BroadcastCandleCharts(

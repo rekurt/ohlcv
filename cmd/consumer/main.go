@@ -12,6 +12,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -20,45 +21,48 @@ func main() {
 	conf := infra.SetConfig("./config/.env")
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
-	marketDataBus := broker.NewInMemory()
+	eventsBroker := broker.NewInMemory()
+
+	broadcaster := centrifuge.NewBroadcaster(
+		centrifuge.NewPublisher(conf.CentrifugeConfig),
+		eventsBroker,
+	)
+	broadcaster.SubscribeForCharts()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	dealCollection := mongo.GetCollection(
+	dealsCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
 
 	dealService := deal.NewService(
-		dealCollection,
+		dealsCollection,
 		domain.GetAvailableMarkets(),
-		marketDataBus,
+		eventsBroker,
 	)
+	// Start consuming, preparing, saving deals into DB and notifying others.
+	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
-		dealCollection,
+		&candle.Storage{DealsDbCollection: dealsCollection},
+		new(candle.Agregator),
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
-		marketDataBus,
+		eventsBroker,
 	)
+	candleService.CronCandleGenerationStart(ctx)
+	candleService.SubscribeForDeals()
 
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	// Start consuming, preparing, saving deals into DB and notifying others.
-	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
-	go dealService.RunConsuming(ctx, consumer, dealsTopic)
-
-	candleService.CronCandleGenerationStart(ctx)
-	candleService.SubscribeForDeals()
-
 	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
-
 	_ = <-signalCh
-
 	server.Stop(ctx)
 
 	return
