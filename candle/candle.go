@@ -7,8 +7,6 @@ import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 
 	"bitbucket.org/novatechnologies/ohlcv/domain"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const chartsPubTimeout = 16 * time.Second
@@ -16,21 +14,22 @@ const chartsPubTimeout = 16 * time.Second
 type Service struct {
 	Storage              *Storage
 	Aggregator           *Agregator
-	broadcaster          domain.Broadcaster
 	Markets              map[string]string
-	DealsDbCollection    *mongo.Collection
 	AvailableResolutions []string
+	broadcaster          domain.Broadcaster
 	eventsBroker         domain.EventsBroker
 }
 
 func NewService(
-	dealsDbCollection *mongo.Collection,
+	storage *Storage,
+	aggregator *Agregator,
 	markets map[string]string,
 	availableResolutions []string,
 	internalBus domain.EventsBroker,
 ) *Service {
 	return &Service{
-		DealsDbCollection:    dealsDbCollection,
+		Storage:              storage,
+		Aggregator:           aggregator,
 		Markets:              markets,
 		AvailableResolutions: availableResolutions,
 		eventsBroker:         internalBus,

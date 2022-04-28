@@ -1,16 +1,17 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
+	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-type Agregator struct {
-}
+type Agregator struct{}
 
 func (s Agregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
@@ -67,7 +68,12 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	return chart
 }
 
-func (s Agregator) aggregateMinCandlesToChart(candles []*domain.Candle, market string, minute int, count int) *domain.Chart {
+func (s Agregator) aggregateMinCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	minute int,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -131,7 +137,12 @@ func (s Agregator) compare(
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, market string, hour int, count int) *domain.Chart {
+func (s *Agregator) aggregateHoursCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	hour int,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -156,7 +167,11 @@ func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, marke
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(candles []*domain.Candle, market string, count int) *domain.Chart {
+func (s *Agregator) aggregateMonthCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var timestamp int64

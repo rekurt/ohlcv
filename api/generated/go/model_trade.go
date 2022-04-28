@@ -10,14 +10,13 @@
 package openapi
 
 type Trade struct {
-
 	Id string `json:"id"`
 
-	Price float64 `json:"price"`
+	Price string `json:"price"`
 
-	Qty float64 `json:"qty"`
+	Qty string `json:"qty"`
 
-	QuoteQty float64 `json:"quoteQty"`
+	QuoteQty string `json:"quoteQty"`
 
 	// Trade executed timestamp, as same as `T` in the stream
 	Time int64 `json:"time"`
@@ -30,13 +29,13 @@ type Trade struct {
 // AssertTradeRequired checks if the required fields are not zero-ed
 func AssertTradeRequired(obj Trade) error {
 	elements := map[string]interface{}{
-		"id": obj.Id,
-		"price": obj.Price,
-		"qty": obj.Qty,
-		"quoteQty": obj.QuoteQty,
-		"time": obj.Time,
+		"id":           obj.Id,
+		"price":        obj.Price,
+		"qty":          obj.Qty,
+		"quoteQty":     obj.QuoteQty,
+		"time":         obj.Time,
 		"isBuyerMaker": obj.IsBuyerMaker,
-		"isBestMatch": obj.IsBestMatch,
+		"isBestMatch":  obj.IsBestMatch,
 	}
 	for name, el := range elements {
 		if isZero := IsZeroValue(el); isZero {

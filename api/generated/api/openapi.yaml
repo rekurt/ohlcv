@@ -1,0 +1,134 @@
+openapi: 3.0.2
+info:
+  description: OpenAPI Specifications for the PointPay.io Public Spot API
+  title: PointPay.io Public Spot API (draft)
+  version: 0.1.0
+servers:
+- url: https://trade.exchange.pointpay.io
+- url: https://master.trade.stage.exchange.pointpay.io
+tags:
+- description: Market Data
+  name: Market
+- description: Account/Trade
+  name: Trade
+- description: Wallet Endpoints
+  name: Wallet
+paths:
+  /api/v1/trades:
+    get:
+      description: "Get recent trades.\n\nWeight(IP): 1"
+      parameters:
+      - description: "Trading symbol, e.g. PXPUSDT"
+        explode: true
+        in: query
+        name: symbol
+        required: true
+        schema:
+          example: PXPUSDT
+          type: string
+        style: form
+      - description: Default 500; max 1000.
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          example: 500
+          format: int32
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/trade'
+                type: array
+          description: Trade list
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: Bad Request
+      summary: Recent Trades List
+      tags:
+      - Market
+components:
+  parameters:
+    symbol:
+      description: "Trading symbol, e.g. PXPUSDT"
+      explode: true
+      in: query
+      name: symbol
+      required: true
+      schema:
+        example: PXPUSDT
+        type: string
+      style: form
+    limit:
+      description: Default 500; max 1000.
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        example: 500
+        format: int32
+        type: integer
+      style: form
+  schemas:
+    trade:
+      example:
+        quoteQty: quoteQty
+        price: price
+        qty: qty
+        isBestMatch: true
+        id: id
+        time: 1592887772684
+        isBuyerMaker: true
+      properties:
+        id:
+          type: string
+        price:
+          format: string
+          type: string
+        qty:
+          format: string
+          type: string
+        quoteQty:
+          format: string
+          type: string
+        time:
+          description: "Trade executed timestamp, as same as `T` in the stream"
+          example: 1592887772684
+          format: int64
+          type: integer
+        isBuyerMaker:
+          type: boolean
+        isBestMatch:
+          type: boolean
+      required:
+      - id
+      - isBestMatch
+      - isBuyerMaker
+      - price
+      - qty
+      - quoteQty
+      - time
+      type: object
+    error:
+      properties:
+        code:
+          description: Error code
+          format: int64
+          type: integer
+        msg:
+          description: Error message
+          example: error message
+          type: string
+      required:
+      - code
+      - msg
+      type: object

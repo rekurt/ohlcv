@@ -10,16 +10,13 @@
 package openapi
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
-
-	"github.com/gorilla/mux"
 )
 
 // MarketApiController binds http requests to an api service and writes the service results to the http response
 type MarketApiController struct {
-	service MarketApiServicer
+	service      MarketApiServicer
 	errorHandler ErrorHandler
 }
 
@@ -49,7 +46,7 @@ func NewMarketApiController(s MarketApiServicer, opts ...MarketApiOption) Router
 
 // Routes returns all the api routes for the MarketApiController
 func (c *MarketApiController) Routes() Routes {
-	return Routes{ 
+	return Routes{
 		{
 			"ApiV1TradesGet",
 			strings.ToUpper("Get"),

@@ -16,9 +16,9 @@ import (
 
 // NewClient returns centrifugo server-side WS client.
 func NewClient(
-	config infra.CentrifugoClientConfig,
+	config infra.CentrifugeConfig,
 ) (*cfge.Client, error) {
-	wsURL := fmt.Sprintf("ws://%s/connection/websocket", config.Addr)
+	wsURL := fmt.Sprintf("ws://%s/connection/websocket", config.Host)
 	c := cfge.NewJsonClient(wsURL, cfge.DefaultConfig())
 
 	if config.SignTokenKey != "" {
@@ -57,16 +57,14 @@ type centrifuge struct {
 	Client *gocent.Client
 }
 
-func New(cfg infra.CentrifugeConfig) *centrifuge {
+func NewPublisher(cfg infra.CentrifugeConfig) *centrifuge {
 	clientConfig := gocent.Config{
 		Addr: "http://" + cfg.Host + "/api",
-		Key:  cfg.Token,
+		Key:  cfg.ServerAPIKey,
 	}
 	client := gocent.New(clientConfig)
 
-	return &centrifuge{
-		Client: client,
-	}
+	return &centrifuge{Client: client}
 }
 
 func (c centrifuge) Publish(ctx context.Context, message MessageData) {

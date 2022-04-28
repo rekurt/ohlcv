@@ -69,14 +69,14 @@ components:
         id:
           type: string
         price:
-          type: number
-          format: double
+          type: string
+          format: string
         qty:
-          type: number
-          format: double
+          type: string
+          format: string
         quoteQty:
-          type: number
-          format: double
+          type: string
+          format: string
         time:
           type: integer
           format: int64
