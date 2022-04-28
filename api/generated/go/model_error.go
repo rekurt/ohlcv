@@ -22,7 +22,7 @@ type ModelError struct {
 func AssertModelErrorRequired(obj ModelError) error {
 	elements := map[string]interface{}{
 		"code": obj.Code,
-		"msg":  obj.Msg,
+		"msg": obj.Msg,
 	}
 	for name, el := range elements {
 		if isZero := IsZeroValue(el); isZero {

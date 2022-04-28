@@ -9,16 +9,15 @@
 
 package openapi
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
-
 type Trade struct {
+
 	Id string `json:"id"`
 
-	Price primitive.Decimal128 `json:"price"`
+	Price float64 `json:"price"`
 
-	Qty primitive.Decimal128 `json:"qty"`
+	Qty float64 `json:"qty"`
 
-	QuoteQty primitive.Decimal128 `json:"quoteQty"`
+	QuoteQty float64 `json:"quoteQty"`
 
 	// Trade executed timestamp, as same as `T` in the stream
 	Time int64 `json:"time"`
@@ -31,13 +30,13 @@ type Trade struct {
 // AssertTradeRequired checks if the required fields are not zero-ed
 func AssertTradeRequired(obj Trade) error {
 	elements := map[string]interface{}{
-		"id":           obj.Id,
-		"price":        obj.Price,
-		"qty":          obj.Qty,
-		"quoteQty":     obj.QuoteQty,
-		"time":         obj.Time,
+		"id": obj.Id,
+		"price": obj.Price,
+		"qty": obj.Qty,
+		"quoteQty": obj.QuoteQty,
+		"time": obj.Time,
 		"isBuyerMaker": obj.IsBuyerMaker,
-		"isBestMatch":  obj.IsBestMatch,
+		"isBestMatch": obj.IsBestMatch,
 	}
 	for name, el := range elements {
 		if isZero := IsZeroValue(el); isZero {

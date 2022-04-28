@@ -1,25 +1,44 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
+
+const chartsPubTimeout = 16 * time.Second
 
 type Service struct {
 	Storage              *Storage
 	Aggregator           *Agregator
 	broadcaster          domain.Broadcaster
 	Markets              map[string]string
+	DealsDbCollection    *mongo.Collection
 	AvailableResolutions []string
+	eventsBroker         domain.EventsBroker
 }
 
-func NewService(s *Storage, a *Agregator, b domain.Broadcaster, markets map[string]string, availableResolution []string) *Service {
-	return &Service{Storage: s, Aggregator: a, broadcaster: b, Markets: markets, AvailableResolutions: availableResolution}
+func NewService(
+	dealsDbCollection *mongo.Collection,
+	markets map[string]string,
+	availableResolutions []string,
+	internalBus domain.EventsBroker,
+) *Service {
+	return &Service{
+		DealsDbCollection:    dealsDbCollection,
+		Markets:              markets,
+		AvailableResolutions: availableResolutions,
+		eventsBroker:         internalBus,
+	}
 }
 
-//Generation for websocket pushing new candle every min (example: empty candles)
+//CronCandleGenerationStart generates candle for websocket pushing every min
+// (example: empty candles).
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(time.Minute)
@@ -46,14 +65,42 @@ func (s Service) GetCurrentCandle(
 	market string,
 	resolutions string,
 ) (*domain.Chart, error) {
-	from := time.Unix(s.Aggregator.GetCurrentResolutionStartTimestamp(resolutions), 0)
+	from := time.Unix(
+		s.Aggregator.GetCurrentResolutionStartTimestamp(resolutions),
+		0,
+	)
 	to := time.Now()
 	cs, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
-	chart := s.Aggregator.AggregateCandleToChartByResolution(cs, market, resolutions, 1)
+	chart := s.Aggregator.AggregateCandleToChartByResolution(
+		cs,
+		market,
+		resolutions,
+		1,
+	)
 	chart.SetMarket(market)
 	chart.SetResolution(resolutions)
 
 	return chart, err
+}
+
+// SubscribeForDeals subscribes for new deals to update and publish particular
+// charts.
+func (s *Service) SubscribeForDeals() {
+	go s.eventsBroker.Subscribe(
+		domain.EvTypeDeals,
+		func(dealEvent *domain.Event) error {
+			deals := dealEvent.MustGetDeals()
+
+			ctx, cancel := context.WithTimeout(dealEvent.Ctx, chartsPubTimeout)
+			defer cancel()
+
+			for _, deal := range deals {
+				s.PushUpdatedCurrentCharts(ctx, deal.Market)
+			}
+
+			return nil
+		},
+	)
 }
 
 func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
@@ -63,16 +110,23 @@ func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
 			WithField("resolution", resolution).
 			WithField("market", market).
 			Infof("[CandleService] Call PushLastUpdatedCandle method.")
+
 		upd, _ := s.GetCurrentCandle(ctx, market, resolution)
 		if upd != nil {
 			chts = append(chts, upd)
 		}
 	}
 
-	s.broadcaster.BroadcastCandleCharts(ctx, chts)
+	s.eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, chts))
 }
 
-func (s *Service) GetChart(ctx context.Context, market string, resolution string, from time.Time, to time.Time) (interface{}, interface{}) {
+func (s *Service) GetChart(
+	ctx context.Context,
+	market string,
+	resolution string,
+	from time.Time,
+	to time.Time,
+) (interface{}, interface{}) {
 	candles, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
 	if err != nil {
 		logger.FromContext(ctx).

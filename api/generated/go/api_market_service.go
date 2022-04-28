@@ -29,7 +29,11 @@ func NewMarketApiService(dealService domain.Service) MarketApiServicer {
 }
 
 // ApiV1TradesGet - Recent Trades List
-func (s *MarketApiService) ApiV1TradesGet(ctx context.Context, symbol string, limit int32) (ImplResponse, error) {
+func (s *MarketApiService) ApiV1TradesGet(
+	ctx context.Context,
+	symbol string,
+	limit int32,
+) (ImplResponse, error) {
 	if strings.TrimSpace(symbol) == "" || limit <= 0 || limit >= 1000 {
 		return Response(400, ModelError{}), nil
 	}

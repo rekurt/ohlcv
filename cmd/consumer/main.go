@@ -1,21 +1,18 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+
 	"bitbucket.org/novatechnologies/common/events/topics"
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/interfaces/matcher"
+
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
+	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
-	"context"
-	"fmt"
-	"google.golang.org/protobuf/proto"
-	"os"
-	"os/signal"
 )
 
 func main() {
@@ -23,69 +20,38 @@ func main() {
 	conf := infra.SetConfig("./config/.env")
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
+	marketDataBus := broker.NewInMemory()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-
+	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
 
-	centrifugeClient := centrifuge.New(conf.CentrifugeConfig)
-	broadcaster := candle.NewBroadcaster(centrifugeClient, candle.GetChartsChannels())
-	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
+	dealService := deal.NewService(
+		dealCollection,
+		domain.GetAvailableMarkets(),
+		marketDataBus,
+	)
+
 	candleService := candle.NewService(
-		&candle.Storage{DealsDbCollection: dealCollection},
-		&candle.Agregator{},
-		broadcaster,
+		dealCollection,
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
+		marketDataBus,
 	)
 
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
-	go func() {
-		err := func() error {
-			topicName := fmt.Sprintf(
-				"%s%s%s",
-				conf.KafkaConfig.TopicPrefix,
-				"_",
-				topics.MatcherMDDeals,
-			)
-			return consumer.Consume(
-				ctx,
-				topicName,
-				func(
-					ctx context.Context,
-					metadata map[string]string,
-					msg []byte,
-				) error {
-					dealMessage := matcher.Deal{}
-					if er := proto.Unmarshal(msg, &dealMessage); er != nil {
-						logger.FromContext(ctx).WithField(
-							"method",
-							"consumer.deals.Unmarshal",
-						).Errorf("%v", er)
-						os.Exit(1)
-					}
-					 d, _ := dealService.SaveDeal(ctx, dealMessage)
-					if d != nil {
-						candleService.PushUpdatedCurrentCharts(ctx, d.Market)
-					}
-					return nil
-				},
-			)
-		}()
-		if err != nil {
-			logger.FromContext(ctx).WithField(
-				"error",
-				err.Error(),
-			).Errorf("[DealService]Failed Kafka consumer")
-		}
-	}()
 
-	//	candleService.CronCandleGenerationStart(ctx)
+	// Start consuming, preparing, saving deals into DB and notifying others.
+	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	go dealService.RunConsuming(ctx, consumer, dealsTopic)
+
+	candleService.CronCandleGenerationStart(ctx)
+	candleService.SubscribeForDeals()
 
 	//shutdown
 	signalCh := make(chan os.Signal)

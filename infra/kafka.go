@@ -1,28 +1,33 @@
 package infra
 
 import (
+	"context"
+
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/events/kafka"
 	"bitbucket.org/novatechnologies/common/infra/logger"
-	"context"
 	"golang.org/x/sync/errgroup"
 )
 
-func NewProducer(ctx context.Context, host string) interface{} {
-	brokers := []string{host}
-	log := logger.FromContext(ctx).WithField("m", "main")
-	kPub, err := kafka.NewPublisher(log, brokers, false)
+func NewPublisher(ctx context.Context, cfg KafkaConfig) (
+	pubsub.Publisher, error,
+) {
+	log := logger.FromContext(ctx).
+		WithField("component", "publisher").
+		WithField("broker", "kafka")
+
+	kPub, err := kafka.NewPublisher(log, []string{cfg.Host}, cfg.SslFlag)
 	if err != nil {
 		log.Errorf("[kafka]NewPublisher failed with err: %v", err)
-		panic(err)
+		return nil, err
 	}
 	pub, err := pubsub.NewWrappedPublihser(kPub)
 	if err != nil {
 		log.Errorf("[kafka]NewPublisher failed with err: %v", err)
-		panic(err)
+		return nil, err
 	}
 
-	return pub
+	return pub, nil
 }
 
 func NewConsumer(ctx context.Context, config KafkaConfig) pubsub.Subscriber {
@@ -35,10 +40,12 @@ func NewConsumer(ctx context.Context, config KafkaConfig) pubsub.Subscriber {
 		log.Errorf("[kafka]NewConsumer failed with err: %v", err)
 		panic(err)
 	}
-	consumer, err := pubsub.NewWrappedSubscriber(kSub, group, pubsub.WSubscriberConfig{
-		Name:         "OhlcvConsumer",
-		WorkersCount: config.ConsumerCount,
-	})
+	consumer, err := pubsub.NewWrappedSubscriber(
+		kSub, group, pubsub.WSubscriberConfig{
+			Name:         "OhlcvConsumer",
+			WorkersCount: config.ConsumerCount,
+		},
+	)
 
 	return consumer
 }

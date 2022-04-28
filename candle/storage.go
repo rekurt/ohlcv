@@ -1,14 +1,16 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
+	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type Storage struct {
@@ -70,13 +72,13 @@ func (s Storage) GetMinuteCandles(
 		},
 	}}}
 
-	options := options.Aggregate()
+	opts := options.Aggregate()
 	adu := true
-	options.AllowDiskUse = &adu
+	opts.AllowDiskUse = &adu
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
 		mongo.Pipeline{matchStage, projectStage, groupStage, sortStage},
-		options,
+		opts,
 	)
 
 	if err != nil {
@@ -103,7 +105,10 @@ func (s Storage) GetMinuteCandles(
 		logger.FromContext(ctx).WithField(
 			"candleCount",
 			len(candles),
-		).WithField("err", err).WithField("err", period).Infof("Candles not found.")
+		).WithField("err", err).WithField(
+			"err",
+			period,
+		).Infof("Candles not found.")
 		return nil, err
 	}
 	logger.FromContext(ctx).WithField(
