@@ -8,8 +8,6 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/centrifugal/centrifuge-go v0.8.2
 	github.com/centrifugal/gocent/v3 v3.2.0
-	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
-	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
