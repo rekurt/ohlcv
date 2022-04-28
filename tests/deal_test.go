@@ -104,7 +104,7 @@ func TestSaveDeal(t *testing.T) {
 
 func initCandleService(
 	conf infra.Config,
-	dealCollection *mongo2.Collection,
+	dealsCollection *mongo2.Collection,
 ) *candle.Service {
 	eventsBroker := broker.NewInMemory()
 	broadcaster := centrifuge.NewBroadcaster(
@@ -114,7 +114,8 @@ func initCandleService(
 	broadcaster.SubscribeForCharts()
 
 	return candle.NewService(
-		dealCollection,
+		&candle.Storage{DealsDbCollection: dealsCollection},
+		new(candle.Agregator),
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		broker.NewInMemory(),

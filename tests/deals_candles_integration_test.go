@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"strings"
@@ -220,7 +219,8 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 
 	// Candles service setup
 	suite.candles = candle.NewService(
-		dealsCollection,
+		&candle.Storage{DealsDbCollection: dealsCollection},
+		new(candle.Agregator),
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		eventsBroker,
@@ -246,6 +246,12 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 }
 
 func (suite *candlesIntegrationTestSuite) SetupSuite() {
+	err := loadConfigs([]string{"../config/.env.testing", "../config/.env"})
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	conf := infra.Parse()
+
 	services := []string{serviceDB, serviceQueue, serviceWS}
 
 	composePaths := make([]string, len(services))
@@ -261,18 +267,17 @@ func (suite *candlesIntegrationTestSuite) SetupSuite() {
 		"ohlcv_test",
 	)
 
-	execErr := suite.compose.
-		WithCommand([]string{"up", "-d"}).
-		WithEnv(getEnvsMap()).
-		Invoke()
-	if execErr.Error != nil {
-		log.Println("docker-compose output:", execErr.Stdout)
-		log.Panicf(
-			"Failed when running %v: %v", execErr.Command, execErr.Error,
-		)
-	}
+	//execErr := suite.compose.
+	//	WithCommand([]string{"up", "-d"}).
+	//	WithEnv(getEnvsMap()).
+	//	Invoke()
+	//if execErr.Error != nil {
+	//	log.Println("docker-compose output:", execErr.Stdout)
+	//	log.Panicf(
+	//		"Failed when running %v: %v", execErr.Command, execErr.Error,
+	//	)
+	//}
 
-	conf := infra.Parse()
 	//suite.compose.WaitForService(serviceDB, mongoWait(conf.MongoDbConfig))
 
 	ctx, cancel := context.WithCancel(infra.GetContext())
@@ -296,10 +301,6 @@ func (suite *candlesIntegrationTestSuite) TearDownSuite() {
 	_ = suite.wsSub.Disconnect()
 
 	suite.compose.Down()
-}
-
-func (suite *candlesIntegrationTestSuite) SetupTest() {
-	//
 }
 
 func (suite *candlesIntegrationTestSuite) TestDealsConsumeAndSave(t *testing.T) {
