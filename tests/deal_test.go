@@ -7,16 +7,11 @@ import (
 	"testing"
 	"time"
 
-	mongo2 "go.mongodb.org/mongo-driver/mongo"
-
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
-
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
-	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
@@ -27,6 +22,7 @@ import (
 func TestSaveDeal(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
+	eventsBroker := broker.NewInMemory()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	// mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
@@ -83,7 +79,7 @@ func TestSaveDeal(t *testing.T) {
 		t.Fail()
 	}
 
-	candleService := initCandleService(conf, dealCollection)
+	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 	from := time.Now().Add(-5 * time.Minute)
 	to := time.Now()
 	chart5Min, _ := candleService.GetChart(
@@ -100,26 +96,6 @@ func TestSaveDeal(t *testing.T) {
 	)
 	// assert.Equal(t, a, b, "The two words should be the same.")
 	log.Print(currentChart, chart5Min)
-}
-
-func initCandleService(
-	conf infra.Config,
-	dealsCollection *mongo2.Collection,
-) *candle.Service {
-	eventsBroker := broker.NewInMemory()
-	broadcaster := centrifuge.NewBroadcaster(
-		centrifuge.NewPublisher(conf.CentrifugeConfig),
-		eventsBroker,
-	)
-	broadcaster.SubscribeForCharts()
-
-	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Agregator),
-		domain.GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		broker.NewInMemory(),
-	)
 }
 
 func TestDealGenerator(t *testing.T) {
@@ -139,7 +115,7 @@ func TestDealGenerator(t *testing.T) {
 		domain.GetAvailableMarkets(),
 		eventsBroker,
 	)
-	candleService := initCandleService(conf, dealCollection)
+	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 
 	candleService.CronCandleGenerationStart(ctx)
 
