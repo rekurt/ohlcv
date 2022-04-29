@@ -1,6 +1,6 @@
 #!/bin/env make
 
-$(shell cp -u config/example.env config/.env)
+$(shell cp -u config/.env.sample config/.env)
 -include config/.env
 export
 
@@ -8,7 +8,7 @@ REGISTRY          = bitbucket.org/novatechnologies
 CGO_ENABLED       ?= 0
 GO                =  go
 DOCKER_DIR        =  docker## docker dir (for compose and Dockerfile)
-COMPOSE_PROFILES  ?= $(shell echo ${DCP-db,broker,ws})## docker-compose profiles
+COMPOSE_PFS  ?= $(shell echo ${DCP-db,broker,ws})## docker-compose profiles
 SCRIPTS_DIR       ?= $(PWD)/scripts## path to the shell scripts-helpers
 BIN_DIR	          ?= $(PWD)/bin## path for the build binaries and 3rd party tools
 CFG_FILE          ?= $(PWD)/config/.env## path for configuration files
@@ -44,32 +44,27 @@ export GOBIN        	 := $(PWD)/$(BIN_DIR)
 export PATH         	 := $(GOBIN):$(PATH)
 export GO111MODULE  	 := on
 
-# TODO: docs gen
+
 .PHONY: init
-init:
-	@($(info $(M) installing tools into $(BIN_DIR))\
-	mkdir -p $(BIN_DIR)\
-	$(MAKE) install-tools)
+LINE=vm.overcommit_memory=1
+SYSCTL_FILE=/etc/sysctl.conf
+init: install-tools gen
+	$(info $(M) linking centrifugo config.json from volumes to config)
+	rm -f $(PWD)/config/centrifugo.json
+	ln -s $(PWD)/docker/.volumes/centrifugo/config.json $(PWD)/config/centrifugo.json
 
+	$(info $(M) cp -u $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc for shortcutting)
+	rm -f $(BIN_DIR)/dc
+	ln -s $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc
+	chmod +x $(SCRIPTS_DIR)/docker-compose.sh
+	chmod +x $(BIN_DIR)/dc
 
-	@($(info $(M) linking centrifugo config.json from volumes to config);\
-	ln -sf docker/.volumes/centrifugo/config.json config/centrifugo.json)
+	$(info $(M) writing "$(LINE)" to "$(SYSCTL_FILE)" for redis)
+	$(shell sudo grep -qF "$(LINE)" "$(SYSCTL_FILE)" || echo "$(LINE)" | sudo tee -a "$(SYSCTL_FILE)")
+	@(sudo sysctl vm.overcommit_memory=1)
 
-	@($(info $(M) creating local .env config from .env.sample);\
-	cp -u config/.env.sample .env)
-
-	@($(info $(M) cp -u $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc for shortcutting);\
-	rsync -aqs $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc;\
-	chmod +x $(SCRIPTS_DIR)/docker-compose.sh; \
-	chmod +x $(BIN_DIR)/dc)
-
-	@($(info $(M) writing "vm.overcommit_memory=1" to /etc/sysctl.d/redis.conf for redis);\
-	sudo sh -c 'echo "vm.overcommit_memory=1" >> /etc/sysctl.conf';\
-	sudo sysctl vm.overcommit_memory=1)
-
-	@($(info $(M) building docker-compose images if needed);\
-	COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
-    	up -d --build)
+	$(info $(M) building docker-compose images if needed)
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh up -d --build)
 
 
 .PHONY: all
@@ -99,6 +94,7 @@ build-docker: gen ## Build Docker image, e.g.: make build-docker SVC_NAME=my_ser
 .PHONY: install-tools
 install-tools: ## Install tools required to work with the project
 	$(info $(M) checking for tools needed)
+	@(mkdir -p $(BIN_DIR) && touch $(BIN_DIR)/.gitkeep && git add "$(BIN_DIR)/.gitkeep")
 	@(echo "GOBIN=$(GOBIN) BIN_DIR=$(BIN_DIR) ./scripts/install-tools.sh")
 	@(GOBIN=$(GOBIN) BIN_DIR=$(BIN_DIR) ./scripts/install-tools.sh)
 
@@ -116,6 +112,7 @@ fmt: install-tools ## Do code formatting
 	$(BIN_DIR)/gofumpt -l -w .
 
 
+# TODO: docs gen
 .PHONY: gen
 gen: install-tools api_gen fmt ## Generate code, fixtures, docs etc
 	$(info $(M) run code and docs generation)
@@ -152,7 +149,7 @@ test-integration: stop lint ## Run functional/end-to-end integration (slow runni
 .PHONY: docker-up
 docker-up: ## Starts local dev environment: make docker-up
 	$(info $(M) starting local dev environment...)
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh \
     		up -d)
 
 
@@ -160,14 +157,14 @@ docker-up: ## Starts local dev environment: make docker-up
 docker-stop: ## Stops local dev environment: make docker-stop
 	$(info $(M) stopping local dev environment...)
 	@(echo $(SCRIPTS_DIR)/docker-compose.sh stop)
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh stop)
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh stop)
 
 
 .PHONY: docker-clean ## Cleaning docker images, footprint: make docker-clean.
 docker-clean: docker-stop
 	$(info $(M) cleaning local docker environment...)
 
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh \
 		down --remove-orphans --rmi local)
 
 	@(sudo rm -rf \
@@ -177,28 +174,26 @@ docker-clean: docker-stop
 
 .PHONY: db-clean
 db-clean:
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh \
 		stop mongo)
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh \
     		down --remove-orphans --rmi local)
 	@(sudo rm -rf ./docker/.volumes/mongo/db)
 
 
 .PHONY: clean
+BIN_BASE=$(shell basename $(BIN_DIR))
 clean: docker-clean ## Clean up the DB footprint, artefacts etc.
-	$(info $(M) cleaning $(BIN_DIR) directory config file and others. You should 'make init')
-	@(rm -rf \
-		$(shell find $(BIN_DIR)/ -type f ! -name ".gitkeep" | xargs) \
-		config/.env \
-		api/generated/go/* \
-		config/centrifugo.json &> /dev/null)
+	$(info $(M) cleaning up generated by init files. You should do to reinit project 'make init')
+
+	@(rm -rf ./$(BIN_BASE)/* ./config/.env ./api/generated/go/* ./config/centrifugo.json)
+	@(touch $(BIN_BASE)/.gitkeep && git add $(BIN_BASE)/.gitkeep)
 
 
 .PHONY: db-seed
 db-seed: db-clean ## Seeding database with fixtures
 	$(info $(M) seeding local docker environment\: mongo...)
-	@(COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
-    		up -d mongo)
+	@(COMPOSE_PROFILES=$(COMPOSE_PFS) $(SCRIPTS_DIR)/docker-compose.sh up -d mongo)
 
 	$(BIN_DIR)/mongoimport \
     	--host=${MONGODB_HOST} \

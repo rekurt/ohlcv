@@ -14,7 +14,7 @@ import (
 )
 
 type Storage struct {
-	DealsDbCollection *mongo.Collection
+	DealsDbCollection  *mongo.Collection
 	CandleDbCollection *mongo.Collection
 }
 
