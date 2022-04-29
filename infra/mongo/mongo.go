@@ -80,6 +80,32 @@ func InitDealCollection(
 
 }
 
+
+func InitMinuteCandleCollection(
+	ctx context.Context,
+	client *mongo.Client,
+	config infra.MongoDbConfig,
+) {
+	_ = client.Database(config.DbName).Collection(config.DealCollectionName).Drop(ctx)
+	opt := options.CreateCollection().SetTimeSeriesOptions(
+		&options.TimeSeriesOptions{
+			TimeField:   "time",
+			MetaField:   pointer.ToString("market"),
+			Granularity: pointer.ToString("minutes"),
+		},
+	)
+
+	err := client.Database(config.DbName).CreateCollection(
+		ctx,
+		config.MinuteCandleCollectionName,
+		opt,
+	)
+	if err != nil {
+		panic(err)
+	}
+	_ = client.Database(config.DbName).Collection(config.MinuteCandleCollectionName)
+}
+
 func GetCollection(
 	ctx context.Context,
 	client *mongo.Client,
