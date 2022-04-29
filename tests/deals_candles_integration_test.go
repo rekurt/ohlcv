@@ -304,6 +304,10 @@ func (suite *candlesIntegrationTestSuite) TearDownSuite() {
 }
 
 func (suite *candlesIntegrationTestSuite) TestDealsConsumeAndSave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	a := assert.New(t)
 
 	// Initialize context with current test timeout.
