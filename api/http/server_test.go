@@ -24,6 +24,7 @@ func Test_Server_manual(t *testing.T) {
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
 	)
 
 	dealService := deal.NewService(

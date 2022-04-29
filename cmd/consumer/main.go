@@ -31,12 +31,12 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	minuteCandleCollection := mongo.GetCollection(
-		ctx,
-		mongoDbClient,
-		conf.MongoDbConfig,
-		conf.MongoDbConfig.MinuteCandleCollectionName,
-	)
+	//minuteCandleCollection := mongo.GetCollection(
+	//	ctx,
+	//	mongoDbClient,
+	//	conf.MongoDbConfig,
+	//	conf.MongoDbConfig.MinuteCandleCollectionName,
+	//)
 	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealsCollection := mongo.GetCollection(
 		ctx,

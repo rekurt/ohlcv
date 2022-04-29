@@ -52,19 +52,22 @@ init:
 	$(MAKE) install-tools)
 
 
-	@($(info $(M) linking centrifugo config.json from volumes to config)\
+	@($(info $(M) linking centrifugo config.json from volumes to config);\
 	ln -sf docker/.volumes/centrifugo/config.json config/centrifugo.json)
 
-	@($(info $(M) cp -u $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc for shortcutting)\
+	@($(info $(M) creating local .env config from .env.sample);\
+	cp -u config/.env.sample .env)
+
+	@($(info $(M) cp -u $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc for shortcutting);\
 	rsync -aqs $(SCRIPTS_DIR)/docker-compose.sh $(BIN_DIR)/dc;\
 	chmod +x $(SCRIPTS_DIR)/docker-compose.sh; \
 	chmod +x $(BIN_DIR)/dc)
 
-	@($(info $(M) writing "vm.overcommit_memory=1" to /etc/sysctl.d/redis.conf for redis)\
+	@($(info $(M) writing "vm.overcommit_memory=1" to /etc/sysctl.d/redis.conf for redis);\
 	sudo sh -c 'echo "vm.overcommit_memory=1" >> /etc/sysctl.conf';\
 	sudo sysctl vm.overcommit_memory=1)
 
-	@($(info $(M) building docker-compose images if needed)\
+	@($(info $(M) building docker-compose images if needed);\
 	COMPOSE_PROFILES=$(COMPOSE_PROFILES) $(SCRIPTS_DIR)/docker-compose.sh \
     	up -d --build)
 
