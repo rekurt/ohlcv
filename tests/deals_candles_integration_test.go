@@ -278,7 +278,7 @@ func (suite *candlesIntegrationTestSuite) SetupSuite() {
 	//	)
 	//}
 
-	//suite.compose.WaitForService(serviceDB, mongoWait(conf.MongoDbConfig))
+	// suite.compose.WaitForService(serviceDB, mongoWait(conf.MongoDbConfig))
 
 	ctx, cancel := context.WithCancel(infra.GetContext())
 	if err := suite.setupServicesUnderTests(ctx, conf); err != nil {

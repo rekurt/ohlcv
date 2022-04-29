@@ -36,7 +36,7 @@ func NewService(
 	}
 }
 
-//CronCandleGenerationStart generates candle for websocket pushing every min
+// CronCandleGenerationStart generates candle for websocket pushing every min
 // (example: empty candles).
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {

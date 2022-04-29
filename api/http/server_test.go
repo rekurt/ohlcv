@@ -26,7 +26,7 @@ func Test_Server_manual(t *testing.T) {
 	server := NewServer(candleService, dealService, nil)
 	server.Start(ctx)
 
-	//shutdown
+	// shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 

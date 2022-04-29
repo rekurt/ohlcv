@@ -41,8 +41,7 @@ type CentrifugeConfig struct {
 	// See: https://centrifugal.dev/docs/server/private_channels
 	SignTokenKey CryptoKeyInPEM `envconfig:"CENTRIFUGO_SIGN_TOKEN_KEY"`
 	WSPrefix     string         `envconfig:"CENTRIFUGO_WS_PREFIX" default:"/connection/websocket"`
-	//VerifyTokenKey CryptoKeyInPEM `envconfig:"CENTRIFUGO_VERIFY_TOKEN_KEY"`
-
+	// VerifyTokenKey CryptoKeyInPEM `envconfig:"CENTRIFUGO_VERIFY_TOKEN_KEY"`
 }
 
 type Config struct {

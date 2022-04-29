@@ -80,7 +80,6 @@ func (s Storage) GetMinuteCandles(
 		mongo.Pipeline{matchStage, projectStage, groupStage, sortStage},
 		opts,
 	)
-
 	if err != nil {
 		logger.FromContext(ctx).WithField(
 			"error",

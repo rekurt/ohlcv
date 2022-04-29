@@ -30,7 +30,7 @@ func main() {
 	broadcaster.SubscribeForCharts()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	// mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealsCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
@@ -59,7 +59,7 @@ func main() {
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	//shutdown
+	// shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 	_ = <-signalCh

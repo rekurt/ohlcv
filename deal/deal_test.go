@@ -39,5 +39,4 @@ func TestService_GetLastTrades(t *testing.T) {
 			assert.Len(t, trades, 2)
 		},
 	)
-
 }

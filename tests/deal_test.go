@@ -29,7 +29,7 @@ func TestSaveDeal(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	// mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
@@ -98,7 +98,7 @@ func TestSaveDeal(t *testing.T) {
 		market,
 		domain.Candle5MResolution,
 	)
-	//assert.Equal(t, a, b, "The two words should be the same.")
+	// assert.Equal(t, a, b, "The two words should be the same.")
 	log.Print(currentChart, chart5Min)
 }
 
@@ -146,7 +146,7 @@ func TestDealGenerator(t *testing.T) {
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	//shutdown
+	// shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 
@@ -164,7 +164,7 @@ func Test_GetLastTrades(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	// mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,

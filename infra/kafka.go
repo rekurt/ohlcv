@@ -35,7 +35,6 @@ func NewConsumer(ctx context.Context, config KafkaConfig) pubsub.Subscriber {
 	brokers := []string{config.Host}
 	log := logger.FromContext(ctx).WithField("m", "main")
 	kSub, err := kafka.NewSubscriber(log, brokers, config.SslFlag)
-
 	if err != nil {
 		log.Errorf("[kafka]NewConsumer failed with err: %v", err)
 		panic(err)

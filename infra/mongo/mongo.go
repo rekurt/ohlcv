@@ -77,7 +77,6 @@ func InitDealCollection(
 			Options: options.Index().SetUnique(true),
 		},
 	)
-
 }
 
 func GetCollection(

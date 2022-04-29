@@ -17,7 +17,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
-	count int, //is not used. 0 for unlimit request
+	count int, // is not used. 0 for unlimit request
 ) *domain.Chart {
 	var chart *domain.Chart
 
