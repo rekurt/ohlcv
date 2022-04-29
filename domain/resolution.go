@@ -15,6 +15,10 @@ const Candle12HResolution = "12H"
 const Candle1DResolution = "1D"
 const Candle1MHResolution = "1MH"
 
+const MinuteUnit = "minute"
+const HourUnit = "hour"
+const MonthUnit = "month"
+
 func GetAvailableResolutions() []string {
 	return []string{
 		Candle1MResolution,

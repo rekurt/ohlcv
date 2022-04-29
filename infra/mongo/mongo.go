@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"github.com/AlekSi/pointer"
@@ -29,9 +30,12 @@ func NewMongoClient(
 		config.Password,
 		config.Host,
 	)
+
+	timeoutD := 60 * time.Second
 	clientOptions := options.Client().ApplyURI(uri).
 		SetAuth(credential).
-		SetMaxPoolSize(100)
+		SetMaxPoolSize(100).
+		SetConnectTimeout(timeoutD)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
