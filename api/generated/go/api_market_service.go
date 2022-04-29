@@ -10,10 +10,9 @@
 package openapi
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"strings"
-
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 // MarketApiService is a service that implements the logic for the MarketApiServicer
@@ -48,6 +47,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 func convert(tr []domain.Deal) []Trade {
 	trades := make([]Trade, len(tr))
 	for i := range tr {
+
 		trades[i] = Trade{
 			Id:           tr[i].DealId,
 			Price:        tr[i].Price.String(),

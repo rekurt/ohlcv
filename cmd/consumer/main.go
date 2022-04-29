@@ -30,11 +30,19 @@ func main() {
 	broadcaster.SubscribeForCharts()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	// mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+
+	minuteCandleCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.MinuteCandleCollectionName,
+	)
+	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealsCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
 	)
 
 	dealService := deal.NewService(

@@ -16,12 +16,13 @@ type KafkaConfig struct {
 }
 
 type MongoDbConfig struct {
-	Host               string `envconfig:"MONGODB_HOST" required:"true"`
-	DbName             string `envconfig:"MONGODB_NAME" required:"true"`
-	DealCollectionName string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`
-	TimeOut            int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
-	User               string `envconfig:"MONGODB_USER" required:"true"`
-	Password           string `envconfig:"MONGODB_PASSWORD" required:"true"`
+	Host                       string `envconfig:"MONGODB_HOST" required:"true"`
+	DbName                     string `envconfig:"MONGODB_NAME" required:"true"`
+	DealCollectionName         string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`
+	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true"`
+	TimeOut                    int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
+	User                       string `envconfig:"MONGODB_USER" required:"true"`
+	Password                   string `envconfig:"MONGODB_PASSWORD" required:"true"`
 }
 
 // CryptoKeyInPEM is string alias just explicitly informing of PEM format:

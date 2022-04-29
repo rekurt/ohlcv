@@ -83,10 +83,11 @@ func GetCollection(
 	ctx context.Context,
 	client *mongo.Client,
 	config infra.MongoDbConfig,
+	collectionName string,
 ) *mongo.Collection {
 	logger.FromContext(ctx).Infof(
 		"[infra.Mongo] Try get collection %s",
-		config.DealCollectionName,
+		collectionName,
 	)
-	return client.Database(config.DbName).Collection(config.DealCollectionName)
+	return client.Database(config.DbName).Collection(collectionName)
 }
