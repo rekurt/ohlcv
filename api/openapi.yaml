@@ -43,7 +43,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/resp_error'
 components:
   parameters:
     symbol:
@@ -94,7 +94,7 @@ components:
         - time
         - isBuyerMaker
         - isBestMatch
-    error:
+    resp_error:
       type: object
       properties:
         code:

@@ -5,41 +5,56 @@ set -e
 if [ -z "${BIN_DIR}" ]; then BIN_DIR=$(pwd)/bin; fi
 
 if [[ ! -f "$BIN_DIR"/golangci-lint ]]; then
-    go install -mod=readonly github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    GOBIN="$BIN_DIR" go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 fi
 
 if [[ ! -f "$BIN_DIR"/mockgen ]]; then
-  go install -mod=readonly github.com/golang/mock/mockgen@latest
+  GOBIN="$BIN_DIR" go install github.com/golang/mock/mockgen@latest
 fi
 
 if [[ ! -f "$BIN_DIR"/goimports ]]; then
-  go install -mod=readonly golang.org/x/tools/cmd/goimports@latest
+  GOBIN="$BIN_DIR" go install golang.org/x/tools/cmd/goimports@latest
 fi
 
 if [[ ! -f "$BIN_DIR"/godotenv ]]; then
-  go install -mod=readonly github.com/joho/godotenv/cmd/godotenv@latest
+  GOBIN="$BIN_DIR" go install github.com/joho/godotenv/cmd/godotenv@latest
 fi
 
 if [[ ! -f "$BIN_DIR"/gofumpt ]]; then
-  go install -mod=readonly mvdan.cc/gofumpt@latest
+  GOBIN="$BIN_DIR" go install mvdan.cc/gofumpt@latest
+fi
+
+if [[ ! -f "$BIN_DIR"/openapi-generator-cli ]]; then
+  gen_cli_url=https://raw.githubusercontent.com/OpenAPITools/openapi-generator/master/bin/utils/openapi-generator-cli.sh
+  mvn_url=https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.zip
+
+  # install Maven
+  curl -k -L -s $mvn_url > /tmp/mvn.zip
+  unzip /tmp/mvn.zip -d "$BIN_DIR"
+  rm /tmp/mvn.zip
+  ln -s "$BIN_DIR"/apache-maven-3.8.5/bin/mvn "$BIN_DIR"/mvn && chmod +x "$BIN_DIR"/mvn
+
+  # install OpenAPI Generator Cli
+  curl $gen_cli_url > "$BIN_DIR"/openapi-generator-cli
+  chmod +x "$BIN_DIR"/openapi-generator-cli
 fi
 
 if [[ ! -f "$BIN_DIR"/mongoimport ]]; then
-  project_dir=$(pwd)/"$BIN_DIR"
+  project_bin=$(pwd)/"$BIN_DIR"
   base_dir=/tmp/mongo-tools
   # shellcheck disable=SC2216
   test "$base_dir" | (cd "$base_dir" && git pull) || \
     git clone https://github.com/mongodb/mongo-tools.git "$base_dir" && cd "$base_dir"
 
   go mod download && go mod tidy -v
-  go build -o bin/mongoimport mongoimport/main/mongoimport.go
-  go build -o bin/mongoexport mongoexport/main/mongoexport.go
-  go build -o bin/mongostat mongostat/main/mongostat.go
-  go build -o bin/mongotop mongotop/main/mongotop.go
-  go build -o bin/mongodump mongodump/main/mongodump.go
-  go build -o bin/mongorestore mongorestore/main/mongorestore.go
+  go build -o "$BIN_DIR"/mongoimport mongoimport/main/mongoimport.go
+  go build -o "$BIN_DIR"/mongoexport mongoexport/main/mongoexport.go
+  go build -o "$BIN_DIR"/mongostat mongostat/main/mongostat.go
+  go build -o "$BIN_DIR"/mongotop mongotop/main/mongotop.go
+  go build -o "$BIN_DIR"/mongodump mongodump/main/mongodump.go
+  go build -o "$BIN_DIR"/mongorestore mongorestore/main/mongorestore.go
 
-  echo "$base_dir"/bin/\* "$project_dir"/
-  rsync -aqs "$base_dir"/bin "$project_dir"
   rm -rf /tmp/mongo-tools
 fi
+
+chmod +x "$BIN_DIR"/*

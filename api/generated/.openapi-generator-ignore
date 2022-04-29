@@ -1,1 +1,7 @@
 /go/api_market_service.go
+
+# ignore to avoid duplicating.
+/api/openapi.yaml
+
+# ignore README.md cause of no relevant instructions.
+/README.md

@@ -114,16 +114,22 @@ fmt: install-tools ## Do code formatting
 
 
 .PHONY: gen
-gen: install-tools ## Generate code, fixtures, docs etc
+gen: install-tools api_gen fmt ## Generate code, fixtures, docs etc
 	$(info $(M) run code and docs generation)
 	@(GOBIN=$(GOBIN) PROJECT_ROOT=$(PROJECT_ROOT) $(GO) generate ./...)
 
 
 .PHONY: api_gen
-api_gen: ## Generates Go code from local/api/openapi.yaml
-	docker run --rm -v "$(PROJECT_ROOT):/local" openapitools/openapi-generator-cli generate \
-		-i local/api/openapi.yaml -g go-server -o local/api/generated --minimal-update
-	sudo chown $(shell whoami) -R "$(PROJECT_ROOT)"/api/generated
+api_gen: ## Generates Go code from api/openapi.yaml
+	PATH=$(BIN_DIR):${PATH} \
+	OPENAPI_GENERATOR_VERSION=6.0.0-beta \
+	openapi-generator-cli generate \
+		-i api/openapi.yaml -g go-server -o api/generated -p outputAsLibrary=true \
+		--minimal-update
+
+	$(MAKE) fmt
+
+	git add api/generated/*
 
 
 .PHONY: test
@@ -136,7 +142,7 @@ test: stop lint ## Run unit and mocked/stubbed integration (fast running) tests
 .PHONY: test-integration
 test-integration: stop lint ## Run functional/end-to-end integration (slow running) tests
 	$(info $(M) running functional and end-to-end tests)
-	@$(BIN_DIR)/godotenv -f ./config/testing.env \
+	@$(BIN_DIR)/godotenv -f ./config/.env.testing \
 	$(GO) test -count=1 -parallel=N $(MODULE_NAME)/tests
 
 
