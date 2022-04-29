@@ -18,10 +18,10 @@ func Test_Server_manual(t *testing.T) {
 	conf := infra.SetConfig("../../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig, conf.MongoDbConfig.DealCollectionName)
 
-	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets())
-	candleService := candle.NewService(dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableResolutions())
+	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets(), nil)
+	candleService := candle.NewService(candle.Storage, dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableResolutions())
 
 	server := NewServer(candleService, dealService, nil)
 	server.Start(ctx)

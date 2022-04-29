@@ -15,6 +15,7 @@ import (
 
 type Storage struct {
 	DealsDbCollection *mongo.Collection
+	CandleDbCollection *mongo.Collection
 }
 
 func (s Storage) GetMinuteCandles(

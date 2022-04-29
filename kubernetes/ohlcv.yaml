@@ -36,6 +36,8 @@ spec:
               value: "$MONGODB_TIMEOUT"
             - name: MONGODB_DEAL_COLLECTION_NAME
               value: "$MONGODB_DEAL_COLLECTION_NAME"
+            - name: MONGODB_MINUTE_CANDLE_COLLECTION_NAME
+              value: "$MONGODB_MINUTE_CANDLE_COLLECTION_NAME"
             - name: MONGODB_ROOT_PASSWORD
               value: "$MONGODB_ROOT_PASSWORD"
             - name: MONGODB_USER
