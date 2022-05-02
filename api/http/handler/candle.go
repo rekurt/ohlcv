@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -27,11 +28,15 @@ func (h CandleHandler) GetCandleChart(
 	req *http.Request,
 ) {
 	ctx := req.Context()
-
 	market := req.URL.Query().Get("market")
+	if len(market) == 0 {
+		http.Error(res, "market is required", http.StatusBadRequest)
+		return
+	}
+	market = strings.Replace(market, "%2F", "_", -1)
+	market = strings.Replace(market, "/", "_", -1)
 
 	resolution := req.URL.Query().Get("resolution")
-
 	candleDuration := domain.StrResolutionToDuration(resolution)
 	if candleDuration == 0 {
 		candleDuration = defaultDuration
