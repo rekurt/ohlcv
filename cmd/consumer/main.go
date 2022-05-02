@@ -62,7 +62,7 @@ func main() {
 	//candleService.CronCandleGenerationStart(ctx)
 	//candleService.SubscribeForDeals()
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
 	server.Start(ctx)
 
 	//shutdown

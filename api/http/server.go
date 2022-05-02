@@ -21,7 +21,7 @@ type Server struct {
 func NewServer(
 	candleService *candle.Service,
 	dealService domain.Service,
-) *Server {
+	port int) *Server {
 	mux := http.NewServeMux()
 
 	candleHandler := handler.NewCandleHandler(candleService)
@@ -33,7 +33,7 @@ func NewServer(
 	mux.HandleFunc("/api/candles", candleHandler.GetCandleChart)
 
 	srv := http.Server{
-		Addr:    fmt.Sprintf(":%d", 8082),
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 

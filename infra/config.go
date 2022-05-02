@@ -8,6 +8,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type HttpConfig struct {
+	Port int `envconfig:"API_PORT" required:"false" default:"8888"`
+}
+
 type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
 	ConsumerCount int    `envconfig:"KAFKA_CONSUMER_COUNT" required:"true"`
@@ -51,6 +55,7 @@ type Config struct {
 	KafkaConfig      KafkaConfig
 	MongoDbConfig    MongoDbConfig
 	CentrifugeConfig CentrifugeConfig
+	HttpConfig       HttpConfig
 }
 
 func SetConfig(configPath string) Config {
