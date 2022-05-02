@@ -4,7 +4,7 @@ import (
 	"os"
 	"os/signal"
 
-	"bitbucket.org/novatechnologies/common/events/topics"
+	//"bitbucket.org/novatechnologies/common/events/topics"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -20,7 +20,7 @@ func main() {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("./config/.env")
 
-	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
+	_ = infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 
 	broadcaster := centrifuge.NewBroadcaster(
@@ -31,18 +31,16 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	//minuteCandleCollection := mongo.GetCollection(
-	//	ctx,
-	//	mongoDbClient,
-	//	conf.MongoDbConfig,
-	//	conf.MongoDbConfig.MinuteCandleCollectionName,
-	//)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	dealsCollection := mongo.GetCollection(
+	minuteCandleCollection := mongo.GetOrCreateMinutesCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
-		conf.MongoDbConfig.DealCollectionName,
+	)
+
+	dealsCollection := mongo.GetOrCreateDealsCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
 	)
 
 	dealService := deal.NewService(
@@ -51,20 +49,20 @@ func main() {
 		eventsBroker,
 	)
 	// Start consuming, preparing, saving deals into DB and notifying others.
-	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
-	dealService.RunConsuming(ctx, consumer, dealsTopic)
+	//dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	//dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
+		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
 		new(candle.Agregator),
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
-	candleService.CronCandleGenerationStart(ctx)
-	candleService.SubscribeForDeals()
+	//candleService.CronCandleGenerationStart(ctx)
+	//candleService.SubscribeForDeals()
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
 	server.Start(ctx)
 
 	// shutdown

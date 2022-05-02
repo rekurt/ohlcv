@@ -178,7 +178,7 @@ func (s Service) RunConsuming(
 			logger.FromContext(ctx).
 				WithField("err", err).
 				WithField("svc", "DealsService").
-				Errorf("Consuming session was finished with error")
+				Errorf("Consuming session was finished with error", err)
 		}
 	}()
 }

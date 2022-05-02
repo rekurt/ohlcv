@@ -8,6 +8,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type HttpConfig struct {
+	Port int `envconfig:"API_PORT" required:"false" default:"8888"`
+}
+
 type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
 	ConsumerCount int    `envconfig:"KAFKA_CONSUMER_COUNT" required:"true"`
@@ -21,8 +25,9 @@ type MongoDbConfig struct {
 	DealCollectionName         string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`
 	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true"`
 	TimeOut                    int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
-	User                       string `envconfig:"MONGODB_USER" required:"true"`
-	Password                   string `envconfig:"MONGODB_PASSWORD" required:"true"`
+	User                       string `envconfig:"MONGODB_USER" required:"false"`
+	Password                   string `envconfig:"MONGODB_PASSWORD" required:"false"`
+	AuthDbName                 string `envconfig:"MONGODB_AUTH_DB" required:"false" default:"admin"`
 }
 
 // CryptoKeyInPEM is string alias just explicitly informing of PEM format:
@@ -49,6 +54,7 @@ type Config struct {
 	KafkaConfig      KafkaConfig
 	MongoDbConfig    MongoDbConfig
 	CentrifugeConfig CentrifugeConfig
+	HttpConfig       HttpConfig
 }
 
 func SetConfig(configPath string) Config {
