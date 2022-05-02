@@ -25,33 +25,28 @@ func NewCandleHandler(candleService *candle.Service) *CandleHandler {
 	return &CandleHandler{candleService}
 }
 
+func getDefaultTimeRange(candleDuration time.Duration) (time.Time, time.Time) {
+	to := time.Now().Truncate(candleDuration)
+	from := to.Add(-(candleDuration * defaultBarsCount))
+	return from, to
+}
+
 func (h CandleHandler) GetCandleChart(
 	res http.ResponseWriter,
 	req *http.Request,
 ) {
 	ctx := req.Context()
-	market := req.URL.Query().Get("market")
+
+	market := normalizeMarketName(req.URL.Query().Get("market"))
 	if len(market) == 0 {
 		http.Error(res, "market is required", http.StatusBadRequest)
 		return
 	}
-	market = strings.Replace(market, "%2F", "_", -1)
-	market = strings.Replace(market, "/", "_", -1)
 
-	resolution := req.URL.Query().Get("resolution")
-	candleDuration := domain.StrResolutionToDuration(resolution)
-	if candleDuration == 0 {
-		candleDuration = defaultDuration
-		resolution = domain.Candle5MResolution
-	}
+	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("resolution"))
+	from, to := getDefaultTimeRange(candleDuration)
 
-	var from time.Time
-	var to time.Time
-
-	if req.URL.Query().Get("to") == "" || req.URL.Query().Get("from") == "" {
-		to = time.Now().Truncate(candleDuration)
-		from = to.Add(-(candleDuration * defaultBarsCount))
-	} else {
+	if req.URL.Query().Get("to") != "" || req.URL.Query().Get("from") != "" {
 		fromUnix, err := strconv.Atoi(req.URL.Query().Get("from"))
 		if err != nil {
 			illegalUnixTimestamp(err, res)
@@ -84,13 +79,29 @@ func (h CandleHandler) GetCandleChart(
 	}
 
 	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
-
 	marshal, err := json.Marshal(chart)
 	if err != nil {
 		return
 	}
 
 	io.WriteString(res, string(marshal))
+}
+
+func normalizeMarketName(market string) string {
+	market = strings.Replace(market, "%2F", "_", -1)
+	market = strings.Replace(market, "/", "_", -1)
+	return market
+}
+
+func getCandlesConfig(resolution string) (time.Duration, string) {
+
+	candleDuration := domain.StrResolutionToDuration(resolution)
+
+	if candleDuration == 0 {
+		candleDuration = defaultDuration
+		resolution = domain.Candle5MResolution
+	}
+	return candleDuration, resolution
 }
 
 func illegalUnixTimestamp(err error, w http.ResponseWriter) {

@@ -174,7 +174,5 @@ func (s *Service) GetChart(
 	to time.Time,
 ) (interface{}, interface{}) {
 	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
-
-
 	return chart, nil
 }
