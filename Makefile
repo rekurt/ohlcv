@@ -79,7 +79,7 @@ build: gen ## Build any of services, e.g.: make build SVC_NAME=my_service
 	$(GO) mod tidy
 	$(GO) build -o "$(BIN_DIR)/$(SVC_NAME)" \
 		-ldflags '-X "build.Version=${TAG}" -X "build.Date=${BUILD_DATE}" -X "build.GIT_SHA=${GIT_COMMIT}"' \
-		./cmd/*.go
+		./cmd/consumer/*.go
 
 
 build-docker: gen ## Build Docker image, e.g.: make build-docker SVC_NAME=my_service

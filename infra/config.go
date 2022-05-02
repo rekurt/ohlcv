@@ -21,8 +21,9 @@ type MongoDbConfig struct {
 	DealCollectionName         string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`
 	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true"`
 	TimeOut                    int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
-	User                       string `envconfig:"MONGODB_USER" required:"true"`
-	Password                   string `envconfig:"MONGODB_PASSWORD" required:"true"`
+	User                       string `envconfig:"MONGODB_USER" required:"false"`
+	Password                   string `envconfig:"MONGODB_PASSWORD" required:"false"`
+	AuthDbName                 string `envconfig:"MONGODB_AUTH_DB" required:"false" default:"admin"`
 }
 
 // CryptoKeyInPEM is string alias just explicitly informing of PEM format:

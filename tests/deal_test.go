@@ -29,11 +29,12 @@ func TestSaveDeal(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	//mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
 	)
 	dealService := deal.NewService(
 		dealCollection,
@@ -133,6 +134,7 @@ func TestDealGenerator(t *testing.T) {
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
 	)
 	dealService := deal.NewService(
 		dealCollection,
@@ -164,11 +166,12 @@ func Test_GetLastTrades(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	//mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
 	)
 	dealService := deal.NewService(
 		dealCollection,
