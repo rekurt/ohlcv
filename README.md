@@ -12,9 +12,9 @@ For the first time setup:
 ```bash
 make init
 ```
-Usual setup:
+Usual setup/teardown:
 ```bash
-make docker-up
+make {docker-up, docker-stop}
 ```
 #### Setup with deals fixtures
 ```bash

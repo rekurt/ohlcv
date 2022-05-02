@@ -17,7 +17,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
-	count int, //is not used. 0 for unlimit request
+	count int, // is not used. 0 for unlimit request
 ) *domain.Chart {
 	var chart *domain.Chart
 
@@ -201,20 +201,20 @@ func (s *Agregator) aggregateMonthCandlesToChart(
 
 func (s *Agregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
-		O: make([]string, 0),
-		H: make([]string, 0),
-		L: make([]string, 0),
-		C: make([]string, 0),
-		V: make([]string, 0),
+		O: make([]primitive.Decimal128, 0),
+		H: make([]primitive.Decimal128, 0),
+		L: make([]primitive.Decimal128, 0),
+		C: make([]primitive.Decimal128, 0),
+		V: make([]primitive.Decimal128, 0),
 		T: make([]int64, 0),
 	}
 
 	for t, aggregatedCandle := range result {
-		chart.O = append(chart.O, aggregatedCandle.Open.String())
-		chart.H = append(chart.H, aggregatedCandle.High.String())
-		chart.L = append(chart.L, aggregatedCandle.Low.String())
-		chart.C = append(chart.C, aggregatedCandle.Close.String())
-		chart.V = append(chart.V, aggregatedCandle.Volume.String())
+		chart.O = append(chart.O, aggregatedCandle.Open)
+		chart.H = append(chart.H, aggregatedCandle.High)
+		chart.L = append(chart.L, aggregatedCandle.Low)
+		chart.C = append(chart.C, aggregatedCandle.Close)
+		chart.V = append(chart.V, aggregatedCandle.Volume)
 		chart.T = append(chart.T, t)
 	}
 

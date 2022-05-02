@@ -1,12 +1,13 @@
 package candle
 
 import (
+	"testing"
+	"time"
+
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
-	"testing"
-	"time"
 )
 
 func TestService_AggregateCandleToChartByResolution(t *testing.T) {
@@ -19,7 +20,6 @@ func TestService_AggregateCandleToChartByResolution(t *testing.T) {
 		chart := s.AggregateCandleToChartByResolution(cs, market, domain.Candle5MResolution, 0)
 		assert.Len(t, chart, 1)
 	})
-
 }
 
 func getCandles() []*domain.Candle {

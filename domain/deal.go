@@ -8,8 +8,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var marketRegex = regexp.MustCompile("[A-Z]{3,4}_[A-Z]{3,4}")
-var companyCreation, _ = time.Parse(time.RFC3339, "2018-01-01T00:00:00Z00:00")
+var (
+	marketRegex        = regexp.MustCompile("[A-Z]{3,4}_[A-Z]{3,4}")
+	companyCreation, _ = time.Parse(time.RFC3339, "2018-01-01T00:00:00Z00:00")
+)
 
 type Deal struct {
 	ID           primitive.ObjectID   `json:"_id"`

@@ -10,9 +10,10 @@
 package openapi
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"strings"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 // MarketApiService is a service that implements the logic for the MarketApiServicer
@@ -34,12 +35,12 @@ func (s *MarketApiService) ApiV1TradesGet(
 	limit int32,
 ) (ImplResponse, error) {
 	if strings.TrimSpace(symbol) == "" || limit <= 0 || limit >= 1000 {
-		return Response(400, ModelError{}), nil
+		return Response(400, RespError{}), nil
 	}
 
 	trades, err := s.dealService.GetLastTrades(ctx, symbol, limit)
 	if err != nil {
-		return Response(500, ModelError{}), nil
+		return Response(500, RespError{}), nil
 	}
 	return Response(200, convert(trades)), nil
 }

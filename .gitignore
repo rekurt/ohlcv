@@ -1,16 +1,16 @@
 .vscode
 .idea
 
-/bin
+/bin/*
+!/bin/.gitkeep
 config/.env
 config/centrifugo.json
 .env
 
 docker/.volumes/*
-!config/.volumes/centrifugo/.gitkeep
 !docker/.volumes/mongo/*.js
 !docker/.volumes/mongo/*.sh
-!docker/.volumes/zookeeper/.gitkeep
+!config/.volumes/centrifugo/.gitkeep
 !docker/.volumes/kafka/.gitkeep
 !docker/.volumes/redis/.gitkeep
 !/docker/builder.key

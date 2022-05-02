@@ -52,9 +52,10 @@ func TestForNewCollection(t *testing.T) {
 func TestSaveDeal(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
+	eventsBroker := broker.NewInMemory()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	// mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
@@ -110,7 +111,7 @@ func TestSaveDeal(t *testing.T) {
 		t.Fail()
 	}
 
-	candleService := initCandleService(conf, dealCollection, new(mongo2.Collection))
+	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 	from := time.Now().Add(-5 * time.Minute)
 	to := time.Now()
 	chart5Min, _ := candleService.GetChart(
@@ -125,7 +126,7 @@ func TestSaveDeal(t *testing.T) {
 		market,
 		domain.Candle5MResolution,
 	)
-	//assert.Equal(t, a, b, "The two words should be the same.")
+	// assert.Equal(t, a, b, "The two words should be the same.")
 	log.Print(currentChart, chart5Min)
 }
 
@@ -168,14 +169,14 @@ func TestDealGenerator(t *testing.T) {
 		domain.GetAvailableMarkets(),
 		eventsBroker,
 	)
-	candleService := initCandleService(conf, dealCollection, new(mongo2.Collection))
+	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 
 	candleService.CronCandleGenerationStart(ctx)
 
 	server := http.NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	//shutdown
+	// shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 
@@ -193,7 +194,7 @@ func Test_GetLastTrades(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	// mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,

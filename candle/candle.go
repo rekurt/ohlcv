@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
-
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
@@ -36,7 +35,7 @@ func NewService(
 	}
 }
 
-//CronCandleGenerationStart generates candle for websocket pushing every min
+// CronCandleGenerationStart generates candle for websocket pushing every min
 // (example: empty candles).
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
@@ -122,11 +121,10 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	}
 
 	if chart != nil {
-		chart.SetMarket(market)
 		chart.SetResolution(resolution)
 	}
 
-	return &domain.Chart{}
+	return chart
 }
 
 // SubscribeForDeals subscribes for new deals to update and publish particular
@@ -174,7 +172,5 @@ func (s *Service) GetChart(
 	to time.Time,
 ) (interface{}, interface{}) {
 	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
-
-
 	return chart, nil
 }

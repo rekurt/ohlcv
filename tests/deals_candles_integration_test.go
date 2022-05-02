@@ -278,7 +278,7 @@ func (suite *candlesIntegrationTestSuite) SetupSuite() {
 	//	)
 	//}
 
-	//suite.compose.WaitForService(serviceDB, mongoWait(conf.MongoDbConfig))
+	// suite.compose.WaitForService(serviceDB, mongoWait(conf.MongoDbConfig))
 
 	ctx, cancel := context.WithCancel(infra.GetContext())
 	if err := suite.setupServicesUnderTests(ctx, conf); err != nil {
@@ -304,6 +304,10 @@ func (suite *candlesIntegrationTestSuite) TearDownSuite() {
 }
 
 func (suite *candlesIntegrationTestSuite) TestDealsConsumeAndSave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	a := assert.New(t)
 
 	// Initialize context with current test timeout.

@@ -4,8 +4,6 @@ import (
 	"os"
 	"os/signal"
 
-	//"bitbucket.org/novatechnologies/common/events/topics"
-
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
@@ -31,18 +29,16 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	minuteCandleCollection := mongo.GetCollection(
+	minuteCandleCollection := mongo.GetOrCreateMinutesCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
-		conf.MongoDbConfig.MinuteCandleCollectionName,
 	)
-	//mongo.InitDealCollection(ctx, mongoDbClient, conf.MongoDbConfig)
-	dealsCollection := mongo.GetCollection(
+
+	dealsCollection := mongo.GetOrCreateDealsCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
-		conf.MongoDbConfig.DealCollectionName,
 	)
 
 	dealService := deal.NewService(
@@ -64,7 +60,7 @@ func main() {
 	//candleService.CronCandleGenerationStart(ctx)
 	//candleService.SubscribeForDeals()
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
 	server.Start(ctx)
 
 	//shutdown

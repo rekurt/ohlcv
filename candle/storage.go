@@ -14,7 +14,7 @@ import (
 )
 
 type Storage struct {
-	DealsDbCollection *mongo.Collection
+	DealsDbCollection  *mongo.Collection
 	CandleDbCollection *mongo.Collection
 }
 
@@ -31,7 +31,10 @@ func (s Storage) GetCandles(
 	).Infof("[CandleService] Call GetCandles")
 	from, to := period[0], period[1]
 
-	sortStage := bson.D{{"$sort", bson.D{
+	firstSortStage := bson.D{{"$sort", bson.D{
+		{
+			"data.market", 1,
+		},
 		{
 			"t", -1,
 		},
@@ -46,8 +49,10 @@ func (s Storage) GetCandles(
 			}},
 		}},
 	}
-	groupStage := bson.D{{"$group", bson.D{
+
+	firstGroupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
+			{"symbol", "$data.market"},
 			{"t", bson.D{
 				{"$dateTrunc", bson.D{
 					{"date", "$t"},
@@ -55,42 +60,44 @@ func (s Storage) GetCandles(
 					{"binSize", unitSize},
 				}},
 			}},
-			{"market", "$data.market"},
 		}},
 		{"h", bson.D{{"$max", "$data.price"}}},
 		{"l", bson.D{{"$min", "$data.price"}}},
 		{"o", bson.D{{"$first", "$data.price"}}},
 		{"c", bson.D{{"$last", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
-		//{"t", bson.D{{"$first", "$t"}}},
 	}}}
-
 	projectStage := bson.D{
 		{"$project", bson.D{
 			{"_id", 0},
-			{"t", "$_id.t"},
-			{"market", "$_id.market"},
-			{
-				"ohlcv", bson.D{
-					{"o", "$o"},
-					{"h", "$h"},
-					{"l", "$l"},
-					{"c", "$c"},
-					{"v", "$v"},
-				},
-			},
-
-			/*{"t", bson.D{
-				{"$dateTrunc", bson.D{
-					{"date", "$t"},
-					{"unit", unit},
-					{"binSize", unitSize},
-				}},
-			}},*/
-			//{"price", "$price"},
-			//{"volume", "$volume"},
+			{"t", bson.D{{"$toLong", "$_id.t"}}},
+			{"symbol", "$_id.symbol"},
+			{"o", bson.D{{"$toDecimal", "$o"}}},
+			{"h", bson.D{{"$toDecimal", "$h"}}},
+			{"l", bson.D{{"$toDecimal", "$l"}}},
+			{"c", bson.D{{"$toDecimal", "$c"}}},
+			{"v", bson.D{{"$toDecimal", "$v"}}},
 		}},
 	}
+
+	secondGroupStage := bson.D{{"$group", bson.D{
+		{"_id", "$symbol"},
+		{"h", bson.D{{"$push", "$h"}}},
+		{"l", bson.D{{"$push", "$l"}}},
+		{"o", bson.D{{"$push", "$o"}}},
+		{"c", bson.D{{"$push", "$c"}}},
+		{"v", bson.D{{"$push", "$v"}}},
+		{"t", bson.D{{"$push", "$t"}}},
+	}}}
+
+	secondSortStage := bson.D{{"$sort", bson.D{
+		{
+			"symbol", 1,
+		},
+		{
+			"t", -1,
+		},
+	}}}
 
 	opts := options.Aggregate()
 	adu := true
@@ -99,7 +106,7 @@ func (s Storage) GetCandles(
 	//opts.SetMaxAwaitTime(30*time.Second)
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{sortStage, matchStage, groupStage, projectStage},
+		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, secondSortStage, secondGroupStage},
 		opts,
 	)
 
@@ -107,39 +114,36 @@ func (s Storage) GetCandles(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err,
-		).Errorf("[CandleService]Failed apply a aggregation function on the collection.")
+		).Errorf("[CandleService]Failed apply a aggregation function on the collection.", err)
 		return nil
 	}
 
-	test := make([]bson.M, 0)
-	candles := make([]*domain.Candle, 0)
-
-	err = cursor.All(ctx, &test)
+	data := make([]*domain.Chart, 0)
+	err = cursor.All(ctx, &data)
 
 	if err != nil {
 		logger.FromContext(ctx).WithField(
 			"error",
 			err,
-		).Errorf("[CandleService]Failed apply a aggregation function on the collection.")
+		).Errorf("[CandleService]Failed apply a aggregation function on the collection.", err)
 		return nil
 	}
 
-	if len(candles) == 0 {
+	if len(data) == 0 {
 		logger.FromContext(ctx).WithField(
 			"candleCount",
-			len(candles),
+			0,
 		).WithField("err", err).WithField(
 			"err",
 			period,
 		).Infof("Candles not found.")
 		return nil
 	}
+	chart := data[0]
 	logger.FromContext(ctx).WithField(
 		"candleCount",
-		len(candles),
+		len(chart.T),
 	).Infof("Success get candles.")
-
-
-	return &domain.Chart{}
-	//return candles
+	chart.SetMarket(market)
+	return chart
 }

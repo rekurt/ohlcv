@@ -1,28 +1,30 @@
 package domain
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Candle struct {
-	Open      primitive.Decimal128 `json:"open"`
-	High      primitive.Decimal128 `json:"high"`
-	Low       primitive.Decimal128 `json:"low"`
-	Close     primitive.Decimal128 `json:"close"`
-	Volume    primitive.Decimal128 `json:"volume"`
-	Timestamp time.Time            `json:"timestamp"`
+	Symbol    string               `json:"symbol"`
+	Open      primitive.Decimal128 `json:"o"`
+	High      primitive.Decimal128 `json:"h"`
+	Low       primitive.Decimal128 `json:"l"`
+	Close     primitive.Decimal128 `json:"c"`
+	Volume    primitive.Decimal128 `json:"v"`
+	Timestamp time.Time            `json:"t"`
 }
 
 type Chart struct {
-	market     string
+	Symbol     string `json:"symbol"`
 	resolution string
-	O          []string `json:"o"`
-	H          []string `json:"h"`
-	L          []string `json:"l"`
-	C          []string `json:"c"`
-	V          []string `json:"v"`
-	T          []int64  `json:"t"`
+	O          []primitive.Decimal128 `json:"o"`
+	H          []primitive.Decimal128 `json:"h"`
+	L          []primitive.Decimal128 `json:"l"`
+	C          []primitive.Decimal128 `json:"c"`
+	V          []primitive.Decimal128 `json:"v"`
+	T          []int64                `json:"t"`
 }
 
 func (c *Chart) Resolution() string {
@@ -34,9 +36,9 @@ func (c *Chart) SetResolution(resolution string) {
 }
 
 func (c *Chart) Market() string {
-	return c.market
+	return c.Symbol
 }
 
 func (c *Chart) SetMarket(market string) {
-	c.market = market
+	c.Symbol = market
 }

@@ -5,11 +5,12 @@ import (
 	"os/signal"
 	"testing"
 
-	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
+	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
+	"bitbucket.org/novatechnologies/ohlcv/tests"
 )
 
 func Test_Server_manual(t *testing.T) {
@@ -17,16 +18,26 @@ func Test_Server_manual(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../../config/.env")
 
+	eventsBroker := broker.NewInMemory()
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	dealCollection := mongo.GetCollection(ctx, mongoDbClient, conf.MongoDbConfig, conf.MongoDbConfig.DealCollectionName)
+	dealCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
+	)
 
-	dealService := deal.NewService(dealCollection, domain.GetAvailableMarkets(), nil)
-	candleService := candle.NewService(candle.Storage, dealCollection, domain.GetAvailableMarkets(), domain.GetAvailableResolutions())
+	dealService := deal.NewService(
+		dealCollection,
+		domain.GetAvailableMarkets(),
+		eventsBroker,
+	)
+	candleService := tests.InitCandleService(conf, dealCollection, eventsBroker)
 
-	server := NewServer(candleService, dealService, nil)
+	server := NewServer(candleService, dealService)
 	server.Start(ctx)
 
-	//shutdown
+	// shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 
