@@ -17,7 +17,9 @@ type CandleHandler struct {
 	CandleService *candle.Service
 }
 
-const defaultDuration = 5 * time.Minute
+const defaultDuration = 1 * time.Minute
+
+const defaultBarsCount = 32
 
 func NewCandleHandler(candleService *candle.Service) *CandleHandler {
 	return &CandleHandler{candleService}
@@ -43,32 +45,42 @@ func (h CandleHandler) GetCandleChart(
 		resolution = domain.Candle5MResolution
 	}
 
-	fromUnix, err := strconv.Atoi(req.URL.Query().Get("from"))
-	if err != nil {
-		illegalUnixTimestamp(err, res)
-		return
-	}
-	toUnix, err := strconv.Atoi(req.URL.Query().Get("to"))
-	if err != nil {
-		illegalUnixTimestamp(err, res)
-		return
-	}
+	var from time.Time
+	var to time.Time
 
-	from := time.Unix(
-		int64(fromUnix),
-		0,
-	).Add(-candleDuration).Truncate(candleDuration)
-	to := time.Unix(
-		int64(toUnix),
-		0,
-	).Add(candleDuration).Truncate(candleDuration)
+	if req.URL.Query().Get("to") == "" || req.URL.Query().Get("from") == "" {
+		to = time.Now().Truncate(candleDuration)
+		from = to.Add(-(candleDuration * defaultBarsCount))
+	} else {
+		fromUnix, err := strconv.Atoi(req.URL.Query().Get("from"))
+		if err != nil {
+			illegalUnixTimestamp(err, res)
+			return
+		}
+		toUnix, err := strconv.Atoi(req.URL.Query().Get("to"))
 
-	if to.Sub(from) < 0 || to.Sub(from) > 24*364*5*time.Hour {
-		illegalUnixTimestamp(
-			fmt.Errorf(
-				"requested interfal is incorrect or to big",
-			), res,
-		)
+		if err != nil {
+			illegalUnixTimestamp(err, res)
+			return
+		}
+
+		from = time.Unix(
+			int64(fromUnix),
+			0,
+		).Add(-candleDuration).Truncate(candleDuration)
+
+		to = time.Unix(
+			int64(toUnix),
+			0,
+		).Add(candleDuration).Truncate(candleDuration)
+
+		if to.Sub(from) < 0 || to.Sub(from) > 24*364*5*time.Hour {
+			illegalUnixTimestamp(
+				fmt.Errorf(
+					"requested interfal is incorrect or to big",
+				), res,
+			)
+		}
 	}
 
 	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
