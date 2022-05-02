@@ -1,16 +1,16 @@
 package mongo
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"context"
 	"fmt"
-	"os"
-	"time"
 	"github.com/AlekSi/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"bitbucket.org/novatechnologies/ohlcv/infra"
-	"bitbucket.org/novatechnologies/common/infra/logger"
+	"os"
+	"time"
 )
 
 func NewMongoClient(
@@ -21,24 +21,26 @@ func NewMongoClient(
 	if authDbName == "" {
 		authDbName = config.DbName
 	}
+	host := config.Host
 	username := config.User
 	password := config.Password
 	timeoutD := 60 * time.Second
+
 	clientOptions := options.Client().
 		SetMaxPoolSize(100).
 		SetConnectTimeout(timeoutD)
 
-	if username != "" && password != "" {
+	if username != "" {
 		credential := options.Credential{
 			AuthSource: authDbName,
-			Username:   config.User,
-			Password:   config.Password,
+			Username:   username,
+			Password:   password,
 		}
 		uri := fmt.Sprintf(
 			"mongodb://%s:%s@%s",
-			config.User,
-			config.Password,
-			config.Host,
+			username,
+			password,
+			host,
 		)
 
 		clientOptions.ApplyURI(uri).
@@ -46,7 +48,7 @@ func NewMongoClient(
 	} else {
 		clientOptions.ApplyURI(fmt.Sprintf(
 			"mongodb://%s",
-			config.Host,
+			host,
 		))
 	}
 
@@ -68,7 +70,7 @@ func InitDealsCollection(
 	config infra.MongoDbConfig,
 ) *mongo.Collection {
 	collection := initCollection(ctx, client.Database(config.DbName), config.DealCollectionName, getDealsCollectionOptions())
-	createIndex(ctx, collection,
+	createIndex(ctx, collection, "trades",
 		bson.D{
 			{
 				"data.market",
@@ -77,7 +79,16 @@ func InitDealsCollection(
 			{
 				"t",
 				-1,
-			}})
+			}}, false)
+
+	// Unique indexes are not supported on collections clustered by _id ;c
+	// createIndex(ctx, collection, "dealid",
+	//	bson.D{
+	//		{
+	//			"data.dealid",
+	//			1,
+	//		}}, true)
+
 	return collection
 }
 
@@ -87,7 +98,7 @@ func InitMinutesCollection(
 	config infra.MongoDbConfig,
 ) *mongo.Collection {
 	collection := initCollection(ctx, client.Database(config.DbName), config.MinuteCandleCollectionName, getMinutesCollectionOptions())
-	createIndex(ctx, collection,
+	createIndex(ctx, collection, "minutes",
 		bson.D{
 			{
 				"symbol", 1,
@@ -96,13 +107,14 @@ func InitMinutesCollection(
 				"t",
 				-1,
 			},
-		})
+		}, false)
 	return collection
 }
 
-func createIndex(ctx context.Context, coll *mongo.Collection, keys bson.D) {
+func createIndex(ctx context.Context, coll *mongo.Collection, name string, keys bson.D, isUnique bool) {
 	_, err := coll.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: keys,
+		Keys:    keys,
+		Options: options.Index().SetName(name).SetUnique(isUnique),
 	})
 	if err != nil {
 		panic(err)

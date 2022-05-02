@@ -69,10 +69,10 @@ func (h CandleHandler) GetCandleChart(
 			0,
 		).Add(candleDuration).Truncate(candleDuration)
 
-		if to.Sub(from) < 0 || to.Sub(from) > 24*364*5*time.Hour {
+		if to.Sub(from) < 0 {
 			illegalUnixTimestamp(
 				fmt.Errorf(
-					"requested interfal is incorrect or to big",
+					"requested interval is incorrect",
 				), res,
 			)
 		}

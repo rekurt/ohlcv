@@ -4,8 +4,6 @@ import (
 	"os"
 	"os/signal"
 
-	//"bitbucket.org/novatechnologies/common/events/topics"
-
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
@@ -65,7 +63,7 @@ func main() {
 	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
 	server.Start(ctx)
 
-	// shutdown
+	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 	_ = <-signalCh

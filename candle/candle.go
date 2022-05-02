@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
-
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
@@ -122,11 +121,10 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	}
 
 	if chart != nil {
-		chart.SetMarket(market)
 		chart.SetResolution(resolution)
 	}
 
-	return &domain.Chart{}
+	return chart
 }
 
 // SubscribeForDeals subscribes for new deals to update and publish particular
