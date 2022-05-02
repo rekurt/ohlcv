@@ -1,15 +1,16 @@
 package mongo
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"context"
 	"fmt"
+	"os"
+	"time"
 	"github.com/AlekSi/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
+	"bitbucket.org/novatechnologies/ohlcv/infra"
+	"bitbucket.org/novatechnologies/common/infra/logger"
 )
 
 func NewMongoClient(
@@ -22,7 +23,10 @@ func NewMongoClient(
 	}
 	username := config.User
 	password := config.Password
-	clientOptions := options.Client()
+	timeoutD := 60 * time.Second
+	clientOptions := options.Client().
+		SetMaxPoolSize(100).
+		SetConnectTimeout(timeoutD)
 
 	if username != "" && password != "" {
 		credential := options.Credential{
@@ -38,13 +42,12 @@ func NewMongoClient(
 		)
 
 		clientOptions.ApplyURI(uri).
-			SetAuth(credential).
-			SetMaxPoolSize(100)
+			SetAuth(credential)
 	} else {
 		clientOptions.ApplyURI(fmt.Sprintf(
 			"mongodb://%s",
 			config.Host,
-		)).SetMaxPoolSize(100)
+		))
 	}
 
 	client, err := mongo.Connect(ctx, clientOptions)

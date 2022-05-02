@@ -24,6 +24,31 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
+func TestForNewCollection(t *testing.T) {
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	mongo.InitMinuteCandleCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+
+	/*minuteCandleCollection*/ _ = mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.MinuteCandleCollectionName,
+	)
+
+	/*testCandle1*/ _ = &domain.Candle{
+		Open:      domain.MustParseDecimal("500"),
+		High:      domain.MustParseDecimal("500"),
+		Low:       domain.MustParseDecimal("500"),
+		Close:     domain.MustParseDecimal("500"),
+		Volume:    domain.MustParseDecimal("500"),
+		Timestamp: time.Now().Truncate(time.Minute),
+	}
+
+}
+
 func TestSaveDeal(t *testing.T) {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
@@ -36,6 +61,7 @@ func TestSaveDeal(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
+
 	dealService := deal.NewService(
 		dealCollection,
 		getTestMarkets(),
@@ -84,7 +110,7 @@ func TestSaveDeal(t *testing.T) {
 		t.Fail()
 	}
 
-	candleService := initCandleService(conf, dealCollection)
+	candleService := initCandleService(conf, dealCollection, new(mongo2.Collection))
 	from := time.Now().Add(-5 * time.Minute)
 	to := time.Now()
 	chart5Min, _ := candleService.GetChart(
@@ -106,6 +132,7 @@ func TestSaveDeal(t *testing.T) {
 func initCandleService(
 	conf infra.Config,
 	dealsCollection *mongo2.Collection,
+	minuteCandleCollection *mongo2.Collection,
 ) *candle.Service {
 	eventsBroker := broker.NewInMemory()
 	broadcaster := centrifuge.NewBroadcaster(
@@ -115,7 +142,7 @@ func initCandleService(
 	broadcaster.SubscribeForCharts()
 
 	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
+		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
 		new(candle.Agregator),
 		domain.GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
@@ -141,7 +168,7 @@ func TestDealGenerator(t *testing.T) {
 		domain.GetAvailableMarkets(),
 		eventsBroker,
 	)
-	candleService := initCandleService(conf, dealCollection)
+	candleService := initCandleService(conf, dealCollection, new(mongo2.Collection))
 
 	candleService.CronCandleGenerationStart(ctx)
 
