@@ -23,7 +23,7 @@ type MongoDbConfig struct {
 	Host                       string `envconfig:"MONGODB_HOST" required:"true"`
 	DbName                     string `envconfig:"MONGODB_NAME" required:"true"`
 	DealCollectionName         string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`
-	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true"`
+	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true" default:"minutes"`
 	TimeOut                    int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
 	User                       string `envconfig:"MONGODB_USER" required:"false"`
 	Password                   string `envconfig:"MONGODB_PASSWORD" required:"false"`
