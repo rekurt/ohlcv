@@ -1,25 +1,29 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
+	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-type Agregator struct {
-}
+type Agregator struct{}
 
 func (s Agregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
-	count int, //is not used. 0 for unlimit request
+	count int, // is not used. 0 for unlimit request
 ) *domain.Chart {
 	var chart *domain.Chart
 
+	if candles == nil {
+		return &domain.Chart{}
+	}
 	logger.FromContext(context.Background()).WithField(
 		"resolution",
 		resolution,
@@ -64,7 +68,12 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	return chart
 }
 
-func (s Agregator) aggregateMinCandlesToChart(candles []*domain.Candle, market string, minute int, count int) *domain.Chart {
+func (s Agregator) aggregateMinCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	minute int,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -128,7 +137,12 @@ func (s Agregator) compare(
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, market string, hour int, count int, ) *domain.Chart {
+func (s *Agregator) aggregateHoursCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	hour int,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -139,7 +153,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, marke
 		min = int(int64(candle.Timestamp.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
@@ -153,7 +167,11 @@ func (s *Agregator) aggregateHoursCandlesToChart(candles []*domain.Candle, marke
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(candles []*domain.Candle, market string, count int, ) *domain.Chart {
+func (s *Agregator) aggregateMonthCandlesToChart(
+	candles []*domain.Candle,
+	market string,
+	count int,
+) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var timestamp int64
@@ -183,20 +201,20 @@ func (s *Agregator) aggregateMonthCandlesToChart(candles []*domain.Candle, marke
 
 func (s *Agregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
-		O: make([]string, 0),
-		H: make([]string, 0),
-		L: make([]string, 0),
-		C: make([]string, 0),
-		V: make([]string, 0),
+		O: make([]primitive.Decimal128, 0),
+		H: make([]primitive.Decimal128, 0),
+		L: make([]primitive.Decimal128, 0),
+		C: make([]primitive.Decimal128, 0),
+		V: make([]primitive.Decimal128, 0),
 		T: make([]int64, 0),
 	}
 
 	for t, aggregatedCandle := range result {
-		chart.O = append(chart.O, aggregatedCandle.Open.String())
-		chart.H = append(chart.H, aggregatedCandle.High.String())
-		chart.L = append(chart.L, aggregatedCandle.Low.String())
-		chart.C = append(chart.C, aggregatedCandle.Close.String())
-		chart.V = append(chart.V, aggregatedCandle.Volume.String())
+		chart.O = append(chart.O, aggregatedCandle.Open)
+		chart.H = append(chart.H, aggregatedCandle.High)
+		chart.L = append(chart.L, aggregatedCandle.Low)
+		chart.C = append(chart.C, aggregatedCandle.Close)
+		chart.V = append(chart.V, aggregatedCandle.Volume)
 		chart.T = append(chart.T, t)
 	}
 
@@ -238,4 +256,73 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 
 		return 1, nil
 	}
+}
+
+func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
+	now := time.Now()
+	var ts int64
+	logger.FromContext(context.Background()).WithField(
+		"resolution",
+		resolution,
+	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
+	switch resolution {
+	case domain.Candle1MResolution:
+		ts = getStartMinuteTs(now, 1)
+	case domain.Candle3MResolution:
+		ts = getStartMinuteTs(now, 3)
+	case domain.Candle5MResolution:
+		ts = getStartMinuteTs(now, 5)
+	case domain.Candle15MResolution:
+		ts = getStartMinuteTs(now, 15)
+	case domain.Candle30MResolution:
+		ts = getStartMinuteTs(now, 30)
+	case domain.Candle1HResolution:
+		ts = getStartHourTs(now, 1)
+	case domain.Candle2HResolution:
+		ts = getStartHourTs(now, 2)
+	case domain.Candle4HResolution:
+		ts = getStartHourTs(now, 4)
+	case domain.Candle6HResolution:
+		ts = getStartHourTs(now, 6)
+	case domain.Candle12HResolution:
+		ts = getStartHourTs(now, 12)
+	case domain.Candle1DResolution:
+		ts = getStartHourTs(now, 24)
+	case domain.Candle1MHResolution:
+		ts = getStartMonthTs(now, 1)
+	default:
+		logger.FromContext(context.Background()).WithField(
+			"resolution",
+			resolution,
+		).Errorf("Unsupported resolution.")
+	}
+
+	return ts
+}
+
+func getStartMinuteTs(candleTime time.Time, minute int) int64 {
+	currentTs := candleTime.Add(time.Duration(candleTime.Minute()%minute) * -time.Minute).Truncate(time.Minute).Unix()
+
+	return currentTs
+}
+
+func getStartHourTs(candleTime time.Time, h int) int64 {
+	currentTs := candleTime.Add(time.Duration(candleTime.Hour()%h) * -time.Hour).Truncate(time.Hour).Unix()
+
+	return currentTs
+}
+
+func getStartMonthTs(candleTime time.Time, m int) int64 {
+	currentTs := time.Date(
+		candleTime.Year(),
+		candleTime.Month(),
+		1,
+		0,
+		0,
+		0,
+		0,
+		time.Local,
+	).Unix()
+
+	return currentTs
 }

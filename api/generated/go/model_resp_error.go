@@ -9,8 +9,7 @@
 
 package openapi
 
-type ModelError struct {
-
+type RespError struct {
 	// Error code
 	Code int64 `json:"code"`
 
@@ -18,8 +17,8 @@ type ModelError struct {
 	Msg string `json:"msg"`
 }
 
-// AssertModelErrorRequired checks if the required fields are not zero-ed
-func AssertModelErrorRequired(obj ModelError) error {
+// AssertRespErrorRequired checks if the required fields are not zero-ed
+func AssertRespErrorRequired(obj RespError) error {
 	elements := map[string]interface{}{
 		"code": obj.Code,
 		"msg":  obj.Msg,
@@ -33,14 +32,14 @@ func AssertModelErrorRequired(obj ModelError) error {
 	return nil
 }
 
-// AssertRecurseModelErrorRequired recursively checks if required fields are not zero-ed in a nested slice.
-// Accepts only nested slice of ModelError (e.g. [][]ModelError), otherwise ErrTypeAssertionError is thrown.
-func AssertRecurseModelErrorRequired(objSlice interface{}) error {
+// AssertRecurseRespErrorRequired recursively checks if required fields are not zero-ed in a nested slice.
+// Accepts only nested slice of RespError (e.g. [][]RespError), otherwise ErrTypeAssertionError is thrown.
+func AssertRecurseRespErrorRequired(objSlice interface{}) error {
 	return AssertRecurseInterfaceRequired(objSlice, func(obj interface{}) error {
-		aModelError, ok := obj.(ModelError)
+		aRespError, ok := obj.(RespError)
 		if !ok {
 			return ErrTypeAssertionError
 		}
-		return AssertModelErrorRequired(aModelError)
+		return AssertRespErrorRequired(aRespError)
 	})
 }

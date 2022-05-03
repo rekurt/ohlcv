@@ -1,25 +1,42 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
+
+const chartsPubTimeout = 16 * time.Second
 
 type Service struct {
 	Storage              *Storage
 	Aggregator           *Agregator
-	broadcaster          domain.Broadcaster
 	Markets              map[string]string
 	AvailableResolutions []string
+	broadcaster          domain.Broadcaster
+	eventsBroker         domain.EventsBroker
 }
 
-func NewService(s *Storage, a *Agregator, b domain.Broadcaster, markets map[string]string, availableResolution []string) *Service {
-	return &Service{Storage: s, Aggregator: a, broadcaster: b, Markets: markets, AvailableResolutions: availableResolution}
+func NewService(
+	storage *Storage,
+	aggregator *Agregator,
+	markets map[string]string,
+	availableResolutions []string,
+	internalBus domain.EventsBroker,
+) *Service {
+	return &Service{
+		Storage:              storage,
+		Aggregator:           aggregator,
+		Markets:              markets,
+		AvailableResolutions: availableResolutions,
+		eventsBroker:         internalBus,
+	}
 }
 
-//Generation for websocket pushing new candle every min (example: empty candles)
+// CronCandleGenerationStart generates candle for websocket pushing every min
+// (example: empty candles).
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(time.Minute)
@@ -44,50 +61,121 @@ func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 func (s Service) GetCurrentCandle(
 	ctx context.Context,
 	market string,
-	resolutions string,
+	resolution string,
 ) (*domain.Chart, error) {
-	candleDuration := domain.StrResolutionToDuration(resolutions)
-	from := time.Now().Add(-candleDuration).Truncate(candleDuration)
+	from := time.Unix(
+		s.Aggregator.GetCurrentResolutionStartTimestamp(resolution),
+		0,
+	)
 	to := time.Now()
 
-	cs, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
-	chart := s.Aggregator.AggregateCandleToChartByResolution(cs, market, resolutions, 1)
-	chart.SetMarket(market)
-	chart.SetResolution(resolutions)
+	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
 
-	return chart, err
+	if chart != nil {
+		chart.SetMarket(market)
+		chart.SetResolution(resolution)
+	}
+
+	return chart, nil
+}
+
+func (s Service) GetCandleByResolution(ctx context.Context, market string, resolution string, from time.Time, to time.Time) *domain.Chart {
+	logger.FromContext(ctx).WithField(
+		"resolution",
+		resolution,
+	).Infof("[CandleService] Call GetCandleByResolution method.")
+	var chart *domain.Chart
+	switch resolution {
+	case domain.Candle1MResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 1, from, to)
+	case domain.Candle3MResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 3, from, to)
+	case domain.Candle5MResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 5, from, to)
+	case domain.Candle15MResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 15, from, to)
+	case domain.Candle30MResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 30, from, to)
+	case domain.Candle1HResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
+	case domain.Candle2HResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)
+	case domain.Candle4HResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 4, from, to)
+	case domain.Candle6HResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 6, from, to)
+	case domain.Candle12HResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 12, from, to)
+	case domain.Candle1DResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 24, from, to)
+	case domain.Candle1MHResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
+	default:
+		logger.FromContext(context.Background()).WithField(
+			"resolution",
+			resolution,
+		).Errorf("Unsupported resolution.")
+
+		println(chart.H)
+		return &domain.Chart{}
+	}
+
+	if chart != nil {
+		chart.SetResolution(resolution)
+	}
+
+	return chart
+}
+
+// SubscribeForDeals subscribes for new deals to update and publish particular
+// charts.
+func (s *Service) SubscribeForDeals() {
+	go s.eventsBroker.Subscribe(
+		domain.EvTypeDeals,
+		func(dealEvent *domain.Event) error {
+			deals := dealEvent.MustGetDeals()
+
+			ctx, cancel := context.WithTimeout(dealEvent.Ctx, chartsPubTimeout)
+			defer cancel()
+
+			for _, deal := range deals {
+				s.PushUpdatedCurrentCharts(ctx, deal.Data.Market)
+			}
+
+			return nil
+		},
+	)
 }
 
 func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
-	chts := make([]*domain.Chart, len(s.AvailableResolutions))
+	chts := make([]*domain.Chart, 0)
+
 	for _, resolution := range s.AvailableResolutions {
 		logger.FromContext(context.Background()).
 			WithField("resolution", resolution).
 			WithField("market", market).
 			Infof("[CandleService] Call PushLastUpdatedCandle method.")
+
 		upd, _ := s.GetCurrentCandle(ctx, market, resolution)
 		if upd != nil {
 			chts = append(chts, upd)
 		}
 	}
 
-	s.broadcaster.BroadcastCandleCharts(ctx, chts)
-}
-
-func (s *Service) GetChart(ctx context.Context, market string, resolution string, from time.Time, to time.Time) (interface{}, interface{}) {
-	candles, err := s.Storage.GetMinuteCandles(ctx, market, from, to)
-	if err != nil {
-		logger.FromContext(ctx).
-			WithField("err", err).
-			WithField("market", market).
-			WithField("resolution", resolution).
-			Errorf("Cannot get the chart.")
-		return &domain.Chart{}, err
+	if len(chts) == 0 {
+		return
 	}
 
-	chart := s.Aggregator.AggregateCandleToChartByResolution(
-		candles, market, resolution, 0,
-	)
+	s.eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, chts))
+}
 
+func (s *Service) GetChart(
+	ctx context.Context,
+	market string,
+	resolution string,
+	from time.Time,
+	to time.Time,
+) (interface{}, interface{}) {
+	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
 	return chart, nil
 }

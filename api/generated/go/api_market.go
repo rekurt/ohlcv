@@ -73,5 +73,4 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 	}
 	// If no error, encode the body and the result code
 	EncodeJSONResponse(result.Body, &result.Code, w)
-
 }

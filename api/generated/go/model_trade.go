@@ -9,16 +9,14 @@
 
 package openapi
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
-
 type Trade struct {
 	Id string `json:"id"`
 
-	Price primitive.Decimal128 `json:"price"`
+	Price string `json:"price"`
 
-	Qty primitive.Decimal128 `json:"qty"`
+	Qty string `json:"qty"`
 
-	QuoteQty primitive.Decimal128 `json:"quoteQty"`
+	QuoteQty string `json:"quoteQty"`
 
 	// Trade executed timestamp, as same as `T` in the stream
 	Time int64 `json:"time"`

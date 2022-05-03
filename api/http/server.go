@@ -6,18 +6,22 @@ import (
 	"net"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+
 	openapi "bitbucket.org/novatechnologies/ohlcv/api/generated/go"
 	"bitbucket.org/novatechnologies/ohlcv/api/http/handler"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
-	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
 	srv http.Server
 }
 
-func NewServer(candleService *candle.Service, dealService domain.Service) *Server {
+func NewServer(
+	candleService *candle.Service,
+	dealService domain.Service,
+	port int) *Server {
 	mux := http.NewServeMux()
 
 	candleHandler := handler.NewCandleHandler(candleService)
@@ -29,7 +33,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service) *Serve
 	mux.HandleFunc("/api/candles", candleHandler.GetCandleChart)
 
 	srv := http.Server{
-		Addr:    fmt.Sprintf(":%d", 8082),
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 

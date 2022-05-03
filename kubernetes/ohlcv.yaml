@@ -36,12 +36,18 @@ spec:
               value: "$MONGODB_TIMEOUT"
             - name: MONGODB_DEAL_COLLECTION_NAME
               value: "$MONGODB_DEAL_COLLECTION_NAME"
+            - name: MONGODB_MINUTE_CANDLE_COLLECTION_NAME
+              value: "$MONGODB_MINUTE_CANDLE_COLLECTION_NAME"
             - name: MONGODB_ROOT_PASSWORD
               value: "$MONGODB_ROOT_PASSWORD"
             - name: MONGODB_USER
               value: "$MONGODB_USER"
             - name: MONGODB_PASSWORD
               value: "$MONGODB_PASSWORD"
+            - name: CENTRIFUGE_HOST
+              value: "$CENTRIFUGE_HOST"
+            - name: CENTRIFUGE_TOKEN
+              value: "$CENTRIFUGE_TOKEN"
 ---
 apiVersion: v1
 kind: Service

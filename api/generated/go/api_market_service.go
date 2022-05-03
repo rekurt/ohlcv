@@ -29,14 +29,18 @@ func NewMarketApiService(dealService domain.Service) MarketApiServicer {
 }
 
 // ApiV1TradesGet - Recent Trades List
-func (s *MarketApiService) ApiV1TradesGet(ctx context.Context, symbol string, limit int32) (ImplResponse, error) {
+func (s *MarketApiService) ApiV1TradesGet(
+	ctx context.Context,
+	symbol string,
+	limit int32,
+) (ImplResponse, error) {
 	if strings.TrimSpace(symbol) == "" || limit <= 0 || limit >= 1000 {
-		return Response(400, ModelError{}), nil
+		return Response(400, RespError{}), nil
 	}
 
 	trades, err := s.dealService.GetLastTrades(ctx, symbol, limit)
 	if err != nil {
-		return Response(500, ModelError{}), nil
+		return Response(500, RespError{}), nil
 	}
 	return Response(200, convert(trades)), nil
 }
@@ -44,13 +48,14 @@ func (s *MarketApiService) ApiV1TradesGet(ctx context.Context, symbol string, li
 func convert(tr []domain.Deal) []Trade {
 	trades := make([]Trade, len(tr))
 	for i := range tr {
+
 		trades[i] = Trade{
-			Id:           tr[i].DealId,
-			Price:        tr[i].Price,
-			Qty:          tr[i].Volume,
-			QuoteQty:     tr[i].Volume,
-			Time:         tr[i].Time.UnixMilli(),
-			IsBuyerMaker: tr[i].IsBuyerMaker,
+			Id:           tr[i].Data.DealId,
+			Price:        tr[i].Data.Price.String(),
+			Qty:          tr[i].Data.Volume.String(),
+			QuoteQty:     tr[i].Data.Volume.String(),
+			Time:         tr[i].T.Time().UnixMilli(),
+			IsBuyerMaker: tr[i].Data.IsBuyerMaker,
 		}
 	}
 	return trades

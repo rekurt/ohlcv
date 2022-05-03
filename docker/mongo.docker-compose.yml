@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo
+    restart: 'on-failure'
+    profiles: ['db']
+    ports:
+      - '${MONGODB_PORT:-27017}:27017'
+    volumes:
+      - './docker/.volumes/mongo/init.sh:/docker-entrypoint-initdb.d/init.sh:ro'
+      - './docker/.volumes/mongo/init.js:/docker-entrypoint-initdb.d/init_template.js:ro'
+      - './docker/.volumes/mongo/db:/data/db'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: ${MONGODB_NAME}
+      MONGODB_USER: ${MONGODB_USER}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_DEAL_COLLECTION_NAME: ${MONGODB_DEAL_COLLECTION_NAME}
+
+  mongo-express:
+    image: mongo-express
+    restart: 'on-failure'
+    profiles: ['gui']
+    ports:
+      - '${MONGO_GUI_PORT:-8081}:8081'
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_GUI_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_GUI_PASSWORD:-password}
+      ME_CONFIG_MONGODB_URL: "mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongo:27017/${MONGODB_NAME}?authSource=admin"
+    depends_on:
+      - mongo
+
+# Импорт данных "вручную" с хоста, где должны стоять mongodb-tools.
+#
+# cd %PROJECT_ROOT% && source config/.env
+# mongoimport \
+#   --host=localhost:27017 \
+#   --authenticationDatabase=admin \
+#   --authenticationMechanism="SCRAM-SHA-256" \
+#   --db="${MONGODB_NAME}" \
+#   --collection="${MONGODB_DEAL_COLLECTION_NAME}" \
+#   --username="${MONGODB_USER}" \
+#   --password="${MONGODB_PASSWORD}" \
+#   --collection="${MONGODB_DEAL_COLLECTION_NAME}" \
+#   --file=./tests/fixtures/deals.min.json \
+#   --type=json \
+#   --mode=insert \
+#   --numInsertionWorkers=8 \
+#   --jsonArray --tlsInsecure --verbose

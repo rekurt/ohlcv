@@ -1,12 +1,13 @@
 package candle
 
 import (
+	"testing"
+	"time"
+
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
-	"testing"
-	"time"
 )
 
 func TestService_AggregateCandleToChartByResolution(t *testing.T) {
@@ -19,7 +20,6 @@ func TestService_AggregateCandleToChartByResolution(t *testing.T) {
 		chart := s.AggregateCandleToChartByResolution(cs, market, domain.Candle5MResolution, 0)
 		assert.Len(t, chart, 1)
 	})
-
 }
 
 func getCandles() []*domain.Candle {
@@ -44,4 +44,19 @@ func generateCandle(o string, h string, l string, cl string, v string, ts int64)
 		Volume:    v1,
 		Timestamp: ts1,
 	}
+}
+
+func TestService_getMinuteCurrentTs(t *testing.T) {
+	tm := time.Unix(1650964257, 0)
+	startMinuteTs := getStartMinuteTs(tm, 3)
+	resultMinuteTime := time.Unix(startMinuteTs, 0)
+	println(resultMinuteTime.Format("RFC850"))
+
+	startHourTs := getStartHourTs(tm, 3)
+	resultHourTime := time.Unix(startHourTs, 0)
+	println(resultHourTime.Format("RFC850"))
+
+	startMonthTs := getStartMonthTs(tm, 3)
+	resultMonthTime := time.Unix(startMonthTs, 0)
+	println(resultMonthTime.Format("RFC850"))
 }
