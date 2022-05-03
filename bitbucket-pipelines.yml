@@ -42,6 +42,7 @@ pipelines:
             - export MONGODB_PASSWORD=$MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
             - export MONGODB_AUTH_DB=$MONGODB_NAME
+            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
 
             - export KAFKA_HOST=$KAFKA_HOST
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
