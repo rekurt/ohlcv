@@ -30,21 +30,15 @@ func NewMongoClient(
 		SetMaxPoolSize(100).
 		SetConnectTimeout(timeoutD)
 
-	if username != "" {
+	if username != "" && password != ""{
 		credential := options.Credential{
 			AuthSource: authDbName,
 			Username:   username,
 			Password:   password,
 		}
-		uri := fmt.Sprintf(
-			"mongodb://%s:%s@%s",
-			username,
-			password,
-			host,
-		)
+		uri := fmt.Sprintf("mongodb://%s", config.Host)
+		clientOptions.ApplyURI(uri).SetAuth(credential)
 
-		clientOptions.ApplyURI(uri).
-			SetAuth(credential)
 	} else {
 		clientOptions.ApplyURI(fmt.Sprintf(
 			"mongodb://%s",
