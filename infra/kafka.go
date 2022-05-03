@@ -1,12 +1,12 @@
 package infra
 
 import (
-	"context"
-
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/events/kafka"
 	"bitbucket.org/novatechnologies/common/infra/logger"
+	"context"
 	"golang.org/x/sync/errgroup"
+	"strings"
 )
 
 func NewPublisher(ctx context.Context, cfg KafkaConfig) (
@@ -15,8 +15,8 @@ func NewPublisher(ctx context.Context, cfg KafkaConfig) (
 	log := logger.FromContext(ctx).
 		WithField("component", "publisher").
 		WithField("broker", "kafka")
-
-	kPub, err := kafka.NewPublisher(log, []string{cfg.Host}, cfg.SslFlag)
+	brokers := strings.Split(cfg.Host, ",")
+	kPub, err := kafka.NewPublisher(log, brokers, cfg.SslFlag)
 	if err != nil {
 		log.Errorf("[kafka]NewPublisher failed with err: %v", err)
 		return nil, err
@@ -32,7 +32,7 @@ func NewPublisher(ctx context.Context, cfg KafkaConfig) (
 
 func NewConsumer(ctx context.Context, config KafkaConfig) pubsub.Subscriber {
 	group, _ := errgroup.WithContext(ctx)
-	brokers := []string{config.Host}
+	brokers := strings.Split(config.Host, ",")
 	log := logger.FromContext(ctx).WithField("m", "main")
 	kSub, err := kafka.NewSubscriber(log, brokers, config.SslFlag)
 	if err != nil {
