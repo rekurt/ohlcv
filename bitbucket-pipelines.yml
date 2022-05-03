@@ -31,7 +31,6 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=production
             # Set services hostnames
-
             - export CENTRIFUGE_HOST=$CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$MONGODB_HOST
