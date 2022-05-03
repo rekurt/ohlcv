@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
-
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
