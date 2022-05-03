@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -37,7 +36,7 @@ func (h CandleHandler) GetCandleChart(
 ) {
 	ctx := req.Context()
 
-	market := normalizeMarketName(req.URL.Query().Get("market"))
+	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
 	if len(market) == 0 {
 		http.Error(res, "market is required", http.StatusBadRequest)
 		return
@@ -85,12 +84,6 @@ func (h CandleHandler) GetCandleChart(
 	}
 
 	io.WriteString(res, string(marshal))
-}
-
-func normalizeMarketName(market string) string {
-	market = strings.Replace(market, "%2F", "_", -1)
-	market = strings.Replace(market, "/", "_", -1)
-	return market
 }
 
 func getCandlesConfig(resolution string) (time.Duration, string) {

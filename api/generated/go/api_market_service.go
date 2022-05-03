@@ -50,12 +50,12 @@ func convert(tr []domain.Deal) []Trade {
 	for i := range tr {
 
 		trades[i] = Trade{
-			Id:           tr[i].DealId,
-			Price:        tr[i].Price.String(),
-			Qty:          tr[i].Volume.String(),
-			QuoteQty:     tr[i].Volume.String(),
-			Time:         tr[i].Time.UnixMilli(),
-			IsBuyerMaker: tr[i].IsBuyerMaker,
+			Id:           tr[i].Data.DealId,
+			Price:        tr[i].Data.Price.String(),
+			Qty:          tr[i].Data.Volume.String(),
+			QuoteQty:     tr[i].Data.Volume.String(),
+			Time:         tr[i].T.Time().UnixMilli(),
+			IsBuyerMaker: tr[i].Data.IsBuyerMaker,
 		}
 	}
 	return trades

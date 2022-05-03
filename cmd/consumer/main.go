@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/common/events/topics"
 	"os"
 	"os/signal"
 
@@ -18,7 +19,7 @@ func main() {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("./config/.env")
 
-	_ = infra.NewConsumer(ctx, conf.KafkaConfig)
+	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 
 	broadcaster := centrifuge.NewBroadcaster(
@@ -47,8 +48,8 @@ func main() {
 		eventsBroker,
 	)
 	// Start consuming, preparing, saving deals into DB and notifying others.
-	//dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
-	//dealService.RunConsuming(ctx, consumer, dealsTopic)
+	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
@@ -57,8 +58,8 @@ func main() {
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
-	//candleService.CronCandleGenerationStart(ctx)
-	//candleService.SubscribeForDeals()
+	candleService.CronCandleGenerationStart(ctx)
+	candleService.SubscribeForDeals()
 
 	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
 	server.Start(ctx)

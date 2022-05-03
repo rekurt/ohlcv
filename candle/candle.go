@@ -139,7 +139,7 @@ func (s *Service) SubscribeForDeals() {
 			defer cancel()
 
 			for _, deal := range deals {
-				s.PushUpdatedCurrentCharts(ctx, deal.Market)
+				s.PushUpdatedCurrentCharts(ctx, deal.Data.Market)
 			}
 
 			return nil
@@ -149,6 +149,7 @@ func (s *Service) SubscribeForDeals() {
 
 func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
 	chts := make([]*domain.Chart, 0)
+
 	for _, resolution := range s.AvailableResolutions {
 		logger.FromContext(context.Background()).
 			WithField("resolution", resolution).
@@ -159,6 +160,10 @@ func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
 		if upd != nil {
 			chts = append(chts, upd)
 		}
+	}
+
+	if len(chts) == 0 {
+		return
 	}
 
 	s.eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, chts))

@@ -2,6 +2,7 @@ package deal
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
 	"time"
 
@@ -56,15 +57,17 @@ func (s Service) SaveDeal(
 		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
 		return nil, nil
 	}
-
+	t := time.Unix(0, dealMessage.CreatedAt)
 	marketName := s.Markets[dealMessage.Market]
 	deal := &domain.Deal{
-		Price:        domain.MustParseDecimal(dealMessage.Price),
-		Volume:       domain.MustParseDecimal(dealMessage.Price),
-		DealId:       dealMessage.Id,
-		Market:       marketName,
-		Time:         time.Unix(0, dealMessage.CreatedAt),
-		IsBuyerMaker: dealMessage.IsBuyerMaker,
+		T: primitive.NewDateTimeFromTime(t),
+		Data: domain.DealData{
+			Price:        domain.MustParseDecimal(dealMessage.Price),
+			Volume:       domain.MustParseDecimal(dealMessage.Amount),
+			DealId:       dealMessage.Id,
+			Market:       marketName,
+			IsBuyerMaker: dealMessage.IsBuyerMaker,
+		},
 	}
 	if err := deal.Validate(); err != nil {
 		return nil, err
@@ -75,7 +78,7 @@ func (s Service) SaveDeal(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealService]Failed save deal.")
+		).Errorf("[DealService]Failed save deal.", deal)
 		return nil, err
 	}
 
@@ -124,57 +127,46 @@ func (s Service) GetLastTrades(
 	return deals, nil
 }
 
-func (s Service) consumeUntilErrorAppears(
-	ctx context.Context,
-	consumer pubsub.Subscriber,
-	topic string,
-) error {
-	return consumer.Consume(
-		ctx,
-		topic,
-		func(
-			ctx context.Context,
-			metadata map[string]string,
-			msg []byte,
-		) error {
-			dealMsg := matcher.Deal{}
-
-			if err := proto.Unmarshal(msg, &dealMsg); err != nil {
-				logger.FromContext(ctx).
-					WithField("method", "consumer.deals.Unmarshal").
-					Errorf(err)
-
-				return errors.Wrap(
-					err,
-					"unmarshal error with protobuf deals msg",
-				)
-			}
-
-			if deal, err := s.SaveDeal(ctx, &dealMsg); err != nil {
-				return errors.Wrapf(err, "while saving deal %v into DB", deal)
-			} else {
-				s.eventManager.Publish(
-					domain.EvTypeDeals,
-					domain.NewEvent(ctx, deal),
-				)
-			}
-
-			return nil
-		},
-	)
-}
-
 func (s Service) RunConsuming(
 	ctx context.Context,
 	consumer pubsub.Subscriber,
 	topic string,
 ) {
 	go func() {
-		for {
-			err := s.consumeUntilErrorAppears(ctx, consumer, topic)
-			if err == nil {
-				continue
-			}
+		err := func() error {
+			return consumer.Consume(
+				ctx,
+				topic,
+				func(
+					ctx context.Context,
+					metadata map[string]string,
+					msg []byte,
+				) error {
+					dealMessage := matcher.Deal{}
+					if err := proto.Unmarshal(msg, &dealMessage); err != nil {
+						logger.FromContext(ctx).
+							WithField("method", "consumer.deals.Unmarshal").
+							Errorf(err)
+
+						return errors.Wrap(
+							err,
+							"unmarshal error with protobuf deals msg",
+						)
+					}
+
+					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
+						return errors.Wrapf(err, "while saving deal %v into DB", deal)
+					} else {
+						s.eventManager.Publish(
+							domain.EvTypeDeals,
+							domain.NewEvent(ctx, deal),
+						)
+					}
+					return nil
+				},
+			)
+		}()
+		if err != nil {
 			logger.FromContext(ctx).
 				WithField("err", err).
 				WithField("svc", "DealsService").
