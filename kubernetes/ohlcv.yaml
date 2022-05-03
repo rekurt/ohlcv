@@ -48,6 +48,8 @@ spec:
               value: "$CENTRIFUGE_HOST"
             - name: CENTRIFUGE_TOKEN
               value: "$CENTRIFUGE_TOKEN"
+            - name: MONGODB_AUTH_DB
+              value: "$MONGODB_AUTH_DB"
 ---
 apiVersion: v1
 kind: Service
