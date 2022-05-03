@@ -24,6 +24,15 @@ type Deal struct {
 	Data DealData           `json:"data"`
 }
 
+type DealRaw struct {
+	Time         primitive.DateTime   `json:"time"`
+	Price        primitive.Decimal128 `json:"price"`
+	Volume       primitive.Decimal128 `json:"volume"`
+	Market       string               `json:"market"`
+	DealId       string               `json:"dealid"`
+	IsBuyerMaker bool                 `json:"isbuyermaker"`
+}
+
 func (d *Deal) Validate() error {
 	if d.Data.DealId == "" {
 		return errors.New("deal ID is empty")

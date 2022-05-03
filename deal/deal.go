@@ -81,8 +81,9 @@ func (s Service) SaveDeal(
 		).Errorf("[DealService]Failed save deal.", deal)
 		return nil, err
 	}
-
-	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deal))
+	var deals = make([]*domain.Deal, 1)
+	deals[0] = deal
+	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deals))
 
 	return deal, nil
 }
@@ -157,9 +158,12 @@ func (s Service) RunConsuming(
 					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					} else {
+
+						var deals = make([]*domain.Deal, 1)
+						deals[0] = deal
 						s.eventManager.Publish(
 							domain.EvTypeDeals,
-							domain.NewEvent(ctx, deal),
+							domain.NewEvent(ctx, deals),
 						)
 					}
 					return nil
