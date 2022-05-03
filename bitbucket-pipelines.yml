@@ -118,13 +118,17 @@ pipelines:
 
             - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
+
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
+            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
             - export MONGODB_USER=$MONGODB_USER
             - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
+            - export MONGODB_AUTH_DB=admin
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
+
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
             - export KAFKA_HOST=$STAGING_KAFKA_HOST
             - export KAFKA_SSL="1"
@@ -174,6 +178,8 @@ pipelines:
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
+            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
+
             - export MONGODB_USER=$MONGODB_USER
             - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
