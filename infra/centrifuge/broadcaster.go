@@ -42,14 +42,6 @@ func (b broadcaster) BroadcastCandleCharts(
 	messages := make([]MessageData, 0)
 
 	for _, chart := range cht {
-		logger.FromContext(ctx).WithField(
-			"market",
-			chart.Market(),
-		).WithField(
-			"reolution",
-			chart.Resolution(),
-		).Infof("[Broadcaster.BroadcastCandleCharts]Broadcasting charts.")
-
 		channel := b.Channels[chart.Market()][chart.Resolution()]
 		payload, _ := json.Marshal(chart)
 		messages = append(
@@ -63,7 +55,10 @@ func (b broadcaster) BroadcastCandleCharts(
 	logger.FromContext(ctx).WithField(
 		"messageCount",
 		len(messages),
-	).Infof("[Broadcaster.BroadcastCandleCharts]Push charts to Centrifugo.")
+	).WithField(
+		"messages",
+		messages,
+	).Infof("[Broadcaster.BroadcastCandleCharts] Push charts to Centrifugo.")
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 

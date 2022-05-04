@@ -18,9 +18,6 @@ func NewMongoClient(
 	config infra.MongoDbConfig,
 ) *mongo.Client {
 	authDbName := config.AuthDbName
-	if authDbName == "" {
-		authDbName = config.DbName
-	}
 	host := config.Host
 	username := config.User
 	password := config.Password
@@ -30,7 +27,7 @@ func NewMongoClient(
 		SetMaxPoolSize(100).
 		SetConnectTimeout(timeoutD)
 
-	if username != "" && password != ""{
+	if username != "" && password != "" {
 		credential := options.Credential{
 			AuthSource: authDbName,
 			Username:   username,

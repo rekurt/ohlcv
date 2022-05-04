@@ -31,7 +31,6 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=production
             # Set services hostnames
-
             - export CENTRIFUGE_HOST=$CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$MONGODB_HOST
@@ -42,6 +41,7 @@ pipelines:
             - export MONGODB_PASSWORD=$MONGODB_PASSWORD
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
             - export MONGODB_AUTH_DB=$MONGODB_NAME
+            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
 
             - export KAFKA_HOST=$KAFKA_HOST
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
