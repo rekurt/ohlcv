@@ -83,6 +83,12 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	logger.FromContext(ctx).WithField(
 		"resolution",
 		resolution,
+	).WithField(
+		"from",
+		from,
+	).WithField(
+		"to",
+		to,
 	).Infof("[CandleService] Call GetCandleByResolution method.")
 	var chart *domain.Chart
 	switch resolution {
