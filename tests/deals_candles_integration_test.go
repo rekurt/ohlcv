@@ -203,6 +203,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 		ctx,
 		mongoClient,
 		conf.MongoDbConfig,
+		conf.MongoDbConfig.MinuteCandleCollectionName,
 	)
 	suite.dealsCollection = dealsCollection
 

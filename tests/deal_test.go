@@ -29,7 +29,7 @@ func TestForNewCollection(t *testing.T) {
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	mongo.InitMinuteCandleCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	mongo.InitMinutesCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 
 	/*minuteCandleCollection*/ _ = mongo.GetCollection(
 		ctx,
@@ -173,7 +173,7 @@ func TestDealGenerator(t *testing.T) {
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService, dealService)
+	server := http.NewServer(candleService, dealService, 8082)
 	server.Start(ctx)
 
 	// shutdown
@@ -210,6 +210,6 @@ func Test_GetLastTrades(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)
 	for _, tr := range trades {
-		assert.Equal(t, "ETH/LTC", tr.Market)
+		assert.Equal(t, "ETH/LTC", tr.Data.Market)
 	}
 }

@@ -30,12 +30,18 @@ func getDefaultTimeRange(candleDuration time.Duration) (time.Time, time.Time) {
 	return from, to
 }
 
+func setupCORS(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
 func (h CandleHandler) GetCandleChart(
 	res http.ResponseWriter,
 	req *http.Request,
 ) {
+	setupCORS(&res)
 	ctx := req.Context()
-
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
 	if len(market) == 0 {
 		http.Error(res, "market is required", http.StatusBadRequest)

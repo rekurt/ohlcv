@@ -79,6 +79,14 @@ func (s Storage) GetCandles(
 			{"v", bson.D{{"$toDecimal", "$v"}}},
 		}},
 	}
+	secondSortStage := bson.D{{"$sort", bson.D{
+		{
+			"symbol", 1,
+		},
+		{
+			"t", 1,
+		},
+	}}}
 
 	secondGroupStage := bson.D{{"$group", bson.D{
 		{"_id", "$symbol"},
@@ -88,15 +96,6 @@ func (s Storage) GetCandles(
 		{"c", bson.D{{"$push", "$c"}}},
 		{"v", bson.D{{"$push", "$v"}}},
 		{"t", bson.D{{"$push", "$t"}}},
-	}}}
-
-	secondSortStage := bson.D{{"$sort", bson.D{
-		{
-			"symbol", 1,
-		},
-		{
-			"t", -1,
-		},
 	}}}
 
 	opts := options.Aggregate()
