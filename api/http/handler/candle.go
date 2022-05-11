@@ -34,6 +34,11 @@ func (h CandleHandler) GetCandleChart(
 	res http.ResponseWriter,
 	req *http.Request,
 ) {
+	res.Header().Set("Access-Control-Allow-Origin", "*")
+	if req.Method == "OPTIONS" {
+		res.Header().Set("Access-Control-Allow-Headers", "Authorization") // You can add more headers here if needed
+	}
+
 	ctx := req.Context()
 
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
