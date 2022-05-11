@@ -67,10 +67,11 @@ func (s Storage) GetCandles(
 		{"c", bson.D{{"$last", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
+	tInt := bson.D{{"$toLong", "$_id.t"}}
 	projectStage := bson.D{
 		{"$project", bson.D{
 			{"_id", 0},
-			{"t", bson.D{{"$toLong", "$_id.t"}}},
+			{"t", bson.D{{"$divide", []interface{}{tInt, 1000}}}},
 			{"symbol", "$_id.symbol"},
 			{"o", bson.D{{"$toDecimal", "$o"}}},
 			{"h", bson.D{{"$toDecimal", "$h"}}},
