@@ -83,6 +83,12 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	logger.FromContext(ctx).WithField(
 		"resolution",
 		resolution,
+	).WithField(
+		"from",
+		from,
+	).WithField(
+		"to",
+		to,
 	).Infof("[CandleService] Call GetCandleByResolution method.")
 	var chart *domain.Chart
 	switch resolution {
@@ -107,7 +113,7 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	case domain.Candle12HResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 12, from, to)
 	case domain.Candle1DResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 24, from, to)
+		chart = s.Storage.GetCandles(ctx, market, domain.DayUnit, 1, from, to)
 	case domain.Candle1MHResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
 	default:

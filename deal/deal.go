@@ -106,7 +106,7 @@ func (s Service) GetLastTrades(
 	}
 	cursor, err := s.DbCollection.Find(
 		ctx,
-		bson.M{"market": symbol},
+		bson.M{"data.market": symbol},
 		options.Find().SetLimit(int64(limit)),
 	)
 	if err != nil {
