@@ -210,6 +210,6 @@ func Test_GetLastTrades(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)
 	for _, tr := range trades {
-		assert.Equal(t, "ETH/LTC", tr.Market)
+		assert.Equal(t, "ETH/LTC", tr.Data.Market)
 	}
 }
