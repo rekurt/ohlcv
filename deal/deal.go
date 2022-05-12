@@ -2,9 +2,11 @@ package deal
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"fmt"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/events/topics"
@@ -42,7 +44,7 @@ func NewService(
 	}
 }
 
-func (s Service) SaveDeal(
+func (s *Service) SaveDeal(
 	ctx context.Context,
 	dealMessage *matcher.Deal,
 ) (*domain.Deal, error) {
@@ -88,7 +90,7 @@ func (s Service) SaveDeal(
 	return deal, nil
 }
 
-func (s Service) GetLastTrades(
+func (s *Service) GetLastTrades(
 	ctx context.Context,
 	symbol string,
 	limit int32,
@@ -128,7 +130,73 @@ func (s Service) GetLastTrades(
 	return deals, nil
 }
 
-func (s Service) RunConsuming(
+func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) (domain.TickerPriceChangeStatistics, error) {
+	if strings.TrimSpace(market) == "" {
+		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: invalid market '%s'", market)
+	}
+	matchStage := bson.D{{Key: "$match", Value: bson.D{
+		{"t", bson.D{
+			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+		}},
+		{
+			"data.market",
+			market,
+		},
+	}}}
+	sortStage := bson.D{{"$sort", bson.D{
+		{
+			"t", 1,
+		},
+	}}}
+	groupStage := bson.D{
+		{"$group",
+			bson.D{
+				{"_id", nil},
+				{"volume", bson.D{{"$sum", "$data.volume"}}},
+				{"count", bson.D{{"$count", bson.M{}}}},
+				{"highPrice", bson.D{{"$max", "$data.price"}}},
+				{"lowPrice", bson.D{{"$min", "$data.price"}}},
+				{"openPrice", bson.D{{"$first", "$data.price"}}},
+				{"closePrice", bson.D{{"$last", "$data.price"}}},
+				{"openTime", bson.D{{"$first", "$t"}}},
+				{"closeTime", bson.D{{"$last", "$t"}}},
+				{"firstId", bson.D{{"$first", "$data.dealid"}}},
+				{"lastId", bson.D{{"$last", "$data.dealid"}}},
+			},
+		},
+	}
+	aggregate, err := s.DbCollection.Aggregate(
+		ctx,
+		mongo.Pipeline{matchStage, sortStage, groupStage},
+		options.Aggregate().SetMaxTime(time.Second*4),
+	)
+	if err != nil {
+		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: Aggregate error '%w'", err)
+	}
+	var resp []bson.M
+	if err = aggregate.All(ctx, &resp); err != nil {
+		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: aggregate.All error '%w'", err)
+	}
+	if len(resp) == 0 {
+		return domain.TickerPriceChangeStatistics{}, nil
+	}
+	m := resp[0]
+	return domain.TickerPriceChangeStatistics{
+		Symbol:    market,
+		LastPrice: m["closePrice"].(primitive.Decimal128).String(),
+		OpenPrice: m["openPrice"].(primitive.Decimal128).String(),
+		HighPrice: m["highPrice"].(primitive.Decimal128).String(),
+		LowPrice:  m["lowPrice"].(primitive.Decimal128).String(),
+		Volume:    m["volume"].(primitive.Decimal128).String(),
+		OpenTime:  m["openTime"].(primitive.DateTime).Time().UnixMilli(),
+		CloseTime: m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
+		FirstId:   m["firstId"].(string),
+		LastId:    m["lastId"].(string),
+		Count:     int(m["count"].(int32)),
+	}, nil
+}
+
+func (s *Service) RunConsuming(
 	ctx context.Context,
 	consumer pubsub.Subscriber,
 	topic string,
