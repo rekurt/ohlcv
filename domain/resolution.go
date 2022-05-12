@@ -14,7 +14,7 @@ const (
 	Candle6HResolution  = "6H"
 	Candle12HResolution = "12H"
 	Candle1DResolution  = "1D"
-	Candle1MHResolution = "1MH"
+	Candle1MHResolution = "1M"
 )
 
 const MinuteUnit = "minute"
