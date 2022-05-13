@@ -1,15 +1,16 @@
 package tests
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"testing"
 	"time"
 
-	mongo2 "go.mongodb.org/mongo-driver/mongo"
-
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
+	mongodriver "go.mongodb.org/mongo-driver/mongo"
 
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"github.com/stretchr/testify/assert"
@@ -31,14 +32,16 @@ func TestForNewCollection(t *testing.T) {
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 	mongo.InitMinutesCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 
-	/*minuteCandleCollection*/ _ = mongo.GetCollection(
+	/*minuteCandleCollection*/
+	_ = mongo.GetCollection(
 		ctx,
 		mongoDbClient,
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.MinuteCandleCollectionName,
 	)
 
-	/*testCandle1*/ _ = &domain.Candle{
+	/*testCandle1*/
+	_ = &domain.Candle{
 		Open:      domain.MustParseDecimal("500"),
 		High:      domain.MustParseDecimal("500"),
 		Low:       domain.MustParseDecimal("500"),
@@ -132,8 +135,8 @@ func TestSaveDeal(t *testing.T) {
 
 func initCandleService(
 	conf infra.Config,
-	dealsCollection *mongo2.Collection,
-	minuteCandleCollection *mongo2.Collection,
+	dealsCollection *mongodriver.Collection,
+	minuteCandleCollection *mongodriver.Collection,
 ) *candle.Service {
 	eventsBroker := broker.NewInMemory()
 	broadcaster := centrifuge.NewBroadcaster(
@@ -189,7 +192,30 @@ func getTestMarkets() map[string]string {
 	}
 }
 
+func Test_GetTickerPriceChangeStatistics(t *testing.T) {
+	t.Skip()
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
+	)
+	service := deal.NewService(dealCollection, getTestMarkets(), broker.NewInMemory())
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second)
+	defer cancelFunc()
+	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
+	require.NoError(t, err)
+	for _, s := range statistics {
+		fmt.Printf("%+v\n", s)
+	}
+}
+
 func Test_GetLastTrades(t *testing.T) {
+	t.Skip()
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
