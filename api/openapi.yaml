@@ -44,12 +44,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/resp_error'
+  /api/v3/ticker/24hr:
+    get:
+      summary: 24hr Ticker Price Change Statistics
+      description: |-
+        24 hour rolling window price change statistics. Careful when accessing this with no symbol.
+        
+        - If the symbol is not sent, tickers for all symbols will be returned in an array.
+        
+        Weight(IP):
+        - `1` for a single symbol;
+        - `40` when the symbol parameter is omitted;
+
+      tags:
+        - Market
+      parameters:
+        - $ref: '#/components/parameters/optionalSymbol'
+      responses:
+        '200':
+          description: 24hr ticker
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ticker'
+                  - $ref: '#/components/schemas/tickerList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/resp_error'
 components:
   parameters:
     symbol:
       name: symbol
       in: query
       required: true
+      description: Trading symbol, e.g. PXPUSDT
+      schema:
+        type: string
+        example: 'PXPUSDT'
+    optionalSymbol:
+      name: symbol
+      in: query
       description: Trading symbol, e.g. PXPUSDT
       schema:
         type: string
@@ -108,3 +146,93 @@ components:
       required:
         - code
         - msg
+    tickerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ticker'
+    ticker:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "PXPBTC"
+        priceChange:
+          type: string
+          example: "0.17160000"
+        priceChangePercent:
+          type: string
+          example: "1.060"
+        prevClosePrice:
+          type: string
+          example: "16.35920000"
+        lastPrice:
+          type: string
+          example: "27.84000000"
+        bidPrice:
+          type: string
+          example: "16.34488284"
+        bidQty:
+          type: string
+          example: "16.34488284"
+        askPrice:
+          type: string
+          example: "16.35920000"
+        askQty:
+          type: string
+          example: "25.06000000"
+        openPrice:
+          type: string
+          example: "16.18760000"
+        highPrice:
+          type: string
+          example: "16.55000000"
+        lowPrice:
+          type: string
+          example: "16.16940000"
+        volume:
+          type: string
+          example: "1678279.95000000"
+        quoteVolume:
+          type: string
+          example: "27431289.14792300"
+        openTime:
+          type: integer
+          format: int64
+          example: 1592808788637
+        closeTime:
+          type: integer
+          format: int64
+          example: 1592895188637
+        firstId:
+          type: integer
+          format: int64
+          example: 62683296
+        lastId:
+          type: integer
+          format: int64
+          example: 62739253
+        count:
+          type: integer
+          format: int64
+          example: 55958
+      required:
+        - symbol
+        - priceChange
+        - priceChangePercent
+        - prevClosePrice
+        - lastPrice
+        - bidPrice
+        - bidQty
+        - askPrice
+        - askQty
+        - openPrice
+        - highPrice
+        - lowPrice
+        - volume
+        - quoteVolume
+        - openTime
+        - closeTime
+        - firstId
+        - lastId
+        - count
+

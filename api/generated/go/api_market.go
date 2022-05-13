@@ -53,6 +53,12 @@ func (c *MarketApiController) Routes() Routes {
 			"/api/v1/trades",
 			c.ApiV1TradesGet,
 		},
+		{
+			"ApiV3Ticker24hrGet",
+			strings.ToUpper("Get"),
+			"/api/v3/ticker/24hr",
+			c.ApiV3Ticker24hrGet,
+		},
 	}
 }
 
@@ -73,4 +79,20 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 	}
 	// If no error, encode the body and the result code
 	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// ApiV3Ticker24hrGet - 24hr Ticker Price Change Statistics
+func (c *MarketApiController) ApiV3Ticker24hrGet(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	symbolParam := query.Get("symbol")
+	result, err := c.service.ApiV3Ticker24hrGet(r.Context(), symbolParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
 }
