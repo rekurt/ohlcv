@@ -205,9 +205,13 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 	service := deal.NewService(dealCollection, getTestMarkets(), broker.NewInMemory())
-	statistics, err := service.GetTickerPriceChangeStatistics(context.Background(), 24*time.Hour, "USDT_ETH")
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second)
+	defer cancelFunc()
+	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
 	require.NoError(t, err)
-	fmt.Printf("%+v\n", statistics)
+	for _, s := range statistics {
+		fmt.Printf("%+v\n", s)
+	}
 }
 
 func Test_GetLastTrades(t *testing.T) {

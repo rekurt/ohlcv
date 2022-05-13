@@ -130,19 +130,15 @@ func (s *Service) GetLastTrades(
 	return deals, nil
 }
 
-func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) (domain.TickerPriceChangeStatistics, error) {
-	if strings.TrimSpace(market) == "" {
-		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: invalid market '%s'", market)
-	}
-	matchStage := bson.D{{Key: "$match", Value: bson.D{
+func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+	matchStageValue := bson.D{
 		{"t", bson.D{
 			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
 		}},
-		{
-			"data.market",
-			market,
-		},
-	}}}
+	}
+	if strings.TrimSpace(market) != "" {
+		matchStageValue = append(matchStageValue, bson.E{Key: "data.market", Value: market})
+	}
 	sortStage := bson.D{{"$sort", bson.D{
 		{
 			"t", 1,
@@ -151,7 +147,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	groupStage := bson.D{
 		{"$group",
 			bson.D{
-				{"_id", nil},
+				{"_id", "$data.market"},
 				{"volume", bson.D{{"$sum", "$data.volume"}}},
 				{"count", bson.D{{"$count", bson.M{}}}},
 				{"highPrice", bson.D{{"$max", "$data.price"}}},
@@ -165,24 +161,36 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			},
 		},
 	}
+	aggregateOptions := options.Aggregate()
+	deadline, ok := ctx.Deadline()
+	if ok {
+		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
+	}
 	aggregate, err := s.DbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, sortStage, groupStage},
-		options.Aggregate().SetMaxTime(time.Second*4),
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage},
+		aggregateOptions,
 	)
 	if err != nil {
-		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: Aggregate error '%w'", err)
+		return nil, fmt.Errorf("GetTickerPriceChangeStatistics: Aggregate error '%w'", err)
 	}
 	var resp []bson.M
 	if err = aggregate.All(ctx, &resp); err != nil {
-		return domain.TickerPriceChangeStatistics{}, fmt.Errorf("GetTickerPriceChangeStatistics: aggregate.All error '%w'", err)
+		return nil, fmt.Errorf("GetTickerPriceChangeStatistics: aggregate.All error '%w'", err)
 	}
 	if len(resp) == 0 {
-		return domain.TickerPriceChangeStatistics{}, nil
+		return nil, nil
 	}
-	m := resp[0]
+	statistics := make([]domain.TickerPriceChangeStatistics, 0, len(resp))
+	for _, v := range resp {
+		statistics = append(statistics, parseStatistics(v))
+	}
+	return statistics, nil
+}
+
+func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	return domain.TickerPriceChangeStatistics{
-		Symbol:    market,
+		Symbol:    m["_id"].(string),
 		LastPrice: m["closePrice"].(primitive.Decimal128).String(),
 		OpenPrice: m["openPrice"].(primitive.Decimal128).String(),
 		HighPrice: m["highPrice"].(primitive.Decimal128).String(),
@@ -193,7 +201,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 		FirstId:   m["firstId"].(string),
 		LastId:    m["lastId"].(string),
 		Count:     int(m["count"].(int32)),
-	}, nil
+	}
 }
 
 func (s *Service) RunConsuming(
