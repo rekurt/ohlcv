@@ -204,13 +204,9 @@ components:
           format: int64
           example: 1592895188637
         firstId:
-          type: integer
-          format: int64
-          example: 62683296
+          type: string
         lastId:
-          type: integer
-          format: int64
-          example: 62739253
+          type: string
         count:
           type: integer
           format: int64

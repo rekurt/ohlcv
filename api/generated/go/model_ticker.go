@@ -42,9 +42,9 @@ type Ticker struct {
 
 	CloseTime int64 `json:"closeTime"`
 
-	FirstId int64 `json:"firstId"`
+	FirstId string `json:"firstId"`
 
-	LastId int64 `json:"lastId"`
+	LastId string `json:"lastId"`
 
 	Count int64 `json:"count"`
 }
