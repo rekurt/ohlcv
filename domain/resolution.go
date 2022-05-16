@@ -11,6 +11,8 @@ const (
 	Candle1HResolution  = "60"
 	Candle2HResolution  = "120"
 	Candle4HResolution  = "240"
+	Candle6HResolution  = "360"
+	Candle12HResolution = "720"
 	Candle1DResolution  = "1D"
 	Candle1MHResolution = "1M"
 )
@@ -30,6 +32,8 @@ func GetAvailableResolutions() []string {
 		Candle1HResolution,
 		Candle2HResolution,
 		Candle4HResolution,
+		Candle6HResolution,
+		Candle12HResolution,
 		Candle1DResolution,
 		Candle1MHResolution,
 	}
@@ -45,6 +49,8 @@ func StrResolutionToDuration(resolution string) time.Duration {
 		Candle1HResolution:  60 * time.Minute,
 		Candle2HResolution:  120 * time.Minute,
 		Candle4HResolution:  240 * time.Minute,
+		Candle6HResolution:  360 * time.Minute,
+		Candle12HResolution: 720 * time.Minute,
 		Candle1DResolution:  1440 * time.Minute,
 		Candle1MHResolution: 43200 * time.Minute,
 	}
