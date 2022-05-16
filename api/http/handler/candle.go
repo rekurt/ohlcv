@@ -48,7 +48,7 @@ func (h CandleHandler) GetCandleChart(
 		return
 	}
 
-	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("resolution"))
+	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("interval"))
 	from, to := getDefaultTimeRange(candleDuration)
 
 	if req.URL.Query().Get("to") != "" || req.URL.Query().Get("from") != "" {
