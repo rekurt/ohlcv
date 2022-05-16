@@ -63,7 +63,6 @@ func (h CandleHandler) GetCandleChart(
 			illegalUnixTimestamp(err, res)
 			return
 		}
-
 		from = time.Unix(
 			int64(fromUnix),
 			0,
@@ -82,7 +81,6 @@ func (h CandleHandler) GetCandleChart(
 			)
 		}
 	}
-
 	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
 	marshal, err := json.Marshal(chart)
 	if err != nil {
