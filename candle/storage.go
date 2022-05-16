@@ -91,7 +91,7 @@ func (s Storage) GetCandles(
 
 	secondGroupStage := bson.D{{"$group", bson.D{
 		{"_id", "$symbol"},
-		{"h", bson.D{{"$push", bson.D{{"$toString", "$h"}}}}},
+		{"h", bson.D{{"$push", "$o"}}},
 		{"l", bson.D{{"$push", "$l"}}},
 		{"o", bson.D{{"$push", "$o"}}},
 		{"c", bson.D{{"$push", "$c"}}},
