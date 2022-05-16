@@ -103,18 +103,24 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	case domain.Candle30MResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 30, from, to)
 	case domain.Candle1HResolution:
+	case domain.Candle1H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
 	case domain.Candle2HResolution:
+	case domain.Candle2H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)
 	case domain.Candle4HResolution:
+	case domain.Candle4H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 4, from, to)
 	case domain.Candle6HResolution:
+	case domain.Candle6H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 6, from, to)
 	case domain.Candle12HResolution:
+	case domain.Candle12H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 12, from, to)
 	case domain.Candle1DResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.DayUnit, 1, from, to)
 	case domain.Candle1MHResolution:
+	case domain.Candle1MH2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
 	default:
 		logger.FromContext(context.Background()).WithField(

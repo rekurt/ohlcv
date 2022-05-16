@@ -277,18 +277,24 @@ func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 
 	case domain.Candle30MResolution:
 		ts = getStartMinuteTs(now, 30)
 	case domain.Candle1HResolution:
+	case domain.Candle1H2Resolution:
 		ts = getStartHourTs(now, 1)
 	case domain.Candle2HResolution:
+	case domain.Candle2H2Resolution:
 		ts = getStartHourTs(now, 2)
 	case domain.Candle4HResolution:
+	case domain.Candle4H2Resolution:
 		ts = getStartHourTs(now, 4)
 	case domain.Candle6HResolution:
+	case domain.Candle6H2Resolution:
 		ts = getStartHourTs(now, 6)
 	case domain.Candle12HResolution:
+	case domain.Candle12H2Resolution:
 		ts = getStartHourTs(now, 12)
 	case domain.Candle1DResolution:
 		ts = getStartHourTs(now, 24)
 	case domain.Candle1MHResolution:
+	case domain.Candle1MH2Resolution:
 		ts = getStartMonthTs(now, 1)
 	default:
 		logger.FromContext(context.Background()).WithField(

@@ -13,8 +13,17 @@ const (
 	Candle4HResolution  = "240"
 	Candle6HResolution  = "360"
 	Candle12HResolution = "720"
+	Candle1MHResolution = "1MH"
 	Candle1DResolution  = "1D"
-	Candle1MHResolution = "1M"
+
+	// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
+
+	Candle1H2Resolution  = "1H"
+	Candle2H2Resolution  = "2H"
+	Candle4H2Resolution  = "4H"
+	Candle6H2Resolution  = "6H"
+	Candle12H2Resolution = "12H"
+	Candle1MH2Resolution = "1M"
 )
 
 const MinuteUnit = "minute"
@@ -36,6 +45,15 @@ func GetAvailableResolutions() []string {
 		Candle12HResolution,
 		Candle1DResolution,
 		Candle1MHResolution,
+
+		// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
+
+		Candle1H2Resolution,
+		Candle2H2Resolution,
+		Candle4H2Resolution,
+		Candle6H2Resolution,
+		Candle12H2Resolution,
+		Candle1MH2Resolution,
 	}
 }
 
@@ -53,6 +71,13 @@ func StrResolutionToDuration(resolution string) time.Duration {
 		Candle12HResolution: 720 * time.Minute,
 		Candle1DResolution:  1440 * time.Minute,
 		Candle1MHResolution: 43200 * time.Minute,
+		// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
+		Candle1H2Resolution:  60 * time.Minute,
+		Candle2H2Resolution:  120 * time.Minute,
+		Candle4H2Resolution:  240 * time.Minute,
+		Candle6H2Resolution:  360 * time.Minute,
+		Candle12H2Resolution: 720 * time.Minute,
+		Candle1MH2Resolution: 43200 * time.Minute,
 	}
 
 	return int2dur[resolution]
