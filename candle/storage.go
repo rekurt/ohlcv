@@ -73,11 +73,11 @@ func (s Storage) GetCandles(
 			{"_id", 0},
 			{"t", bson.D{{"$divide", []interface{}{tInt, 1000}}}},
 			{"symbol", "$_id.symbol"},
-			{"o", bson.D{{"$toDecimal", "$o"}}},
-			{"h", bson.D{{"$toDecimal", "$h"}}},
-			{"l", bson.D{{"$toDecimal", "$l"}}},
-			{"c", bson.D{{"$toDecimal", "$c"}}},
-			{"v", bson.D{{"$toDecimal", "$v"}}},
+			{"o", bson.D{{"$toString", "$o"}}},
+			{"h", bson.D{{"$toString", "$h"}}},
+			{"l", bson.D{{"$toString", "$l"}}},
+			{"c", bson.D{{"$toString", "$c"}}},
+			{"v", bson.D{{"$toString", "$v"}}},
 		}},
 	}
 	secondSortStage := bson.D{{"$sort", bson.D{
@@ -91,9 +91,9 @@ func (s Storage) GetCandles(
 
 	secondGroupStage := bson.D{{"$group", bson.D{
 		{"_id", "$symbol"},
+		{"o", bson.D{{"$push", "$o"}}},
 		{"h", bson.D{{"$push", "$h"}}},
 		{"l", bson.D{{"$push", "$l"}}},
-		{"o", bson.D{{"$push", "$o"}}},
 		{"c", bson.D{{"$push", "$c"}}},
 		{"v", bson.D{{"$push", "$v"}}},
 		{"t", bson.D{{"$push", "$t"}}},
