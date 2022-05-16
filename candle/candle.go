@@ -181,7 +181,30 @@ func (s *Service) GetChart(
 	resolution string,
 	from time.Time,
 	to time.Time,
-) (interface{}, interface{}) {
+) (domain.ChartResponse, interface{}) {
 	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
-	return chart, nil
+	return s.makeChartResponse(chart), nil
+}
+
+func (s *Service) makeChartResponse(chart *domain.Chart) domain.ChartResponse {
+	r := domain.ChartResponse{
+		Symbol: chart.Symbol,
+		H:      make([]string, len(chart.H)),
+		L:      make([]string, len(chart.H)),
+		O:      make([]string, len(chart.H)),
+		C:      make([]string, len(chart.H)),
+		V:      make([]string, len(chart.H)),
+		T:      chart.T,
+	}
+	//  convert chart values primitives decimal128 to string
+	for i := 0; i < len(chart.V); i++ {
+		// convert decimal128 to string
+		r.O[i] = chart.O[i].String()
+		r.H[i] = chart.H[i].String()
+		r.L[i] = chart.L[i].String()
+		r.C[i] = chart.C[i].String()
+		r.V[i] = chart.V[i].String()
+	}
+
+	return r
 }

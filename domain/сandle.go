@@ -27,6 +27,17 @@ type Chart struct {
 	T          []int64                `json:"t"`
 }
 
+type ChartResponse struct {
+	Symbol     string `json:"symbol"`
+	resolution string
+	O          []string `json:"o"`
+	H          []string `json:"h"`
+	L          []string `json:"l"`
+	C          []string `json:"c"`
+	V          []string `json:"v"`
+	T          []int64  `json:"t"`
+}
+
 func (c *Chart) Resolution() string {
 	return c.resolution
 }
