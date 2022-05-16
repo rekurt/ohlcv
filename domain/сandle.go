@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,12 +31,12 @@ type Chart struct {
 type ChartResponse struct {
 	Symbol     string `json:"symbol"`
 	resolution string
-	O          []string `json:"o"`
-	H          []string `json:"h"`
-	L          []string `json:"l"`
-	C          []string `json:"c"`
-	V          []string `json:"v"`
-	T          []string `json:"t"`
+	O          []float64 `json:"o"`
+	H          []float64 `json:"h"`
+	L          []float64 `json:"l"`
+	C          []float64 `json:"c"`
+	V          []float64 `json:"v"`
+	T          []int64   `json:"t"`
 }
 
 func (c *Chart) Resolution() string {
@@ -52,4 +53,33 @@ func (c *Chart) Market() string {
 
 func (c *Chart) SetMarket(market string) {
 	c.Symbol = market
+}
+
+func MakeChartResponse(chart *Chart) ChartResponse {
+	r := ChartResponse{
+		Symbol: chart.Symbol,
+		H:      make([]float64, len(chart.H)),
+		L:      make([]float64, len(chart.L)),
+		O:      make([]float64, len(chart.O)),
+		C:      make([]float64, len(chart.C)),
+		V:      make([]float64, len(chart.V)),
+		T:      chart.T,
+	}
+
+	for i := 0; i < len(chart.V); i++ {
+		oString := chart.O[i].String()
+		oFloat, _ := strconv.ParseFloat(oString, 64)
+		hFloat, _ := strconv.ParseFloat(chart.H[i].String(), 64)
+		lFloat, _ := strconv.ParseFloat(chart.L[i].String(), 64)
+		cFloat, _ := strconv.ParseFloat(chart.C[i].String(), 64)
+		vFloat, _ := strconv.ParseFloat(chart.V[i].String(), 64)
+
+		r.O[i] = oFloat
+		r.H[i] = hFloat
+		r.L[i] = lFloat
+		r.C[i] = cFloat
+		r.V[i] = vFloat
+	}
+
+	return r
 }
