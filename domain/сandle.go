@@ -55,9 +55,11 @@ func (c *Chart) SetMarket(market string) {
 	c.Symbol = market
 }
 
-func MakeChartResponse(chart *Chart) ChartResponse {
+func MakeChartResponse(market string, chart *Chart) ChartResponse {
 	if nil == chart {
-		return ChartResponse{}
+		return ChartResponse{
+			Symbol: market,
+		}
 	}
 
 	r := ChartResponse{
