@@ -2,6 +2,7 @@ package candle
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
@@ -194,7 +195,7 @@ func (s *Service) makeChartResponse(chart *domain.Chart) domain.ChartResponse {
 		O:      make([]string, len(chart.H)),
 		C:      make([]string, len(chart.H)),
 		V:      make([]string, len(chart.H)),
-		T:      chart.T,
+		T:      make([]string, len(chart.H)),
 	}
 	//  convert chart values primitives decimal128 to string
 	for i := 0; i < len(chart.V); i++ {
@@ -204,6 +205,7 @@ func (s *Service) makeChartResponse(chart *domain.Chart) domain.ChartResponse {
 		r.L[i] = chart.L[i].String()
 		r.C[i] = chart.C[i].String()
 		r.V[i] = chart.V[i].String()
+		r.T[i] = strconv.FormatInt(chart.T[i], 10)
 	}
 
 	return r

@@ -35,7 +35,7 @@ type ChartResponse struct {
 	L          []string `json:"l"`
 	C          []string `json:"c"`
 	V          []string `json:"v"`
-	T          []int64  `json:"t"`
+	T          []string `json:"t"`
 }
 
 func (c *Chart) Resolution() string {
