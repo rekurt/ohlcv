@@ -12,6 +12,7 @@ package openapi
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
@@ -42,10 +43,46 @@ func (s *MarketApiService) ApiV1TradesGet(
 	if err != nil {
 		return Response(500, RespError{}), nil
 	}
-	return Response(200, convert(trades)), nil
+	return Response(200, convertDeals(trades)), nil
 }
 
-func convert(tr []domain.Deal) []Trade {
+func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string) (ImplResponse, error) {
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	if err != nil {
+		return Response(500, RespError{}), nil
+	}
+	return Response(200, convertStatistics(statistics)), nil
+}
+
+func convertStatistics(statistics []domain.TickerPriceChangeStatistics) []Ticker {
+	tickers := make([]Ticker, len(statistics))
+	for i, s := range statistics {
+		tickers[i] = Ticker{
+			Symbol:             s.Symbol,
+			PriceChange:        s.PriceChange,
+			PriceChangePercent: s.PriceChangePercent,
+			PrevClosePrice:     s.PrevClosePrice,
+			LastPrice:          s.LastPrice,
+			BidPrice:           s.BidPrice,
+			BidQty:             s.BidQty,
+			AskPrice:           s.AskPrice,
+			AskQty:             s.AskQty,
+			OpenPrice:          s.OpenPrice,
+			HighPrice:          s.HighPrice,
+			LowPrice:           s.LowPrice,
+			Volume:             s.Volume,
+			QuoteVolume:        s.QuoteVolume,
+			OpenTime:           s.OpenTime,
+			CloseTime:          s.CloseTime,
+			FirstId:            s.FirstId,
+			LastId:             s.LastId,
+			Count:              int64(s.Count),
+		}
+	}
+	return tickers
+}
+
+func convertDeals(tr []domain.Deal) []Trade {
 	trades := make([]Trade, len(tr))
 	for i := range tr {
 

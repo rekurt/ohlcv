@@ -10,6 +10,7 @@
 package openapi
 
 type RespError struct {
+
 	// Error code
 	Code int64 `json:"code"`
 

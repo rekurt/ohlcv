@@ -15,8 +15,10 @@ import (
 	"net/http"
 )
 
-// ErrTypeAssertionError is thrown when type an interface does not match the asserted type
-var ErrTypeAssertionError = errors.New("unable to assert type")
+var (
+	// ErrTypeAssertionError is thrown when type an interface does not match the asserted type
+	ErrTypeAssertionError = errors.New("unable to assert type")
+)
 
 // ParsingError indicates that an error has occurred when parsing request parameters
 type ParsingError struct {

@@ -89,14 +89,13 @@ func (s Storage) GetCandles(
 		},
 	}}}
 
-	secondGroupStage := bson.D{{"$group", bson.D{
-		{"_id", "$symbol"},
-		{"h", bson.D{{"$push", "$h"}}},
-		{"l", bson.D{{"$push", "$l"}}},
-		{"o", bson.D{{"$push", "$o"}}},
-		{"c", bson.D{{"$push", "$c"}}},
-		{"v", bson.D{{"$push", "$v"}}},
-		{"t", bson.D{{"$push", "$t"}}},
+	secondGroupStage := bson.D{{"$group", bson.D{{"_id", "$symbol"},
+		{"o", bson.D{{"$push", bson.D{{"$toString", "$o"}}}}},
+		{"h", bson.D{{"$push", bson.D{{"$toString", "$h"}}}}},
+		{"l", bson.D{{"$push", bson.D{{"$toString", "$l"}}}}},
+		{"c", bson.D{{"$push", bson.D{{"$toString", "$c"}}}}},
+		{"v", bson.D{{"$push", bson.D{{"$toString", "$v"}}}}},
+		{"t", bson.D{{"$push", bson.D{{"$toString", "$t"}}}}},
 	}}}
 
 	opts := options.Aggregate()
