@@ -84,6 +84,7 @@ func (h CandleHandler) GetCandleChart(
 	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
 	marshal, err := json.Marshal(chart)
 	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
