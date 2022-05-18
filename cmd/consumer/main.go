@@ -2,6 +2,7 @@ package main
 
 import (
 	"bitbucket.org/novatechnologies/common/events/topics"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -21,6 +22,7 @@ func main() {
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
+	fmt.Println(domain.GetAvailableResolutions())
 
 	broadcaster := centrifuge.NewBroadcaster(
 		centrifuge.NewPublisher(conf.CentrifugeConfig),
