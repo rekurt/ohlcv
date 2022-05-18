@@ -48,7 +48,7 @@ func (h CandleHandler) GetCandleChart(
 		return
 	}
 
-	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("resolution"))
+	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("interval"))
 	from, to := getDefaultTimeRange(candleDuration)
 
 	if req.URL.Query().Get("to") != "" || req.URL.Query().Get("from") != "" {
@@ -63,7 +63,6 @@ func (h CandleHandler) GetCandleChart(
 			illegalUnixTimestamp(err, res)
 			return
 		}
-
 		from = time.Unix(
 			int64(fromUnix),
 			0,
@@ -82,10 +81,10 @@ func (h CandleHandler) GetCandleChart(
 			)
 		}
 	}
-
 	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
 	marshal, err := json.Marshal(chart)
 	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

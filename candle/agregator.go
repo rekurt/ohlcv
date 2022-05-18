@@ -40,18 +40,24 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	case domain.Candle30MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
 	case domain.Candle1HResolution:
+	case domain.Candle1H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
 	case domain.Candle2HResolution:
+	case domain.Candle2H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
 	case domain.Candle4HResolution:
+	case domain.Candle4H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
 	case domain.Candle6HResolution:
+	case domain.Candle6H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
 	case domain.Candle12HResolution:
+	case domain.Candle12H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
 	case domain.Candle1DResolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
 	case domain.Candle1MHResolution:
+	case domain.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	default:
 		logger.FromContext(context.Background()).WithField(
@@ -277,18 +283,24 @@ func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 
 	case domain.Candle30MResolution:
 		ts = getStartMinuteTs(now, 30)
 	case domain.Candle1HResolution:
+	case domain.Candle1H2Resolution:
 		ts = getStartHourTs(now, 1)
 	case domain.Candle2HResolution:
+	case domain.Candle2H2Resolution:
 		ts = getStartHourTs(now, 2)
 	case domain.Candle4HResolution:
+	case domain.Candle4H2Resolution:
 		ts = getStartHourTs(now, 4)
 	case domain.Candle6HResolution:
+	case domain.Candle6H2Resolution:
 		ts = getStartHourTs(now, 6)
 	case domain.Candle12HResolution:
+	case domain.Candle12H2Resolution:
 		ts = getStartHourTs(now, 12)
 	case domain.Candle1DResolution:
 		ts = getStartHourTs(now, 24)
 	case domain.Candle1MHResolution:
+	case domain.Candle1MH2Resolution:
 		ts = getStartMonthTs(now, 1)
 	default:
 		logger.FromContext(context.Background()).WithField(
