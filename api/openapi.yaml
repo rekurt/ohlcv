@@ -75,6 +75,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/resp_error'
+  /v1/trading/stats/24h/all:
+    get:
+      summary: 24hr Ticker Price Change Statistics With Market Info
+      tags:
+        - Market
+      parameters:
+        - $ref: '#/components/parameters/optionalSymbol'
+      responses:
+        '200':
+          description: 24hr ticker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/tickerAll'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/resp_error'
 components:
   parameters:
     symbol:
@@ -231,4 +253,50 @@ components:
         - firstId
         - lastId
         - count
+    tickerAll:
+      type: object
+      properties:
+        id:
+          type: string
+        market:
+          type: string
+        last_price:
+          type: string
+        maker_fee:
+          type: string
+        taker_fee:
+          type: string
+        precision:
+          type: integer
+          format: int32
+        base_precision:
+          type: integer
+          format: int32
+        quoted_precision:
+          type: integer
+          format: int32
+        default_level:
+          type: integer
+          format: int32
+        order_min_amount:
+          type: string
+        order_min_price:
+          type: string
+        order_min_size:
+          type: string
+        24h_change:
+          type: string
+        24h_change_percent:
+          type: string
+        24h_high:
+          type: string
+        24h_low:
+          type: string
+        24h_volume:
+          type: string
+        base_currency:
+          type: string
+        quoted_currency:
+          type: string
+
 
