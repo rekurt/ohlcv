@@ -45,7 +45,7 @@ pipelines:
 
             - export KAFKA_HOST=$KAFKA_HOST
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-            - export KAFKA_SSL="0"
+            - export KAFKA_SSL="1"
             - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
             - export LOG_LEVEL=$STAGE_LOG_LEVEL
             - export SERVICE_NAME="ohlcv"
@@ -173,7 +173,6 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=staging
             # Set services hostnames
-
             - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
