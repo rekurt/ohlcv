@@ -364,7 +364,7 @@ podAffinityPreset: ""
 ## @param podAntiAffinityPreset MongoDB(&reg;) Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
 ##
-podAntiAffinityPreset: soft
+podAntiAffinityPreset: hard
 ## Node affinity preset
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
 ##
@@ -396,7 +396,10 @@ nodeSelector: {}
 ## @param tolerations MongoDB(&reg;) Tolerations for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##
-tolerations: []
+tolerations:
+  - effect: NoSchedule
+    key: mongodb
+    operator: Exists
 ## @param topologySpreadConstraints MongoDB(&reg;) Spread Constraints for Pods
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
 ##
