@@ -20,6 +20,15 @@ func GetAvailableMarkets() map[string]string {
 		"72793962-bab5-41a4-9c86-ad79ff984d2d": "BTC_LTC",
 		"6229966b-0e92-4c00-acd7-e5f827cfed05": "ETH_XRP",
 		"f59eecfd-db38-4f29-b854-e869e056b7d9": "BTC_TRX",
+		"bb751ef0-34de-4495-8f43-9d7489371318": "BTC_UNI",
+		"f246fc92-253d-4e60-a307-658162043543": "ETH_UNI",
+		"0bd99aa2-a90e-49b2-b9ff-64b7d49b0fc5": "USDT_UNI",
+		"c2ac3e7b-76ac-446f-9492-9456b1808858": "USDT_XLM",
+		"5e4d67d9-a00d-45e8-8c98-e0dfe4824d73": "DAI_ETH",
+		"11a58dbc-15c5-4d45-9e65-d3dc2ff4ea62": "USDC_ETH",
+		"ec45253b-edb6-48b8-8c0d-8b32c2bf3af0": "USDT_XRP",
+		"decb0844-7f4a-456c-a09e-aa5457b50ac1": "DAI_BTC",
+		"bf5934f0-580b-4e1e-9060-27c48b7b275f": "USDC_BTC",
 	}
 }
 
