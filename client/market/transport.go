@@ -3,7 +3,6 @@ package market
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/valyala/fasthttp"
@@ -52,18 +51,18 @@ func (t *listTransport) DecodeResponse(ctx context.Context, r *fasthttp.Response
 	markets = theResponse
 
 	for i := range markets {
-		split := strings.Split(markets[i].Name, "/")
-		if len(split) != 2 {
-			return nil, fmt.Errorf("unexpected market:%s", markets[i].Name)
-		}
-		if strings.TrimSpace(split[0]) == "" || strings.TrimSpace(split[1]) == "" {
-			return nil, fmt.Errorf("unexpected market:%s", markets[i].Name)
-		}
-
-		markets[i].Name = split[1] + "_" + split[0]
+		markets[i].Name = flipMarkets(markets[i].Name, "/")
 	}
 
 	return
+}
+
+func flipMarkets(s string, sep string) string {
+	index := strings.Index(s, sep)
+	if index == -1 {
+		return s
+	}
+	return s[index+1:] + "_" + s[:index]
 }
 
 // NewListTransport the transport creator for http requests
