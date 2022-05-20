@@ -121,16 +121,8 @@ gen: install-tools api_gen fmt ## Generate code, fixtures, docs etc
 
 .PHONY: api_gen
 api_gen: ## Generates Go code from api/openapi.yaml
-	PATH=$(BIN_DIR):${PATH} \
-	OPENAPI_GENERATOR_VERSION=6.0.0-beta \
-	openapi-generator-cli generate \
-		-i api/openapi.yaml -g go-server -o api/generated -p outputAsLibrary=true \
-		--minimal-update
-
-	$(MAKE) fmt
-
-	git add api/generated/*
-
+	docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli generate \
+    		-i local/api/openapi.yaml -g go-server -o local/api/generated --minimal-update
 
 .PHONY: test
 test: stop lint ## Run unit and mocked/stubbed integration (fast running) tests

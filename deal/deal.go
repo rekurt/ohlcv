@@ -3,6 +3,7 @@ package deal
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -189,10 +190,14 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 }
 
 func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
+	closePrice := m["closePrice"].(primitive.Decimal128)
+	openPrice := m["openPrice"].(primitive.Decimal128)
+	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
+
 	return domain.TickerPriceChangeStatistics{
 		Symbol:    m["_id"].(string),
-		LastPrice: m["closePrice"].(primitive.Decimal128).String(),
-		OpenPrice: m["openPrice"].(primitive.Decimal128).String(),
+		LastPrice: closePrice.String(),
+		OpenPrice: openPrice.String(),
 		HighPrice: m["highPrice"].(primitive.Decimal128).String(),
 		LowPrice:  m["lowPrice"].(primitive.Decimal128).String(),
 		Volume:    m["volume"].(primitive.Decimal128).String(),
@@ -201,7 +206,23 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 		FirstId:   m["firstId"].(string),
 		LastId:    m["lastId"].(string),
 		Count:     int(m["count"].(int32)),
+		PriceChange:    strconv.FormatFloat(priceChange, 'f', 8, 64),
+		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
 	}
+}
+
+func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
+	closePriceF, err := strconv.ParseFloat(closePrice.String(),64)
+	if err != nil {
+		return 0,0
+	}
+	openPriceF, err := strconv.ParseFloat(openPrice.String(),64)
+	if err != nil {
+		return 0,0
+	}
+	change := closePriceF-openPriceF
+	priceChangePercent := change/openPriceF
+	return change,priceChangePercent
 }
 
 func (s *Service) RunConsuming(

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bitbucket.org/novatechnologies/common/events/topics"
 	"fmt"
 	"os"
 	"os/signal"
+
+	"bitbucket.org/novatechnologies/common/events/topics"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -63,7 +64,7 @@ func main() {
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
 
-	server := http.NewServer(candleService, dealService, conf.HttpConfig.Port)
+	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)
 
 	//shutdown

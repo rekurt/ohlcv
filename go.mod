@@ -18,6 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.13.0
+	github.com/valyala/fasthttp v1.29.0
 	go.mongodb.org/mongo-driver v1.8.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/protobuf v1.27.1
@@ -30,6 +31,7 @@ require (
 	github.com/Shopify/sarama v1.26.0 // indirect
 	github.com/ThreeDotsLabs/watermill v1.1.1 // indirect
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.1 // indirect
+	github.com/andybalholm/brotli v1.0.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/centrifugal/protocol v0.7.3 // indirect
 	github.com/containerd/cgroups v1.0.1 // indirect

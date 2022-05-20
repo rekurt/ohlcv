@@ -20,6 +20,7 @@ import (
 type MarketApiRouter interface {
 	ApiV1TradesGet(http.ResponseWriter, *http.Request)
 	ApiV3Ticker24hrGet(http.ResponseWriter, *http.Request)
+	V1TradingStats24hAllGet(http.ResponseWriter, *http.Request)
 }
 
 // MarketApiServicer defines the api actions for the MarketApi service
@@ -29,4 +30,5 @@ type MarketApiRouter interface {
 type MarketApiServicer interface {
 	ApiV1TradesGet(context.Context, string, int32) (ImplResponse, error)
 	ApiV3Ticker24hrGet(context.Context, string) (ImplResponse, error)
+	V1TradingStats24hAllGet(context.Context, string) (ImplResponse, error)
 }
