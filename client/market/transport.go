@@ -3,6 +3,7 @@ package market
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/valyala/fasthttp"
 )
@@ -48,6 +49,10 @@ func (t *listTransport) DecodeResponse(ctx context.Context, r *fasthttp.Response
 	}
 
 	markets = theResponse
+
+	for i := range markets {
+		markets[i].Name = strings.Replace(markets[i].Name, "/", "_", 1)
+	}
 
 	return
 }

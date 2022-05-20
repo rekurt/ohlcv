@@ -22,6 +22,8 @@ type Market struct {
 	MakerFee                   string   `json:"maker_fee"`
 	TakerFee                   string   `json:"taker_fee"`
 	Precision                  int64    `json:"precision"`
+	BasePrecision              int64    `json:"base_precision"`
+	QuotedPrecision            int64    `json:"quoted_precision"`
 	OrderMinAmount             string   `json:"order_min_amount"`
 	OrderMinPrice              string   `json:"order_min_price"`
 	OrderMinSize               string   `json:"order_min_size"`

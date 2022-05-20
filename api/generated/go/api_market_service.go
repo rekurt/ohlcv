@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
@@ -21,12 +22,13 @@ import (
 // This service should implement the business logic for every endpoint for the MarketApi API.
 // Include any external packages or services that will be required by this service.
 type MarketApiService struct {
-	dealService domain.Service
+	dealService  domain.Service
+	marketClient market.Client
 }
 
 // NewMarketApiService creates a default api service
-func NewMarketApiService(dealService domain.Service) MarketApiServicer {
-	return &MarketApiService{dealService: dealService}
+func NewMarketApiService(dealService domain.Service, marketClient market.Client) MarketApiServicer {
+	return &MarketApiService{dealService: dealService, marketClient: marketClient}
 }
 
 // ApiV1TradesGet - Recent Trades List
@@ -96,4 +98,53 @@ func convertDeals(tr []domain.Deal) []Trade {
 		}
 	}
 	return trades
+}
+
+func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	if err != nil {
+		return Response(500, RespError{Msg: "dealService.GetTickerPriceChangeStatistics"}), nil
+	}
+	markets, err := s.marketClient.List(ctx)
+	if err != nil {
+		return Response(500, RespError{Msg: "marketClient.List"}), nil
+	}
+
+	return Response(200, convertStatisticsAll(statistics, buildMarketsMap(markets))), nil
+}
+
+func buildMarketsMap(markets []market.Market) map[string]market.Market {
+	m := map[string]market.Market{}
+	for _, mi := range markets {
+		m[mi.Name] = mi
+	}
+	return m
+}
+
+func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marketsMap map[string]market.Market) []TickerAll {
+	tickers := make([]TickerAll, len(statistics))
+	for i, s := range statistics {
+		marketInfo := marketsMap[s.Symbol]
+		tickers[i] = TickerAll{
+			Id:                  "",
+			Market:              s.Symbol,
+			LastPrice:           s.LastPrice,
+			MakerFee:            marketInfo.MakerFee,
+			TakerFee:            marketInfo.TakerFee,
+			Precision:           int32(marketInfo.Precision),
+			BasePrecision:       int32(marketInfo.BasePrecision),
+			QuotedPrecision:     int32(marketInfo.QuotedPrecision),
+			OrderMinAmount:      marketInfo.OrderMinAmount,
+			OrderMinPrice:       marketInfo.OrderMinPrice,
+			OrderMinSize:        marketInfo.OrderMinSize,
+			Var24hChange:        s.PriceChange,
+			Var24hChangePercent: s.PriceChangePercent,
+			Var24hHigh:          s.HighPrice,
+			Var24hLow:           s.LowPrice,
+			Var24hVolume:        s.Volume,
+			BaseCurrency:        marketInfo.BaseCurrency.Symbol,
+			QuotedCurrency:      marketInfo.QuotedCurrency.Symbol,
+		}
+	}
+	return tickers
 }
