@@ -103,11 +103,11 @@ func convertDeals(tr []domain.Deal) []Trade {
 func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
 	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
 	if err != nil {
-		return Response(500, RespError{Msg: "dealService.GetTickerPriceChangeStatistics"}), nil
+		return Response(500, RespError{Msg: "dealService.GetTickerPriceChangeStatistics:" + err.Error()}), nil
 	}
 	markets, err := s.marketClient.List(ctx)
 	if err != nil {
-		return Response(500, RespError{Msg: "marketClient.List"}), nil
+		return Response(500, RespError{Msg: "marketClient.List:" + err.Error()}), nil
 	}
 
 	return Response(200, convertStatisticsAll(statistics, buildMarketsMap(markets))), nil
