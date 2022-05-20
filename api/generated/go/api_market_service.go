@@ -126,7 +126,7 @@ func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marke
 	for i, s := range statistics {
 		marketInfo := marketsMap[s.Symbol]
 		tickers[i] = TickerAll{
-			Id:                  "",
+			Id:                  marketInfo.ID,
 			Market:              s.Symbol,
 			LastPrice:           s.LastPrice,
 			MakerFee:            marketInfo.MakerFee,

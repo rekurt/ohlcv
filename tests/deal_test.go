@@ -176,7 +176,7 @@ func TestDealGenerator(t *testing.T) {
 
 	candleService.CronCandleGenerationStart(ctx)
 
-	server := http.NewServer(candleService, dealService, 8082)
+	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)
 
 	// shutdown
@@ -205,12 +205,13 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 	service := deal.NewService(dealCollection, getTestMarkets(), broker.NewInMemory())
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancelFunc()
 	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
 	require.NoError(t, err)
 	for _, s := range statistics {
-		fmt.Printf("%+v\n", s)
+		// fmt.Printf("%+v\n", s)
+		fmt.Println(s.OpenPrice, s.LastPrice, s.PriceChange, s.PriceChangePercent)
 	}
 }
 
