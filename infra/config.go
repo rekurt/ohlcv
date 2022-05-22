@@ -56,7 +56,7 @@ type Config struct {
 	CentrifugeConfig         CentrifugeConfig
 	HttpConfig               HttpConfig
 	ExchangeMarketsServerURL string `envconfig:"EXCHANGE_MARKETS_SERVER_URL"`
-	ExchangeMarketsServerSSL bool   `envconfig:"EXCHANGE_MARKETS_SERVER_SSL" default:"false"`
+	ExchangeMarketsServerSSL bool   `envconfig:"EXCHANGE_MARKETS_SERVER_SSL" default:"true"`
 	ExchangeMarketsToken     string `envconfig:"EXCHANGE_MARKETS_TOKEN"`
 }
 
