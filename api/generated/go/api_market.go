@@ -62,6 +62,7 @@ func (c *MarketApiController) Routes() Routes {
 		{
 			"V1TradingStats24hAllGet",
 			strings.ToUpper("Get"),
+
 			"/v1/trading/stats/24h/all",
 			c.V1TradingStats24hAllGet,
 		},

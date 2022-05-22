@@ -179,6 +179,8 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=staging
             # Set services hostnames
+            - export EXCHANGE_MARKETS_TOKEN=$STAGING_EXCHANGE_MARKETS_TOKEN
+            - export EXCHANGE_MARKETS_SERVER_URL=$STAGING_EXCHANGE_MARKETS_SERVER_URL
             - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
             - export MONGODB_HOST=$STAGING_MONGODB_HOST
