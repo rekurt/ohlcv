@@ -81,6 +81,7 @@ func (s *client) List(ctx context.Context) (markets []Market, err error) {
 
 type Config struct {
 	ServerURL           string
+	ServerTLS           bool
 	MaxConns            *int
 	MaxConnDuration     *time.Duration
 	MaxIdleConnDuration *time.Duration
@@ -135,7 +136,8 @@ func New(
 	if config.MaxResponseBodySize != nil {
 		cli.MaxResponseBodySize = *config.MaxResponseBodySize
 	}
-	cli.IsTLS = true
+
+	cli.IsTLS = config.ServerTLS
 
 	client = newClient(
 		&cli,

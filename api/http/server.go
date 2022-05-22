@@ -24,7 +24,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service, conf i
 	mux := http.NewServeMux()
 
 	marketClient, err := market.New(
-		market.Config{ServerURL: conf.ExchangeMarketsServerURL},
+		market.Config{ServerURL: conf.ExchangeMarketsServerURL, ServerTLS: conf.ExchangeMarketsServerSSL},
 		market.NewErrorProcessor(map[string]string{}),
 		map[interface{}]market.Option{},
 		conf.ExchangeMarketsToken,
