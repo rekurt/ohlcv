@@ -33,6 +33,9 @@ func GetAvailableMarkets() map[string]string {
 
 		"11a58dbc-15c5-4d45-9e65-d3dc2ff4ea62": "USDC_ETH",
 		"bf5934f0-580b-4e1e-9060-27c48b7b275f": "USDC_BTC",
+		"c5e57785-9e7d-44a3-8fb0-c30839950276": "ETH_XLM",
+		"03b26b3a-3c57-4ff6-a9f8-ea7cc18dae0f": "BTC_XLM",
+		"d456718a-0cb0-4363-a100-9ed30b113f8c": "USDT_BNB",
 	}
 }
 
