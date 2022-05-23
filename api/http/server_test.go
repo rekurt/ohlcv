@@ -34,7 +34,7 @@ func Test_Server_manual(t *testing.T) {
 	)
 	candleService := tests.InitCandleService(conf, dealCollection, eventsBroker)
 
-	server := NewServer(candleService, dealService, 8082)
+	server := NewServer(candleService, dealService, conf)
 	server.Start(ctx)
 
 	// shutdown
