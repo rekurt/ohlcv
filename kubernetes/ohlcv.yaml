@@ -50,6 +50,10 @@ spec:
               value: "$CENTRIFUGE_TOKEN"
             - name: MONGODB_AUTH_DB
               value: "$MONGODB_AUTH_DB"
+            - name: EXCHANGE_MARKETS_SERVER_URL
+              value: "$EXCHANGE_MARKETS_SERVER_URL"
+            - name: EXCHANGE_MARKETS_TOKEN
+              value: "$EXCHANGE_MARKETS_TOKEN"
 ---
 apiVersion: v1
 kind: Service

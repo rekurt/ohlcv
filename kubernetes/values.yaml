@@ -396,7 +396,10 @@ nodeSelector: {}
 ## @param tolerations MongoDB(&reg;) Tolerations for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##
-tolerations: []
+tolerations:
+  - effect: NoSchedule
+    key: mongodb
+    operator: Exists
 ## @param topologySpreadConstraints MongoDB(&reg;) Spread Constraints for Pods
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
 ##

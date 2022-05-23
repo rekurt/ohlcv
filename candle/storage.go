@@ -31,15 +31,6 @@ func (s Storage) GetCandles(
 	).Infof("[CandleService] Call GetCandles")
 	from, to := period[0], period[1]
 
-	firstSortStage := bson.D{{"$sort", bson.D{
-		{
-			"data.market", 1,
-		},
-		{
-			"t", -1,
-		},
-	}}}
-
 	matchStage := bson.D{
 		{"$match", bson.D{
 			{"data.market", market},
@@ -49,6 +40,15 @@ func (s Storage) GetCandles(
 			}},
 		}},
 	}
+
+	firstSortStage := bson.D{{"$sort", bson.D{
+		{
+			"data.market", 1,
+		},
+		{
+			"t", -1,
+		},
+	}}}
 
 	firstGroupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
@@ -61,9 +61,9 @@ func (s Storage) GetCandles(
 				}},
 			}},
 		}},
+		{"o", bson.D{{"$first", "$data.price"}}},
 		{"h", bson.D{{"$max", "$data.price"}}},
 		{"l", bson.D{{"$min", "$data.price"}}},
-		{"o", bson.D{{"$first", "$data.price"}}},
 		{"c", bson.D{{"$last", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
@@ -91,9 +91,9 @@ func (s Storage) GetCandles(
 
 	secondGroupStage := bson.D{{"$group", bson.D{
 		{"_id", "$symbol"},
+		{"o", bson.D{{"$push", "$o"}}},
 		{"h", bson.D{{"$push", "$h"}}},
 		{"l", bson.D{{"$push", "$l"}}},
-		{"o", bson.D{{"$push", "$o"}}},
 		{"c", bson.D{{"$push", "$c"}}},
 		{"v", bson.D{{"$push", "$v"}}},
 		{"t", bson.D{{"$push", "$t"}}},

@@ -51,10 +51,13 @@ type CentrifugeConfig struct {
 }
 
 type Config struct {
-	KafkaConfig      KafkaConfig
-	MongoDbConfig    MongoDbConfig
-	CentrifugeConfig CentrifugeConfig
-	HttpConfig       HttpConfig
+	KafkaConfig              KafkaConfig
+	MongoDbConfig            MongoDbConfig
+	CentrifugeConfig         CentrifugeConfig
+	HttpConfig               HttpConfig
+	ExchangeMarketsServerURL string `envconfig:"EXCHANGE_MARKETS_SERVER_URL"`
+	ExchangeMarketsServerSSL bool   `envconfig:"EXCHANGE_MARKETS_SERVER_SSL" default:"true"`
+	ExchangeMarketsToken     string `envconfig:"EXCHANGE_MARKETS_TOKEN"`
 }
 
 func SetConfig(configPath string) Config {
