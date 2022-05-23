@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 
 	"bitbucket.org/novatechnologies/common/events/topics"
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -24,10 +27,11 @@ func main() {
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 	fmt.Println(domain.GetAvailableResolutions())
-
+	marketsMap := buildAvailableMarkets(conf)
 	broadcaster := centrifuge.NewBroadcaster(
 		centrifuge.NewPublisher(conf.CentrifugeConfig),
 		eventsBroker,
+		marketsMap,
 	)
 	broadcaster.SubscribeForCharts()
 
@@ -47,7 +51,7 @@ func main() {
 
 	dealService := deal.NewService(
 		dealsCollection,
-		domain.GetAvailableMarkets(),
+		marketsMap,
 		eventsBroker,
 	)
 	// Start consuming, preparing, saving deals into DB and notifying others.
@@ -57,7 +61,7 @@ func main() {
 	candleService := candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
 		new(candle.Agregator),
-		domain.GetAvailableMarkets(),
+		marketsMap,
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
@@ -74,4 +78,21 @@ func main() {
 	server.Stop(ctx)
 
 	return
+}
+
+func buildAvailableMarkets(conf infra.Config) map[string]string {
+	marketClient, err := market.New(
+		market.Config{ServerURL: conf.ExchangeMarketsServerURL, ServerTLS: conf.ExchangeMarketsServerSSL},
+		market.NewErrorProcessor(map[string]string{}),
+		map[interface{}]market.Option{},
+		conf.ExchangeMarketsToken,
+	)
+	if err != nil {
+		log.Fatal("can't market.New:" + err.Error())
+	}
+	markets, err := marketClient.List(context.Background())
+	if err != nil {
+		log.Fatal("can't marketClient.List:" + err.Error())
+	}
+	return domain.GetAvailableMarketsMap(markets)
 }

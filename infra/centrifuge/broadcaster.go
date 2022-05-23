@@ -15,13 +15,10 @@ type broadcaster struct {
 	eventsBroker domain.EventsBroker
 }
 
-func NewBroadcaster(
-	publisher Centrifuge,
-	eventsBroker domain.EventsBroker,
-) *broadcaster {
+func NewBroadcaster(publisher Centrifuge, eventsBroker domain.EventsBroker, marketsMap map[string]string) *broadcaster {
 	return &broadcaster{
 		Centrifuge:   publisher,
-		Channels:     GetChartsChannels(),
+		Channels:     GetChartsChannels(marketsMap),
 		eventsBroker: eventsBroker,
 	}
 }
@@ -62,10 +59,9 @@ func (b broadcaster) BroadcastCandleCharts(
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 
-func GetChartsChannels() map[string]map[string]*domain.ChartChannel {
-	m := domain.GetAvailableMarkets()
-	c := make(map[string]map[string]*domain.ChartChannel, len(m))
-	for _, market := range m {
+func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
+	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
+	for _, market := range marketsMap {
 		resolutions := domain.GetAvailableResolutions()
 		marketChannels := make(
 			map[string]*domain.ChartChannel,
