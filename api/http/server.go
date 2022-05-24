@@ -34,7 +34,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service, conf i
 	}
 
 	candleHandler := handler.NewCandleHandler(candleService)
-	MarketApiService := openapi.NewMarketApiService(dealService, marketClient)
+	MarketApiService := openapi.NewMarketApiService(dealService, market.NewCache(marketClient))
 	MarketApiController := openapi.NewMarketApiController(MarketApiService)
 
 	router := openapi.NewRouter(MarketApiController)
