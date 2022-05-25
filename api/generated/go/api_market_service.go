@@ -110,7 +110,16 @@ func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market s
 		return Response(500, RespError{Msg: "marketClient.List:" + err.Error()}), nil
 	}
 
-	return Response(200, convertStatisticsAll(statistics, buildMarketsMap(markets))), nil
+	return Response(
+		200,
+		InlineResponse200{
+			Timestamp: time.Now().UnixMilli(),
+			Code:      200,
+			Success:   "true",
+			Data:      convertStatisticsAll(statistics, buildMarketsMap(markets)),
+		},
+	), nil
+
 }
 
 func buildMarketsMap(markets []market.Market) map[string]market.Market {
