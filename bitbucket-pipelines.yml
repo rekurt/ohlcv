@@ -37,9 +37,9 @@ pipelines:
             - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
 
             - export MONGODB_URL=$STAGING_MONGODB_URL
-            - export MONGODB_NAME=$MONGODB_NAME
+            - export MONGODB_NAME=md
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
+            - export MONGODB_DEAL_COLLECTION_NAME=md
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
             - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
             - export KAFKA_HOST=$KAFKA_HOST
