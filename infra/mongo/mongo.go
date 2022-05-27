@@ -4,12 +4,10 @@ import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"context"
-	"fmt"
 	"github.com/AlekSi/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
 	"time"
 )
 
@@ -17,39 +15,25 @@ func NewMongoClient(
 	ctx context.Context,
 	config infra.MongoDbConfig,
 ) *mongo.Client {
-	authDbName := config.AuthDbName
-	host := config.Host
-	username := config.User
-	password := config.Password
 	timeoutD := 60 * time.Second
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 
 	clientOptions := options.Client().
+		ApplyURI(config.ConnectionUrl).
+		SetServerAPIOptions(serverAPIOptions).
 		SetMaxPoolSize(100).
 		SetConnectTimeout(timeoutD)
 
-	if username != "" && password != "" {
-		credential := options.Credential{
-			AuthSource: authDbName,
-			Username:   username,
-			Password:   password,
-		}
-		uri := fmt.Sprintf("mongodb://%s", config.Host)
-		clientOptions.ApplyURI(uri).SetAuth(credential)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	} else {
-		clientOptions.ApplyURI(fmt.Sprintf(
-			"mongodb://%s",
-			host,
-		))
-	}
+	defer cancel()
 
 	client, err := mongo.Connect(ctx, clientOptions)
+
 	if err != nil {
-		logger.FromContext(ctx).Errorf(
-			"[infra.Mongo] Failed connect to mongo ERROR:",
+		logger.FromContext(ctx).Errorf("[infra.Mongo] Failed connect to mongo ERROR:",
 			err,
 		)
-		os.Exit(1)
 	}
 
 	return client
@@ -60,7 +44,7 @@ func InitDealsCollection(
 	client *mongo.Client,
 	config infra.MongoDbConfig,
 ) *mongo.Collection {
-	collection := initCollection(ctx, client.Database(config.DbName), config.DealCollectionName, getDealsCollectionOptions())
+	collection := initCollection(ctx, client.Database(config.DatabaseName), config.DealCollectionName, getDealsCollectionOptions())
 	createIndex(ctx, collection, "trades",
 		bson.D{
 			{
@@ -88,7 +72,7 @@ func InitMinutesCollection(
 	client *mongo.Client,
 	config infra.MongoDbConfig,
 ) *mongo.Collection {
-	collection := initCollection(ctx, client.Database(config.DbName), config.MinuteCandleCollectionName, getMinutesCollectionOptions())
+	collection := initCollection(ctx, client.Database(config.DatabaseName), config.MinuteCandleCollectionName, getMinutesCollectionOptions())
 	createIndex(ctx, collection, "minutes",
 		bson.D{
 			{
@@ -167,7 +151,7 @@ func GetOrCreateDealsCollection(ctx context.Context,
 	client *mongo.Client,
 	config infra.MongoDbConfig) *mongo.Collection {
 	cName := config.DealCollectionName
-	if CollectionExist(ctx, client, config.DbName, cName) {
+	if CollectionExist(ctx, client, config.DatabaseName, cName) {
 		return GetCollection(ctx, client, config, cName)
 	}
 	return InitDealsCollection(ctx, client, config)
@@ -177,7 +161,7 @@ func GetOrCreateMinutesCollection(ctx context.Context,
 	client *mongo.Client,
 	config infra.MongoDbConfig) *mongo.Collection {
 	cName := config.MinuteCandleCollectionName
-	if CollectionExist(ctx, client, config.DbName, cName) {
+	if CollectionExist(ctx, client, config.DatabaseName, cName) {
 		return GetCollection(ctx, client, config, cName)
 	}
 	return InitMinutesCollection(ctx, client, config)
@@ -193,5 +177,5 @@ func GetCollection(
 		"[infra.Mongo] Try get collection %s",
 		collectionName,
 	)
-	return client.Database(config.DbName).Collection(collectionName)
+	return client.Database(config.DatabaseName).Collection(collectionName)
 }

@@ -27,7 +27,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	logger.FromContext(context.Background()).WithField(
 		"resolution",
 		resolution,
-	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
+	).Debugf("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
 	case domain.Candle1MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 1, count)
