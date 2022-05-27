@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"bitbucket.org/novatechnologies/ohlcv/deal"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
@@ -29,12 +28,12 @@ func Test_Server_manual(t *testing.T) {
 
 	dealService := deal.NewService(
 		dealCollection,
-		domain.GetAvailableMarkets(),
+		tests.GetAvailableMarkets(),
 		eventsBroker,
 	)
 	candleService := tests.InitCandleService(conf, dealCollection, eventsBroker)
 
-	server := NewServer(candleService, dealService, 8082)
+	server := NewServer(candleService, dealService, conf)
 	server.Start(ctx)
 
 	// shutdown

@@ -139,16 +139,13 @@ func initCandleService(
 	minuteCandleCollection *mongodriver.Collection,
 ) *candle.Service {
 	eventsBroker := broker.NewInMemory()
-	broadcaster := centrifuge.NewBroadcaster(
-		centrifuge.NewPublisher(conf.CentrifugeConfig),
-		eventsBroker,
-	)
+	broadcaster := centrifuge.NewBroadcaster(centrifuge.NewPublisher(conf.CentrifugeConfig), eventsBroker, nil)
 	broadcaster.SubscribeForCharts()
 
 	return candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
 		new(candle.Agregator),
-		domain.GetAvailableMarkets(),
+		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		broker.NewInMemory(),
 	)
@@ -169,7 +166,7 @@ func TestDealGenerator(t *testing.T) {
 	)
 	dealService := deal.NewService(
 		dealCollection,
-		domain.GetAvailableMarkets(),
+		GetAvailableMarkets(),
 		eventsBroker,
 	)
 	candleService := InitCandleService(conf, dealCollection, eventsBroker)

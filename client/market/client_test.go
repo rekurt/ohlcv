@@ -11,7 +11,7 @@ import (
 func TestClient_List_manual(t *testing.T) {
 	t.Skip()
 	cli, err := New(
-		Config{ServerURL: "https://master.api.stage.exchange.pointpay.io"},
+		Config{ServerURL: "https://master.api.stage.exchange.pointpay.io", ServerTLS: true},
 		&ErrorProcessor{},
 		map[interface{}]Option{},
 		"",

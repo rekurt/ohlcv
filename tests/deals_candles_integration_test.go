@@ -214,7 +214,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
 	suite.deals = deal.NewService(
 		dealsCollection,
-		domain.GetAvailableMarkets(),
+		GetAvailableMarkets(),
 		eventsBroker,
 	)
 
@@ -222,14 +222,14 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	suite.candles = candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
 		new(candle.Agregator),
-		domain.GetAvailableMarkets(),
+		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
 
 	// WS publisher and broadcaster of the market data setup
 	suite.wsPub = cfge.NewPublisher(conf.CentrifugeConfig)
-	broadcaster := cfge.NewBroadcaster(suite.wsPub, eventsBroker)
+	broadcaster := cfge.NewBroadcaster(suite.wsPub, eventsBroker, nil)
 	broadcaster.SubscribeForCharts()
 	suite.broadcaster = broadcaster
 

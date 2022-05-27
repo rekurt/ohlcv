@@ -88,9 +88,20 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/tickerAll'
+                type: object
+                properties:
+                  timestamp:
+                    description: server time millis
+                    type: integer
+                    format: int64
+                  code:
+                    type: integer
+                  success:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/tickerAll'
         '400':
           description: Bad Request
           content:

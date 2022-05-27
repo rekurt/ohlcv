@@ -28,28 +28,16 @@ spec:
               value: "$LOG_LEVEL"
             - name: SERVICE_NAME
               value: "$SERVICE_NAME"
-            - name: MONGODB_HOST
-              value: "$MONGODB_HOST"
-            - name: MONGODB_NAME
-              value: "$MONGODB_NAME"
-            - name: MONGODB_TIMEOUT
-              value: "$MONGODB_TIMEOUT"
+            - name: MONGODB_URL
+              value: "$MONGODB_URL"
             - name: MONGODB_DEAL_COLLECTION_NAME
               value: "$MONGODB_DEAL_COLLECTION_NAME"
             - name: MONGODB_MINUTE_CANDLE_COLLECTION_NAME
               value: "$MONGODB_MINUTE_CANDLE_COLLECTION_NAME"
-            - name: MONGODB_ROOT_PASSWORD
-              value: "$MONGODB_ROOT_PASSWORD"
-            - name: MONGODB_USER
-              value: "$MONGODB_USER"
-            - name: MONGODB_PASSWORD
-              value: "$MONGODB_PASSWORD"
             - name: CENTRIFUGE_HOST
               value: "$CENTRIFUGE_HOST"
             - name: CENTRIFUGE_TOKEN
               value: "$CENTRIFUGE_TOKEN"
-            - name: MONGODB_AUTH_DB
-              value: "$MONGODB_AUTH_DB"
             - name: EXCHANGE_MARKETS_SERVER_URL
               value: "$EXCHANGE_MARKETS_SERVER_URL"
             - name: EXCHANGE_MARKETS_TOKEN

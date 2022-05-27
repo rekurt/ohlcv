@@ -89,7 +89,7 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	).WithField(
 		"to",
 		to,
-	).Infof("[CandleService] Call GetCandleByResolution method.")
+	).Debugf("[CandleService] Call GetCandleByResolution method.")
 	var chart *domain.Chart
 	switch resolution {
 	case domain.Candle1MResolution:
@@ -172,7 +172,7 @@ func (s *Service) PushUpdatedCurrentCharts(ctx context.Context, market string) {
 		logger.FromContext(context.Background()).
 			WithField("resolution", resolution).
 			WithField("market", market).
-			Infof("[CandleService] Call PushLastUpdatedCandle method.")
+			Debugf("[CandleService] Call PushLastUpdatedCandle method.")
 
 		upd, _ := s.GetCurrentCandle(ctx, market, resolution)
 		if upd != nil {

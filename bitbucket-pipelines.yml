@@ -35,14 +35,12 @@ pipelines:
             - export EXCHANGE_MARKETS_SERVER_URL=$EXCHANGE_MARKETS_SERVER_URL
             - export CENTRIFUGE_HOST=$CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
-            - export MONGODB_HOST=$MONGODB_HOST
-            - export MONGODB_NAME=$MONGODB_NAME
+
+            - export MONGODB_URL=$MONGODB_URL
+            - export MONGODB_NAME=md
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_USER=$MONGODB_USER
-            - export MONGODB_PASSWORD=$MONGODB_PASSWORD
+            - export MONGODB_DEAL_COLLECTION_NAME=md
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
-            - export MONGODB_AUTH_DB=$MONGODB_NAME
             - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
             - export KAFKA_HOST=$KAFKA_HOST
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
@@ -61,7 +59,6 @@ pipelines:
             - kubernetes/**
             - kubernetes/ohlcv.yaml
             - config/.env
-
       - step: &building
           name: build-app
           image: golang:1.17.2-alpine
@@ -105,11 +102,15 @@ pipelines:
           script:
             - yum install -y gettext
             - export PATH=`pwd`:$PATH
+
             # Set environment variables
+
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
             - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
             - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-            #          - export NAMESPACE=xch-$BRANCH
+
+            # - export NAMESPACE=xch-$BRANCH
+
             - export NAMESPACE=xch-master
             - export STAGE=Staging # ICO-267
             - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
@@ -118,23 +119,19 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=staging
 
-
             # Set services hostnames
 
             - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
             - export EXCHANGE_MARKETS_SERVER_URL=$STAGE_EXCHANGE_MARKETS_SERVER_URL
-
             - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
 
-            - export MONGODB_HOST=$STAGING_MONGODB_HOST
+            - export MONGODB_URL=$STAGE_MONGODB_URL
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
             - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
             - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
-            - export MONGODB_USER=$MONGODB_USER
-            - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
-            - export MONGODB_AUTH_DB=$MONGODB_NAME
+
             - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
 
             - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
