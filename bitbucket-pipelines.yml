@@ -39,7 +39,7 @@ pipelines:
             - export MONGODB_URL=$MONGODB_URL
             - export MONGODB_NAME=$MONGODB_NAME
             - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=trades
+            - export MONGODB_DEAL_COLLECTION_NAME=deals
             - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
             - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
             - export KAFKA_HOST=$KAFKA_HOST
