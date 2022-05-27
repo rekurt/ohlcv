@@ -102,11 +102,15 @@ pipelines:
           script:
             - yum install -y gettext
             - export PATH=`pwd`:$PATH
+
             # Set environment variables
+
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
             - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
             - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-            #          - export NAMESPACE=xch-$BRANCH
+
+            # - export NAMESPACE=xch-$BRANCH
+
             - export NAMESPACE=xch-master
             - export STAGE=Staging # ICO-267
             - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
@@ -119,7 +123,6 @@ pipelines:
 
             - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
             - export EXCHANGE_MARKETS_SERVER_URL=$STAGE_EXCHANGE_MARKETS_SERVER_URL
-
             - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
             - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
 
