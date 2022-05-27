@@ -31,7 +31,7 @@ spec:
             - name: MONGODB_URL
               value: "$MONGODB_URL"
             - name: MONGODB_NAME
-              value: "MD"
+              value: "md"
             - name: MONGODB_DEAL_COLLECTION_NAME
               value: "$MONGODB_DEAL_COLLECTION_NAME"
             - name: MONGODB_MINUTE_CANDLE_COLLECTION_NAME
