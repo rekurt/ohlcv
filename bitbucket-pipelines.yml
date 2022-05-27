@@ -115,7 +115,6 @@ pipelines:
             - export APP_DEBUG=true
             - export APP_ENV=staging
 
-
             # Set services hostnames
 
             - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
