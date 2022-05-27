@@ -151,14 +151,14 @@ func (s *Service) SubscribeForDeals() {
 	go s.eventsBroker.Subscribe(
 		domain.EvTypeDeals,
 		func(dealEvent *domain.Event) error {
-			deals := dealEvent.MustGetDeals()
+			//deals := dealEvent.MustGetDeals()
+			//
+			//ctx, cancel := context.WithTimeout(dealEvent.Ctx, chartsPubTimeout)
+			//defer cancel()
 
-			ctx, cancel := context.WithTimeout(dealEvent.Ctx, chartsPubTimeout)
-			defer cancel()
-
-			for _, deal := range deals {
-				s.PushUpdatedCurrentCharts(ctx, deal.Data.Market)
-			}
+			//for _, deal := range deals {
+			//	s.PushUpdatedCurrentCharts(ctx, deal.Data.Market)
+			//}
 
 			return nil
 		},
