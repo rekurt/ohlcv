@@ -39,7 +39,7 @@ func NewService(
 // (example: empty candles).
 func (s *Service) CronCandleGenerationStart(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(time.Second * 20)
 		done := make(chan bool)
 		for {
 			select {
