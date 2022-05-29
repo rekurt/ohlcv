@@ -107,6 +107,12 @@ func (s Storage) GetCandles(
 		}},
 	}
 
+	secondSortStage := bson.D{{"$sort", bson.D{
+		{
+			"t", 1,
+		},
+	}}}
+
 	secondGroupStage := bson.D{{"$group", bson.D{
 		{"_id", "_id.t"},
 		{"o", bson.D{{"$push", "$o"}}},
@@ -117,12 +123,6 @@ func (s Storage) GetCandles(
 		{"t", bson.D{{"$push", "$t"}}},
 	}}}
 
-	secondSortStage := bson.D{{"$sort", bson.D{
-		{
-			"t", 1,
-		},
-	}}}
-
 	opts := options.Aggregate()
 
 	adu := true
@@ -131,7 +131,7 @@ func (s Storage) GetCandles(
 	//opts.SetMaxAwaitTime(30*time.Second)
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, secondGroupStage, secondSortStage},
+		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, secondSortStage, secondGroupStage},
 		opts,
 	)
 
