@@ -49,7 +49,6 @@ func (s Storage) GetCandles(
 			"t", -1,
 		},
 	}}}
-
 	firstGroupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
 			{"symbol", "$data.market"},
@@ -67,11 +66,39 @@ func (s Storage) GetCandles(
 		{"c", bson.D{{"$last", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
-	tInt := bson.D{{"$toLong", "$_id.t"}}
+
+	densifyStage := bson.D{
+		{"$densify", bson.D{
+			{"field", "_id.t"},
+			{"partitionByFields", bson.A{"symbol"}},
+			{"range", bson.D{
+				{"step", unitSize},
+				{"unit", unit},
+				{"bounds", bson.A{
+					primitive.NewDateTimeFromTime(from),
+					primitive.NewDateTimeFromTime(to),
+				}},
+			}},
+		}},
+	}
+
+	fillStage := bson.D{
+		{"$fill", bson.D{
+			{"sortBy", "_id.t"},
+			{"output", bson.D{
+				{"o", bson.D{{"method", "linear"}}},
+				{"h", bson.D{{"method", "linear"}}},
+				{"l", bson.D{{"method", "linear"}}},
+				{"c", bson.D{{"method", "linear"}}},
+				{"v", bson.D{{"method", "linear"}}},
+			}},
+		}}}
+
+	tsInt := bson.D{{"$toLong", "$_id.t"}}
 	projectStage := bson.D{
 		{"$project", bson.D{
 			{"_id", 0},
-			{"t", bson.D{{"$divide", []interface{}{tInt, 1000}}}},
+			{"t", bson.D{{"$divide", []interface{}{tsInt, 1000}}}},
 			{"symbol", "$_id.symbol"},
 			{"o", bson.D{{"$toDecimal", "$o"}}},
 			{"h", bson.D{{"$toDecimal", "$h"}}},
@@ -80,17 +107,9 @@ func (s Storage) GetCandles(
 			{"v", bson.D{{"$toDecimal", "$v"}}},
 		}},
 	}
-	secondSortStage := bson.D{{"$sort", bson.D{
-		{
-			"symbol", 1,
-		},
-		{
-			"t", 1,
-		},
-	}}}
 
 	secondGroupStage := bson.D{{"$group", bson.D{
-		{"_id", "$symbol"},
+		{"_id", "_id.t"},
 		{"o", bson.D{{"$push", "$o"}}},
 		{"h", bson.D{{"$push", "$h"}}},
 		{"l", bson.D{{"$push", "$l"}}},
@@ -100,13 +119,14 @@ func (s Storage) GetCandles(
 	}}}
 
 	opts := options.Aggregate()
+
 	adu := true
 	opts.AllowDiskUse = &adu
 	opts.Hint = "trades"
 	//opts.SetMaxAwaitTime(30*time.Second)
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, secondSortStage, secondGroupStage},
+		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, densifyStage, fillStage, projectStage, secondGroupStage},
 		opts,
 	)
 
