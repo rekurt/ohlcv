@@ -67,32 +67,32 @@ func (s Storage) GetCandles(
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
 
-	densifyStage := bson.D{
-		{"$densify", bson.D{
-			{"field", "_id.t"},
-			{"partitionByFields", bson.A{"symbol"}},
-			{"range", bson.D{
-				{"step", unitSize},
-				{"unit", unit},
-				{"bounds", bson.A{
-					primitive.NewDateTimeFromTime(from),
-					primitive.NewDateTimeFromTime(to),
-				}},
-			}},
-		}},
-	}
-
-	fillStage := bson.D{
-		{"$fill", bson.D{
-			{"sortBy", bson.D{{"_id.t", 1}}},
-			{"output", bson.D{
-				{"o", bson.D{{"method", "locf"}}},
-				{"h", bson.D{{"method", "linear"}}},
-				{"l", bson.D{{"method", "linear"}}},
-				{"c", bson.D{{"method", "locf"}}},
-				{"v", bson.D{{"method", "linear"}}},
-			}},
-		}}}
+	//densifyStage := bson.D{
+	//	{"$densify", bson.D{
+	//		{"field", "_id.t"},
+	//		{"partitionByFields", bson.A{"symbol"}},
+	//		{"range", bson.D{
+	//			{"step", unitSize},
+	//			{"unit", unit},
+	//			{"bounds", bson.A{
+	//				primitive.NewDateTimeFromTime(from),
+	//				primitive.NewDateTimeFromTime(to),
+	//			}},
+	//		}},
+	//	}},
+	//}
+	//
+	//fillStage := bson.D{
+	//	{"$fill", bson.D{
+	//		{"sortBy", bson.D{{"_id.t", 1}}},
+	//		{"output", bson.D{
+	//			{"o", bson.D{{"method", "locf"}}},
+	//			{"h", bson.D{{"method", "linear"}}},
+	//			{"l", bson.D{{"method", "linear"}}},
+	//			{"c", bson.D{{"method", "locf"}}},
+	//			{"v", bson.D{{"method", "linear"}}},
+	//		}},
+	//	}}}
 
 	tsInt := bson.D{{"$toLong", "$_id.t"}}
 	projectStage := bson.D{
@@ -126,7 +126,7 @@ func (s Storage) GetCandles(
 	//opts.SetMaxAwaitTime(30*time.Second)
 	cursor, err := s.DealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, densifyStage, fillStage, projectStage, secondGroupStage},
+		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, secondGroupStage},
 		opts,
 	)
 
