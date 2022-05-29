@@ -119,9 +119,6 @@ func (s Storage) GetCandles(
 
 	secondSortStage := bson.D{{"$sort", bson.D{
 		{
-			"symbol", 1,
-		},
-		{
 			"t", 1,
 		},
 	}}}
