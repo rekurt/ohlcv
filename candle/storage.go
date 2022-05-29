@@ -84,7 +84,7 @@ func (s Storage) GetCandles(
 
 	fillStage := bson.D{
 		{"$fill", bson.D{
-			{"sortBy", "_id.t"},
+			{"sortBy", bson.D{{"_id.t", 1}}},
 			{"output", bson.D{
 				{"o", bson.D{{"method", "linear"}}},
 				{"h", bson.D{{"method", "linear"}}},
