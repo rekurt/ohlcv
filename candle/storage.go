@@ -86,10 +86,10 @@ func (s Storage) GetCandles(
 		{"$fill", bson.D{
 			{"sortBy", bson.D{{"_id.t", 1}}},
 			{"output", bson.D{
-				{"o", bson.D{{"method", "linear"}}},
+				{"o", bson.D{{"method", "locf"}}},
 				{"h", bson.D{{"method", "linear"}}},
 				{"l", bson.D{{"method", "linear"}}},
-				{"c", bson.D{{"method", "linear"}}},
+				{"c", bson.D{{"method", "locf"}}},
 				{"v", bson.D{{"method", "linear"}}},
 			}},
 		}}}
