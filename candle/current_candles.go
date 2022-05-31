@@ -27,7 +27,7 @@ func (c CurrentCandle) containsTs(nano int64) bool {
 
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
-	GetCandle(market, resolution string) (CurrentCandle, bool)
+	GetCandle(market, resolution string) CurrentCandle
 	GetUpdates() <-chan CurrentCandle
 }
 
@@ -81,9 +81,10 @@ func (c *currentCandles) getCurrentCandleOrCreate(market, resolution string) *Cu
 	if m := c.candles[market]; m == nil {
 		c.candles[market] = map[string]*CurrentCandle{}
 	}
+	now := timeNow()
 	currentCandle := c.candles[market][resolution]
-	if currentCandle == nil {
-		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, timeNow()), 0).UTC()
+	if currentCandle == nil || !currentCandle.containsTs(now.UnixNano()) {
+		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
 		currentCandle = &CurrentCandle{
 			Symbol:    market,
 			OpenTime:  openTime,
@@ -120,10 +121,6 @@ func (c *currentCandles) GetUpdates() <-chan CurrentCandle {
 	return c.updatesStream
 }
 
-func (c *currentCandles) GetCandle(market, resolution string) (CurrentCandle, bool) {
-	candle, ok := c.candles[market][resolution]
-	if ok {
-		return *candle, true
-	}
-	return CurrentCandle{}, false
+func (c *currentCandles) GetCandle(market, resolution string) CurrentCandle {
+	return *c.getCurrentCandleOrCreate(market, resolution)
 }
