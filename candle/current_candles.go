@@ -55,6 +55,7 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 				close(cc.updatesStream)
 				return
 			case <-ticker.C:
+
 				//try close candle
 			}
 		}
@@ -78,6 +79,8 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 }
 
 func (c *currentCandles) getCurrentCandleOrCreate(market, resolution string) *CurrentCandle {
+	c.candlesLock.Lock()
+	defer c.candlesLock.Unlock()
 	if m := c.candles[market]; m == nil {
 		c.candles[market] = map[string]*CurrentCandle{}
 	}
