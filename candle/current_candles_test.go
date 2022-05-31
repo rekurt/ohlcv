@@ -90,3 +90,62 @@ func TestNewCurrentCandles_GetCandle(t *testing.T) {
 		"return empty candle if no trades",
 	)
 }
+
+func TestNewCurrentCandles_refreshAll(t *testing.T) {
+	timeNow = func() time.Time {
+		return time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
+	}
+	candles := NewCurrentCandles(context.Background()).(*currentCandles)
+	go func() {
+		for range candles.GetUpdates() {
+			//to not block writer
+		}
+	}()
+	require.NoError(t, candles.AddDeal(matcher.Deal{
+		Market:    "ETH/BTC",
+		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
+		Price:     "0.019",
+		Amount:    "14.9",
+	}))
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0.019,
+			High:      0.019,
+			Low:       0.019,
+			Close:     0,
+			Volume:    14.9,
+			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+		},
+		candles.GetCandle("ETH/BTC", domain.Candle15MResolution),
+	)
+	candles.refreshAll()
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0.019,
+			High:      0.019,
+			Low:       0.019,
+			Close:     0,
+			Volume:    14.9,
+			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+		},
+		candles.GetCandle("ETH/BTC", domain.Candle15MResolution),
+		"filled candle is still current",
+	)
+	timeNow = func() time.Time {
+		return time.Date(2020, 4, 14, 17, 45, 56, 0, time.UTC)
+	}
+	candles.refreshAll()
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/RUB",
+			OpenTime:  time.Date(2020, 4, 14, 17, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 18, 0, 0, 0, time.UTC),
+		},
+		candles.GetCandle("ETH/RUB", domain.Candle15MResolution),
+		"no trades long ago, only empty candle",
+	)
+}
