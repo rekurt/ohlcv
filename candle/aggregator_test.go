@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -27,7 +28,11 @@ func getCandles() []*domain.Candle {
 		generateCandle("58,345", "58,615", "58,205", "58,245", "600", 165088495115),
 	}
 }
+func BenchmarkName(b *testing.B) {
+	for i := 0; i < b.N; i++ {
 
+	}
+}
 func generateCandle(o string, h string, l string, cl string, v string, ts int64) *domain.Candle {
 	o1, _ := primitive.ParseDecimal128(o)
 	h1, _ := primitive.ParseDecimal128(h)
@@ -47,16 +52,36 @@ func generateCandle(o string, h string, l string, cl string, v string, ts int64)
 }
 
 func TestService_getMinuteCurrentTs(t *testing.T) {
-	tm := time.Unix(1650964257, 0)
-	startMinuteTs := getStartMinuteTs(tm, 3)
-	resultMinuteTime := time.Unix(startMinuteTs, 0)
-	println(resultMinuteTime.Format("RFC850"))
-
-	startHourTs := getStartHourTs(tm, 3)
-	resultHourTime := time.Unix(startHourTs, 0)
-	println(resultHourTime.Format("RFC850"))
-
-	startMonthTs := getStartMonthTs(tm, 3)
-	resultMonthTime := time.Unix(startMonthTs, 0)
-	println(resultMonthTime.Format("RFC850"))
+	t.Run("1 min", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T15:04:00Z",
+			time.Unix(getStartMinuteTs(now, 1), 0).UTC().Format(time.RFC3339),
+		)
+	})
+	t.Run("3 min", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T15:03:00Z",
+			time.Unix(getStartMinuteTs(now, 3), 0).UTC().Format(time.RFC3339),
+		)
+	})
+	t.Run("5 min", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T15:00:00Z",
+			time.Unix(getStartMinuteTs(now, 5), 0).UTC().Format(time.RFC3339),
+		)
+	})
+	t.Run("30 min", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T15:00:00Z",
+			time.Unix(getStartMinuteTs(now, 30), 0).UTC().Format(time.RFC3339),
+		)
+	})
 }
