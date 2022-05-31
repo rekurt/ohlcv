@@ -60,7 +60,7 @@ func main() {
 
 	candleService := candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
-		new(candle.Agregator),
+		new(candle.Aggregator),
 		marketsMap,
 		domain.GetAvailableResolutions(),
 		eventsBroker,

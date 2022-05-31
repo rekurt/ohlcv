@@ -15,7 +15,7 @@ func TestService_AggregateCandleToChartByResolution(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 	defer mt.Close()
 	mt.Run("success", func(mt *mtest.T) {
-		s := Agregator{}
+		s := Aggregator{}
 		market := "BTC/USDT"
 		cs := getCandles()
 		chart := s.AggregateCandleToChartByResolution(cs, market, domain.Candle5MResolution, 0)
