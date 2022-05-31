@@ -55,18 +55,29 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 				close(cc.updatesStream)
 				return
 			case <-ticker.C:
-
-				//try close candle
+				cc.refreshAll()
 			}
 		}
 	}()
-
 	return cc
 }
 
+func (c *currentCandles) refreshAll() {
+	c.candlesLock.Lock()
+	defer c.candlesLock.Unlock()
+	for market, resolutions := range c.candles {
+		for resolution := range resolutions {
+			c.refreshCandle(market, resolution)
+		}
+	}
+}
+
 func (c *currentCandles) AddDeal(deal matcher.Deal) error {
+	c.candlesLock.Lock()
+	defer c.candlesLock.Unlock()
 	for _, resolution := range domain.GetAvailableResolutions() {
-		currentCandle := c.getCurrentCandleOrCreate(deal.Market, resolution)
+		c.refreshCandle(deal.Market, resolution)
+		currentCandle := c.candles[deal.Market][resolution]
 		if !currentCandle.containsTs(deal.CreatedAt) {
 			continue
 		}
@@ -78,15 +89,16 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	return nil
 }
 
-func (c *currentCandles) getCurrentCandleOrCreate(market, resolution string) *CurrentCandle {
-	c.candlesLock.Lock()
-	defer c.candlesLock.Unlock()
+func (c *currentCandles) refreshCandle(market, resolution string) {
 	if m := c.candles[market]; m == nil {
 		c.candles[market] = map[string]*CurrentCandle{}
 	}
 	now := timeNow()
 	currentCandle := c.candles[market][resolution]
 	if currentCandle == nil || !currentCandle.containsTs(now.UnixNano()) {
+		if currentCandle != nil {
+			c.updatesStream <- *currentCandle
+		}
 		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
 		currentCandle = &CurrentCandle{
 			Symbol:    market,
@@ -94,8 +106,8 @@ func (c *currentCandles) getCurrentCandleOrCreate(market, resolution string) *Cu
 			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
 		}
 		c.candles[market][resolution] = currentCandle
+		c.updatesStream <- *currentCandle
 	}
-	return c.candles[market][resolution]
 }
 
 func (c *currentCandles) updateCandle(candle *CurrentCandle, deal matcher.Deal) error {
@@ -125,5 +137,8 @@ func (c *currentCandles) GetUpdates() <-chan CurrentCandle {
 }
 
 func (c *currentCandles) GetCandle(market, resolution string) CurrentCandle {
-	return *c.getCurrentCandleOrCreate(market, resolution)
+	c.candlesLock.Lock()
+	defer c.candlesLock.Unlock()
+	c.refreshCandle(market, resolution)
+	return *c.candles[market][resolution]
 }
