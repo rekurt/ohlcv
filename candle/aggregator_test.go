@@ -85,3 +85,30 @@ func TestService_getMinuteCurrentTs(t *testing.T) {
 		)
 	})
 }
+
+func TestService_getStartHourTs(t *testing.T) {
+	t.Run("1 hour", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T15:00:00Z",
+			time.Unix(getStartHourTs(now, 1), 0).UTC().Format(time.RFC3339),
+		)
+	})
+	t.Run("2 hour", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T14:00:00Z",
+			time.Unix(getStartHourTs(now, 2), 0).UTC().Format(time.RFC3339),
+		)
+	})
+	t.Run("24 hour", func(t *testing.T) {
+		now, err := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+		require.NoError(t, err)
+		assert.Equal(t,
+			"2006-01-02T00:00:00Z",
+			time.Unix(getStartHourTs(now, 24), 0).UTC().Format(time.RFC3339),
+		)
+	})
+}
