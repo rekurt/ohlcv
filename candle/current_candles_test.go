@@ -1,7 +1,8 @@
-package domain
+package candle
 
 import (
 	"bitbucket.org/novatechnologies/interfaces/matcher"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,41 +21,43 @@ func TestNewCurrentCandles(t *testing.T) {
 			candlesUpdated = append(candlesUpdated, candle)
 		}
 	}()
-	_, ok := candles.GetCandle("ETH/BTC", Candle1HResolution)
+	_, ok := candles.GetCandle("ETH/BTC", domain.Candle1HResolution)
 	assert.False(t, ok)
 	require.NoError(t, candles.AddDeal(matcher.Deal{
 		Market:    "ETH/BTC",
-		CreatedAt: time.Date(2020, 4, 14, 15, 21, 2, 0, time.UTC).UnixMilli(),
+		CreatedAt: time.Date(2020, 4, 14, 15, 21, 2, 0, time.UTC).UnixNano(),
 		Price:     "0.015",
 		Amount:    "134.5",
 	}))
 	require.NoError(t, candles.AddDeal(matcher.Deal{
 		Market:    "ETH/BTC",
-		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixMilli(),
+		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
 		Price:     "0.019",
 		Amount:    "14.9",
 	}))
 	//assert.Equal(t, "", candlesUpdated)
-	candle, ok := candles.GetCandle("ETH/BTC", Candle1HResolution)
+	candle, ok := candles.GetCandle("ETH/BTC", domain.Candle1HResolution)
 	assert.True(t, ok)
 	assert.Equal(t, CurrentCandle{
 		Symbol:    "ETH/BTC",
 		Open:      0.015,
 		High:      0.019,
 		Low:       0.015,
-		Close:     0.019,
+		Close:     0, //0 because not closed yet
 		Volume:    134.5 + 14.9,
-		Timestamp: time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+		OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+		CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 	}, candle)
-	candle, ok = candles.GetCandle("ETH/BTC", Candle15MResolution)
+	candle, ok = candles.GetCandle("ETH/BTC", domain.Candle15MResolution)
 	assert.True(t, ok)
 	assert.Equal(t, CurrentCandle{
 		Symbol:    "ETH/BTC",
 		Open:      0.019,
 		High:      0.019,
 		Low:       0.019,
-		Close:     0.019,
+		Close:     0,
 		Volume:    14.9,
-		Timestamp: time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+		OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+		CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 	}, candle)
 }

@@ -1,8 +1,8 @@
-package domain
+package candle
 
 import (
 	"bitbucket.org/novatechnologies/interfaces/matcher"
-	"bitbucket.org/novatechnologies/ohlcv/candle"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"fmt"
 	"strconv"
@@ -17,7 +17,12 @@ type CurrentCandle struct {
 	Low       float64
 	Close     float64
 	Volume    float64
-	Timestamp time.Time
+	OpenTime  time.Time
+	CloseTime time.Time
+}
+
+func (c CurrentCandle) containsTs(nano int64) bool {
+	return c.OpenTime.UnixNano() <= nano && c.CloseTime.UnixNano() > nano
 }
 
 type CurrentCandles interface {
@@ -34,7 +39,7 @@ type currentCandles struct {
 	updatesStream chan CurrentCandle
 	candlesLock   sync.Mutex
 	candles       map[string]map[string]*CurrentCandle //market-resolution-Candle
-	aggregator    candle.Aggregator
+	aggregator    Aggregator
 }
 
 func NewCurrentCandles(ctx context.Context) CurrentCandles {
@@ -59,24 +64,12 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 }
 
 func (c *currentCandles) AddDeal(deal matcher.Deal) error {
-	if m := c.candles[deal.Market]; m == nil {
-		c.candles[deal.Market] = map[string]*CurrentCandle{}
-	}
-	for _, resolution := range GetAvailableResolutions() {
-		currentCandle := c.candles[deal.Market][resolution]
-		if currentCandle == nil {
-			dealPrice, err := strconv.ParseFloat(deal.Price, 64)
-			if err != nil {
-				return err
-			}
-			currentCandle = &CurrentCandle{
-				Symbol:    deal.Market,
-				Open:      dealPrice,
-				Timestamp: time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, timeNow()), 0),
-			}
-			c.candles[deal.Market][resolution] = currentCandle
+	for _, resolution := range domain.GetAvailableResolutions() {
+		currentCandle := c.getCurrentCandleOrCreate(deal.Market, resolution)
+		if !currentCandle.containsTs(deal.CreatedAt) {
+			continue
 		}
-		err := c.updateCandle(currentCandle, deal, currentCandle.Timestamp.Add(StrResolutionToDuration(resolution)))
+		err := c.updateCandle(currentCandle, deal)
 		if err != nil {
 			return fmt.Errorf("can't AddDeal to currentCandles: '%w'", err)
 		}
@@ -84,7 +77,24 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	return nil
 }
 
-func (c *currentCandles) updateCandle(candle *CurrentCandle, deal matcher.Deal, closeTime time.Time) error {
+func (c *currentCandles) getCurrentCandleOrCreate(market, resolution string) *CurrentCandle {
+	if m := c.candles[market]; m == nil {
+		c.candles[market] = map[string]*CurrentCandle{}
+	}
+	currentCandle := c.candles[market][resolution]
+	if currentCandle == nil {
+		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, timeNow()), 0).UTC()
+		currentCandle = &CurrentCandle{
+			Symbol:    market,
+			OpenTime:  openTime,
+			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+		}
+		c.candles[market][resolution] = currentCandle
+	}
+	return c.candles[market][resolution]
+}
+
+func (c *currentCandles) updateCandle(candle *CurrentCandle, deal matcher.Deal) error {
 	dealAmount, err := strconv.ParseFloat(deal.Amount, 64)
 	if err != nil {
 		return err
@@ -93,6 +103,9 @@ func (c *currentCandles) updateCandle(candle *CurrentCandle, deal matcher.Deal, 
 	dealPrice, err := strconv.ParseFloat(deal.Price, 64)
 	if err != nil {
 		return err
+	}
+	if candle.Open == 0 {
+		candle.Open = dealPrice
 	}
 	if dealPrice > candle.High {
 		candle.High = dealPrice

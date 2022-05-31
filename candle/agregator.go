@@ -272,10 +272,6 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 
 func (s *Aggregator) GetCurrentResolutionStartTimestamp(resolution string, time time.Time) int64 {
 	var ts int64
-	logger.FromContext(context.Background()).WithField(
-		"resolution",
-		resolution,
-	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
 	case domain.Candle1MResolution:
 		ts = getStartMinuteTs(time, 1)
