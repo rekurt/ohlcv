@@ -15,11 +15,7 @@ func TestNewCurrentCandles_GetCandle(t *testing.T) {
 		return time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
 	}
 	candles := NewCurrentCandles(context.Background())
-	go func() {
-		for range candles.GetUpdates() {
-			//to not block writer
-		}
-	}()
+	//make 2 deals in ETH/BTC
 	require.NoError(t, candles.AddDeal(matcher.Deal{
 		Market:    "ETH/BTC",
 		CreatedAt: time.Date(2020, 4, 14, 15, 21, 2, 0, time.UTC).UnixNano(),
@@ -96,11 +92,6 @@ func TestNewCurrentCandles_refreshAll(t *testing.T) {
 		return time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
 	}
 	candles := NewCurrentCandles(context.Background()).(*currentCandles)
-	go func() {
-		for range candles.GetUpdates() {
-			//to not block writer
-		}
-	}()
 	require.NoError(t, candles.AddDeal(matcher.Deal{
 		Market:    "ETH/BTC",
 		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
@@ -121,6 +112,7 @@ func TestNewCurrentCandles_refreshAll(t *testing.T) {
 		candles.GetCandle("ETH/BTC", domain.Candle15MResolution),
 	)
 	candles.refreshAll()
+	//filled candle is still current
 	assert.Equal(t,
 		CurrentCandle{
 			Symbol:    "ETH/BTC",
@@ -133,12 +125,13 @@ func TestNewCurrentCandles_refreshAll(t *testing.T) {
 			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 		},
 		candles.GetCandle("ETH/BTC", domain.Candle15MResolution),
-		"filled candle is still current",
 	)
+	//change time
 	timeNow = func() time.Time {
 		return time.Date(2020, 4, 14, 17, 45, 56, 0, time.UTC)
 	}
 	candles.refreshAll()
+	//no trades long ago, only empty candle
 	assert.Equal(t,
 		CurrentCandle{
 			Symbol:    "ETH/RUB",
@@ -146,6 +139,83 @@ func TestNewCurrentCandles_refreshAll(t *testing.T) {
 			CloseTime: time.Date(2020, 4, 14, 18, 0, 0, 0, time.UTC),
 		},
 		candles.GetCandle("ETH/RUB", domain.Candle15MResolution),
-		"no trades long ago, only empty candle",
 	)
+}
+
+func TestNewCurrentCandles_updates(t *testing.T) {
+	getAvailableResolutions = func() []string {
+		return []string{domain.Candle1MResolution, domain.Candle1HResolution}
+	}
+	now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
+	timeNow = func() time.Time {
+		return now
+	}
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	candles := NewCurrentCandles(ctx).(*currentCandles)
+	updates := candles.GetUpdates()
+	require.NoError(t, candles.AddDeal(matcher.Deal{
+		Market:    "ETH/BTC",
+		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
+		Price:     "0.019",
+		Amount:    "14.9",
+	}))
+	candle, ok := <-updates
+	assert.True(t, ok)
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0.019,
+			High:      0.019,
+			Low:       0.019,
+			Close:     0,
+			Volume:    14.9,
+			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+		}, candle)
+
+	candle, ok = <-updates
+	assert.True(t, ok)
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0.019,
+			High:      0.019,
+			Low:       0.019,
+			Close:     0,
+			Volume:    14.9,
+			OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+		}, candle)
+	//it's refresh time
+	now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
+	candles.refreshAll()
+	//the close price became known in minute candle
+	candle, ok = <-updates
+	assert.True(t, ok)
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0.019,
+			High:      0.019,
+			Low:       0.019,
+			Close:     0.019,
+			Volume:    14.9,
+			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+		}, candle)
+	//new candles is current now
+	candle, ok = <-updates
+	assert.True(t, ok)
+	assert.Equal(t,
+		CurrentCandle{
+			Symbol:    "ETH/BTC",
+			Open:      0,
+			High:      0,
+			Low:       0,
+			Close:     0,
+			Volume:    0,
+			OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
+		}, candle)
 }
