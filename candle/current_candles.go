@@ -28,6 +28,7 @@ func (c CurrentCandle) containsTs(nano int64) bool {
 
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
+	AddCandle(market, resolution string, candle CurrentCandle) error
 	GetCandle(market, resolution string) CurrentCandle
 	GetUpdates() <-chan CurrentCandle
 }
@@ -36,14 +37,10 @@ var timeNow = func() time.Time {
 	return time.Now()
 }
 
-var getAvailableResolutions = func() []string {
-	return domain.GetAvailableResolutions()
-}
-
 type currentCandles struct {
 	updatesStream chan CurrentCandle
 	candlesLock   sync.Mutex
-	candles       map[string]map[string]*CurrentCandle //market-resolution-Candle
+	candles       map[string]map[string]*CurrentCandle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
 	aggregator    Aggregator
 }
 
@@ -71,7 +68,6 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 func (c *currentCandles) refreshAll() {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
-	//TODO can we iterate concurrently?
 	for market, resolutions := range c.candles {
 		for resolution := range resolutions {
 			c.setCandle(market, resolution, c.getFreshCandle(market, resolution))
@@ -79,10 +75,18 @@ func (c *currentCandles) refreshAll() {
 	}
 }
 
+func (c *currentCandles) AddCandle(market, resolution string, candle CurrentCandle) error {
+	c.candlesLock.Lock()
+	defer c.candlesLock.Unlock()
+	c.setCandle(market, resolution, candle)
+	//TODO check is it fresh
+	return nil
+}
+
 func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
-	for _, resolution := range getAvailableResolutions() {
+	for resolution := range c.candles[deal.Market] {
 		currentCandle := c.getFreshCandle(deal.Market, resolution)
 		if !currentCandle.containsTs(deal.CreatedAt) {
 			continue
@@ -162,7 +166,5 @@ func (c *currentCandles) GetUpdates() <-chan CurrentCandle {
 }
 
 func (c *currentCandles) GetCandle(market, resolution string) CurrentCandle {
-	c.candlesLock.Lock()
-	defer c.candlesLock.Unlock()
 	return *c.candles[market][resolution]
 }

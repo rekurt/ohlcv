@@ -34,7 +34,7 @@ func TestNewCurrentCandles_GetCandle(t *testing.T) {
 			Open:      0.015,
 			High:      0.019,
 			Low:       0.015,
-			Close:     0, //0 because not closed yet
+			Close:     0.019,
 			Volume:    134.5 + 14.9,
 			OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
@@ -47,7 +47,7 @@ func TestNewCurrentCandles_GetCandle(t *testing.T) {
 			Open:      0.019,
 			High:      0.019,
 			Low:       0.019,
-			Close:     0,
+			Close:     0.019,
 			Volume:    14.9,
 			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
@@ -143,84 +143,225 @@ func TestNewCurrentCandles_refreshAll(t *testing.T) {
 }
 
 func TestNewCurrentCandles_updates(t *testing.T) {
-	getAvailableResolutions = func() []string {
-		return []string{domain.Candle1MResolution, domain.Candle1HResolution}
-	}
-	now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
-	timeNow = func() time.Time {
-		return now
-	}
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
-	candles := NewCurrentCandles(ctx).(*currentCandles)
-	updates := candles.GetUpdates()
-	require.NoError(t, candles.AddDeal(matcher.Deal{
-		Market:    "ETH/BTC",
-		CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
-		Price:     "0.019",
-		Amount:    "14.9",
-	}))
-	require.Len(t, updates, len(getAvailableResolutions()))
-	candle, ok := <-updates
-	assert.True(t, ok)
-	assert.Equal(t,
-		CurrentCandle{
-			Symbol:    "ETH/BTC",
-			Open:      0.019,
-			High:      0.019,
-			Low:       0.019,
-			Close:     0.019,
-			Volume:    14.9,
-			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
-		}, candle)
+	t.Run("1 market 1 deal 2 resolutions", func(t *testing.T) {
+		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
+		timeNow = func() time.Time {
+			return now
+		}
+		candles := NewCurrentCandles(context.Background()).(*currentCandles)
+		updates := candles.GetUpdates()
+		//init with empty candles
+		for _, market := range []string{"ETH/BTC"} {
+			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
+				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+				require.NoError(t, candles.AddCandle(market, resolution, CurrentCandle{
+					Symbol:    "ETH/BTC",
+					OpenTime:  openTime,
+					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				}))
+			}
+		}
+		//2 new candles after init
+		require.Len(t, updates, 2)
+		candle, ok := <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
 
-	candle, ok = <-updates
-	assert.True(t, ok)
-	assert.Equal(t,
-		CurrentCandle{
-			Symbol:    "ETH/BTC",
-			Open:      0.019,
-			High:      0.019,
-			Low:       0.019,
-			Close:     0.019,
-			Volume:    14.9,
-			OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
-			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
-		}, candle)
-	//it's refresh time
-	now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
-	candles.refreshAll()
-	//the minute candle is closed
-	require.Len(t, updates, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
-	candle, ok = <-updates
-	assert.True(t, ok)
-	assert.Equal(t,
-		CurrentCandle{
-			Symbol:    "ETH/BTC",
-			Open:      0.019,
-			High:      0.019,
-			Low:       0.019,
-			Close:     0.019,
-			Volume:    14.9,
-			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
-		}, candle)
-	//new minute candle
-	candle, ok = <-updates
-	assert.True(t, ok)
-	assert.Equal(t,
-		CurrentCandle{
-			Symbol:    "ETH/BTC",
-			Open:      0,
-			High:      0,
-			Low:       0,
-			Close:     0,
-			Volume:    0,
-			OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
-			CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
-		}, candle)
-	require.Len(t, updates, 0)
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+			}, candle)
+		//make a deal
+		require.NoError(t, candles.AddDeal(matcher.Deal{
+			Market:    "ETH/BTC",
+			CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
+			Price:     "0.019",
+			Amount:    "14.9",
+		}))
+		//both candles are updated
+		require.Len(t, updates, 4, "two empty old and two new with the deal")
+		//old empty minute candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//new minute candle with the deal
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.019,
+				Close:     0.019,
+				Volume:    14.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//old empty hour candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+			}, candle)
+		//new hour candle with the deal
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.019,
+				Close:     0.019,
+				Volume:    14.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+			}, candle)
+		//it's refresh time
+		now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
+		candles.refreshAll()
+		//the minute candle is closed, but hour candle is not closed
+		require.Len(t, updates, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.019,
+				Close:     0.019,
+				Volume:    14.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//new minute candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
+			}, candle)
+		require.Len(t, updates, 0)
+	})
+	t.Run("1 market 2 deal 1 resolutions", func(t *testing.T) {
+		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
+		timeNow = func() time.Time {
+			return now
+		}
+		candles := NewCurrentCandles(context.Background()).(*currentCandles)
+		updates := candles.GetUpdates()
+		//init with empty candles
+		for _, market := range []string{"ETH/BTC"} {
+			for _, resolution := range []string{domain.Candle1MResolution} {
+				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+				require.NoError(t, candles.AddCandle(market, resolution, CurrentCandle{
+					Symbol:    "ETH/BTC",
+					OpenTime:  openTime,
+					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				}))
+			}
+		}
+		//1 new candles after init
+		require.Len(t, updates, 1)
+		candle, ok := <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//make a deal
+		require.NoError(t, candles.AddDeal(matcher.Deal{
+			Market:    "ETH/BTC",
+			CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
+			Price:     "0.019",
+			Amount:    "14.9",
+		}))
+		//minute candle is updated
+		require.Len(t, updates, 2)
+		//old empty minute candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//new minute candle with the deal
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.019,
+				Close:     0.019,
+				Volume:    14.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//make another deal
+		require.NoError(t, candles.AddDeal(matcher.Deal{
+			Market:    "ETH/BTC",
+			CreatedAt: time.Date(2020, 4, 14, 15, 45, 53, 0, time.UTC).UnixNano(),
+			Price:     "0.013",
+			Amount:    "1.9",
+		}))
+		require.Len(t, updates, 2)
+		//old minute candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.019,
+				Close:     0.019,
+				Volume:    14.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//new minute candle
+		candle, ok = <-updates
+		assert.True(t, ok)
+		assert.Equal(t,
+			CurrentCandle{
+				Symbol:    "ETH/BTC",
+				Open:      0.019,
+				High:      0.019,
+				Low:       0.013,
+				Close:     0.013,
+				Volume:    14.9 + 1.9,
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+	})
+
 }
 
 //add logs to refreshAll to ensure it runs every round minute
