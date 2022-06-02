@@ -68,19 +68,6 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 	return cc
 }
 
-func (c *currentCandles) setCandle(market, resolution string, candle CurrentCandle) {
-	oldCandle := c.getSafeCandle(market, resolution)
-	//nothing changed
-	if oldCandle != nil && *oldCandle == candle {
-		return
-	}
-	if oldCandle != nil {
-		c.updatesStream <- *oldCandle
-	}
-	c.setSafeCandle(market, resolution, candle)
-	c.updatesStream <- candle
-}
-
 func (c *currentCandles) refreshAll() {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
@@ -107,6 +94,18 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 		c.setCandle(deal.Market, resolution, currentCandle)
 	}
 	return nil
+}
+func (c *currentCandles) setCandle(market, resolution string, candle CurrentCandle) {
+	oldCandle := c.getSafeCandle(market, resolution)
+	//nothing changed
+	if oldCandle != nil && *oldCandle == candle {
+		return
+	}
+	if oldCandle != nil {
+		c.updatesStream <- *oldCandle
+	}
+	c.setSafeCandle(market, resolution, candle)
+	c.updatesStream <- candle
 }
 
 func (c *currentCandles) getSafeCandle(market, resolution string) *CurrentCandle {
