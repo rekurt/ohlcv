@@ -160,6 +160,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		Price:     "0.019",
 		Amount:    "14.9",
 	}))
+	require.Len(t, updates, len(getAvailableResolutions()))
 	candle, ok := <-updates
 	assert.True(t, ok)
 	assert.Equal(t,
@@ -168,7 +169,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Open:      0.019,
 			High:      0.019,
 			Low:       0.019,
-			Close:     0,
+			Close:     0.019,
 			Volume:    14.9,
 			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
@@ -182,7 +183,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Open:      0.019,
 			High:      0.019,
 			Low:       0.019,
-			Close:     0,
+			Close:     0.019,
 			Volume:    14.9,
 			OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
@@ -190,7 +191,8 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 	//it's refresh time
 	now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
 	candles.refreshAll()
-	//the close price became known in minute candle
+	//the minute candle is closed
+	require.Len(t, updates, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
 	candle, ok = <-updates
 	assert.True(t, ok)
 	assert.Equal(t,
@@ -204,7 +206,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 		}, candle)
-	//new candles is current now
+	//new minute candle
 	candle, ok = <-updates
 	assert.True(t, ok)
 	assert.Equal(t,
@@ -218,4 +220,5 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
 		}, candle)
+	require.Len(t, updates, 0)
 }
