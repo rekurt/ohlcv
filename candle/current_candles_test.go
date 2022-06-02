@@ -360,6 +360,16 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
+		require.Len(t, updates, 0)
+		//make miss deal with a non-existent market
+		require.NoError(t, candles.AddDeal(matcher.Deal{
+			Market:    "ETH/CRONA",
+			CreatedAt: time.Date(2020, 4, 14, 15, 45, 53, 0, time.UTC).UnixNano(),
+			Price:     "0.013",
+			Amount:    "1.9",
+		}))
+		//no updates
+		require.Len(t, updates, 0)
 	})
 
 }
