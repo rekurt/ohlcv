@@ -29,7 +29,6 @@ func (c CurrentCandle) containsTs(nano int64) bool {
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
 	AddCandle(market, resolution string, candle CurrentCandle) error
-	GetCandle(market, resolution string) CurrentCandle
 	GetUpdates() <-chan CurrentCandle
 }
 
@@ -163,8 +162,4 @@ func (c *currentCandles) updateCandle(candle CurrentCandle, deal matcher.Deal) (
 
 func (c *currentCandles) GetUpdates() <-chan CurrentCandle {
 	return c.updatesStream
-}
-
-func (c *currentCandles) GetCandle(market, resolution string) CurrentCandle {
-	return *c.candles[market][resolution]
 }
