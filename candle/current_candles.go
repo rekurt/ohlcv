@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"strconv"
 	"sync"
 	"time"
@@ -50,19 +51,20 @@ func NewCurrentCandles(ctx context.Context) CurrentCandles {
 	cc := &currentCandles{
 		updatesStream: make(chan CurrentCandle, 512),
 		candles:       map[string]map[string]*CurrentCandle{},
+		aggregator:    Aggregator{},
 	}
 	go func() {
-		ticker := time.NewTicker(time.Minute) //TODO every round min
-		for {
-			select {
-			case <-ctx.Done():
-				close(cc.updatesStream)
-				return
-			case <-ticker.C:
-				cc.refreshAll()
-			}
-		}
+		<-ctx.Done()
+		close(cc.updatesStream)
 	}()
+	cro := cron.New(cron.WithLocation(time.UTC), cron.WithSeconds())
+	_, err := cro.AddFunc("0 * * * * *", func() {
+		cc.refreshAll()
+	})
+	if err != nil {
+		panic(fmt.Errorf("can't build NewCurrentCandles: '%w'", err))
+	}
+	cro.Start()
 	return cc
 }
 
