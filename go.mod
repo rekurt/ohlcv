@@ -15,6 +15,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/errors v0.9.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
@@ -78,7 +79,6 @@ require (
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
-	github.com/robfig/cron/v3 v3.0.0 // indirect
 	github.com/segmentio/encoding v0.2.19 // indirect
 	github.com/segmentio/kafka-go v0.4.19 // indirect
 	github.com/twitchtv/twirp v8.1.1+incompatible // indirect
