@@ -143,7 +143,7 @@ func initCandleService(
 	broadcaster.SubscribeForCharts()
 
 	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
+		&candle.Storage{DealsDbCollection: dealsCollection},
 		new(candle.Aggregator),
 		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),

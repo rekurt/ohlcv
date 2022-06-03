@@ -37,12 +37,6 @@ func main() {
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
-	minuteCandleCollection := mongo.GetOrCreateMinutesCollection(
-		ctx,
-		mongoDbClient,
-		conf.MongoDbConfig,
-	)
-
 	dealsCollection := mongo.GetOrCreateDealsCollection(
 		ctx,
 		mongoDbClient,
@@ -59,7 +53,7 @@ func main() {
 	dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection, CandleDbCollection: minuteCandleCollection},
+		&candle.Storage{DealsDbCollection: dealsCollection},
 		new(candle.Aggregator),
 		marketsMap,
 		domain.GetAvailableResolutions(),
