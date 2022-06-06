@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/common/events/topics"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"context"
 	"fmt"
 	"log"
@@ -50,7 +52,6 @@ func main() {
 	)
 	// Start consuming, preparing, saving deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
-	dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
@@ -59,7 +60,9 @@ func main() {
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
-	initCurrentCandles(ctx, candleService, marketsMap)
+	currentCandles := initCurrentCandles(ctx, candleService, marketsMap)
+	go listenCurrentCandlesUpdates(currentCandles.GetUpdates())
+	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
 
@@ -75,6 +78,12 @@ func main() {
 	return
 }
 
+func listenCurrentCandlesUpdates(updates <-chan candle.CurrentCandle) {
+	for update := range updates {
+		fmt.Printf("CurrentCandle: %+v\n", update)
+	}
+}
+
 func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string) candle.CurrentCandles {
 	candles := candle.NewCurrentCandles(ctx)
 	count := 0
@@ -87,7 +96,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 			}
 			currentCandle, err := chartToCurrentCandle(chart, resolution)
 			if err != nil {
-				log.Fatal("can't chartToCurrentCandle to initCurrentCandles:" + err.Error())
+				log.Fatalf("can't chartToCurrentCandle to initCurrentCandles: %s, chart: %+v", err, chart)
 			}
 			err = candles.AddCandle(marketId, resolution, currentCandle)
 			if err != nil {
