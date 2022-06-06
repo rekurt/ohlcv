@@ -6,8 +6,9 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"time"
 
-	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
@@ -16,7 +17,6 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -59,6 +59,7 @@ func main() {
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
+	initCurrentCandles(ctx, candleService, marketsMap)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
 
@@ -72,6 +73,90 @@ func main() {
 	server.Stop(ctx)
 
 	return
+}
+
+func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string) candle.CurrentCandles {
+	candles := candle.NewCurrentCandles(ctx)
+	count := 0
+	started := time.Now()
+	for marketId, marketName := range marketsMap {
+		for _, resolution := range domain.GetAvailableResolutions() {
+			chart, err := service.GetCurrentCandle(ctx, marketName, resolution)
+			if err != nil {
+				log.Fatal("can't GetCurrentCandle to initCurrentCandles:" + err.Error())
+			}
+			currentCandle, err := chartToCurrentCandle(chart, resolution)
+			if err != nil {
+				log.Fatal("can't chartToCurrentCandle to initCurrentCandles:" + err.Error())
+			}
+			err = candles.AddCandle(marketId, resolution, currentCandle)
+			if err != nil {
+				log.Fatal("can't AddCandle to initCurrentCandles:" + err.Error())
+			}
+			count++
+		}
+	}
+	fmt.Printf("initiated %d candles from MongoDb for %s", count, time.Since(started))
+	return candles
+}
+
+func chartToCurrentCandle(chart *domain.Chart, resolution string) (candle.CurrentCandle, error) {
+	if chart == nil {
+		openTime := time.Unix((&candle.Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, time.Now()), 0).UTC()
+		return candle.CurrentCandle{
+			OpenTime:  openTime,
+			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+		}, nil
+	}
+	if len(chart.O) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
+	}
+	open, err := strconv.ParseFloat(chart.O[0].String(), 64)
+	if err != nil {
+		return candle.CurrentCandle{}, err
+	}
+	if len(chart.H) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
+	}
+	high, err := strconv.ParseFloat(chart.H[0].String(), 64)
+	if err != nil {
+		return candle.CurrentCandle{}, err
+	}
+	if len(chart.L) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
+	}
+	low, err := strconv.ParseFloat(chart.L[0].String(), 64)
+	if err != nil {
+		return candle.CurrentCandle{}, err
+	}
+	if len(chart.C) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
+	}
+	closePrice, err := strconv.ParseFloat(chart.C[0].String(), 64)
+	if err != nil {
+		return candle.CurrentCandle{}, err
+	}
+	if len(chart.V) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
+	}
+	volume, err := strconv.ParseFloat(chart.V[0].String(), 64)
+	if err != nil {
+		return candle.CurrentCandle{}, err
+	}
+	if len(chart.T) != 1 {
+		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
+	}
+	openTime := time.Unix(chart.T[0], 0).UTC()
+	return candle.CurrentCandle{
+		Symbol:    chart.Symbol,
+		Open:      open,
+		High:      high,
+		Low:       low,
+		Close:     closePrice,
+		Volume:    volume,
+		OpenTime:  openTime,
+		CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+	}, nil
 }
 
 func buildAvailableMarkets(conf infra.Config) map[string]string {
