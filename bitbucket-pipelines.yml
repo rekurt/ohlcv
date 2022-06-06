@@ -61,7 +61,7 @@ pipelines:
             - config/.env
       - step: &building
           name: build-app
-          image: golang:1.17.2-alpine
+          image: golang:1.17.7-alpine
           script:
             - apk add git libc-dev gcc openssh
             - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
