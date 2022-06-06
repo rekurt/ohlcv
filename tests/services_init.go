@@ -20,7 +20,7 @@ func InitCandleService(
 
 	return candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Agregator),
+		new(candle.Aggregator),
 		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		broker.NewInMemory(),

@@ -221,7 +221,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	// Candles service setup
 	suite.candles = candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Agregator),
+		new(candle.Aggregator),
 		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		eventsBroker,

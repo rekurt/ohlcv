@@ -11,9 +11,9 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-type Agregator struct{}
+type Aggregator struct{}
 
-func (s Agregator) AggregateCandleToChartByResolution(
+func (s Aggregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
@@ -39,31 +39,25 @@ func (s Agregator) AggregateCandleToChartByResolution(
 		chart = s.aggregateMinCandlesToChart(candles, market, 15, count)
 	case domain.Candle30MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
-	case domain.Candle1HResolution:
+	case domain.Candle1HResolution,
+		domain.Candle1H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle1H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle2HResolution:
+	case domain.Candle2HResolution,
+		domain.Candle2H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle2H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle4HResolution:
+	case domain.Candle4HResolution,
+		domain.Candle4H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle4H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle6HResolution:
+	case domain.Candle6HResolution,
+		domain.Candle6H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle6H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle12HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
-	case domain.Candle12H2Resolution:
+	case domain.Candle12HResolution,
+		domain.Candle12H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
 	case domain.Candle1DResolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
-	case domain.Candle1MHResolution:
-		chart = s.aggregateMonthCandlesToChart(candles, market, count)
-	case domain.Candle1MH2Resolution:
+	case domain.Candle1MHResolution,
+		domain.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	default:
 		logger.FromContext(context.Background()).WithField(
@@ -80,7 +74,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	return chart
 }
 
-func (s Agregator) aggregateMinCandlesToChart(
+func (s Aggregator) aggregateMinCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	minute int,
@@ -119,7 +113,7 @@ func (s Agregator) aggregateMinCandlesToChart(
 	return chart
 }
 
-func (s Agregator) compare(
+func (s Aggregator) compare(
 	c *domain.Candle,
 	candle *domain.Candle,
 ) *domain.Candle {
@@ -149,7 +143,7 @@ func (s Agregator) compare(
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(
+func (s *Aggregator) aggregateHoursCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	hour int,
@@ -179,7 +173,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(
+func (s *Aggregator) aggregateMonthCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	count int,
@@ -211,7 +205,7 @@ func (s *Agregator) aggregateMonthCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
+func (s *Aggregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
 		O: make([]primitive.Decimal128, 0),
 		H: make([]primitive.Decimal128, 0),
@@ -270,7 +264,7 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
-func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
+func (s *Aggregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
 	now := time.Now()
 	var ts int64
 	logger.FromContext(context.Background()).WithField(
