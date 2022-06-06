@@ -12,7 +12,7 @@ const chartsPubTimeout = 16 * time.Second
 
 type Service struct {
 	Storage              *Storage
-	Aggregator           *Agregator
+	Aggregator           *Aggregator
 	Markets              map[string]string
 	AvailableResolutions []string
 	broadcaster          domain.Broadcaster
@@ -21,7 +21,7 @@ type Service struct {
 
 func NewService(
 	storage *Storage,
-	aggregator *Agregator,
+	aggregator *Aggregator,
 	markets map[string]string,
 	availableResolutions []string,
 	internalBus domain.EventsBroker,
@@ -102,9 +102,8 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 15, from, to)
 	case domain.Candle30MResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 30, from, to)
-	case domain.Candle1HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
-	case domain.Candle1H2Resolution:
+	case domain.Candle1HResolution,
+		domain.Candle1H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
 	case domain.Candle2HResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)
