@@ -11,9 +11,9 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-type Agregator struct{}
+type Aggregator struct{}
 
-func (s Agregator) AggregateCandleToChartByResolution(
+func (s Aggregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
@@ -80,7 +80,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	return chart
 }
 
-func (s Agregator) aggregateMinCandlesToChart(
+func (s Aggregator) aggregateMinCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	minute int,
@@ -119,7 +119,7 @@ func (s Agregator) aggregateMinCandlesToChart(
 	return chart
 }
 
-func (s Agregator) compare(
+func (s Aggregator) compare(
 	c *domain.Candle,
 	candle *domain.Candle,
 ) *domain.Candle {
@@ -149,7 +149,7 @@ func (s Agregator) compare(
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(
+func (s *Aggregator) aggregateHoursCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	hour int,
@@ -179,7 +179,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(
+func (s *Aggregator) aggregateMonthCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	count int,
@@ -211,7 +211,7 @@ func (s *Agregator) aggregateMonthCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
+func (s *Aggregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
 		O: make([]primitive.Decimal128, 0),
 		H: make([]primitive.Decimal128, 0),
@@ -270,50 +270,45 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
-func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
-	now := time.Now()
+func (s *Aggregator) GetCurrentResolutionStartTimestamp(resolution string, time time.Time) int64 {
 	var ts int64
-	logger.FromContext(context.Background()).WithField(
-		"resolution",
-		resolution,
-	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
 	case domain.Candle1MResolution:
-		ts = getStartMinuteTs(now, 1)
+		ts = getStartMinuteTs(time, 1)
 	case domain.Candle3MResolution:
-		ts = getStartMinuteTs(now, 3)
+		ts = getStartMinuteTs(time, 3)
 	case domain.Candle5MResolution:
-		ts = getStartMinuteTs(now, 5)
+		ts = getStartMinuteTs(time, 5)
 	case domain.Candle15MResolution:
-		ts = getStartMinuteTs(now, 15)
+		ts = getStartMinuteTs(time, 15)
 	case domain.Candle30MResolution:
-		ts = getStartMinuteTs(now, 30)
+		ts = getStartMinuteTs(time, 30)
 	case domain.Candle1HResolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle1H2Resolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle2HResolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle2H2Resolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle4HResolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle4H2Resolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle6HResolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle6H2Resolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle12HResolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle12H2Resolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle1DResolution:
-		ts = getStartHourTs(now, 24)
+		ts = getStartHourTs(time, 24)
 	case domain.Candle1MHResolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
 	case domain.Candle1MH2Resolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",

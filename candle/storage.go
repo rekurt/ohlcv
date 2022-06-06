@@ -14,8 +14,7 @@ import (
 )
 
 type Storage struct {
-	DealsDbCollection  *mongo.Collection
-	CandleDbCollection *mongo.Collection
+	DealsDbCollection *mongo.Collection
 }
 
 func (s Storage) GetCandles(
@@ -114,7 +113,7 @@ func (s Storage) GetCandles(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err,
-		).Errorf("[CandleService]Failed apply a aggregation function on the collection.", err)
+		).Errorf("[CandleService]Failed apply a aggregation function on the collection. error='%s'", err)
 		return nil
 	}
 
@@ -125,7 +124,7 @@ func (s Storage) GetCandles(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err,
-		).Errorf("[CandleService]Failed apply a aggregation function on the collection.", err)
+		).Errorf("[CandleService]Failed apply a aggregation function on the collection. error='%s'", err)
 		return nil
 	}
 

@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"math"
 	"os"
 	"strings"
@@ -221,7 +222,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	// Candles service setup
 	suite.candles = candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Agregator),
+		new(candle.Aggregator),
 		GetAvailableMarkets(),
 		domain.GetAvailableResolutions(),
 		eventsBroker,
@@ -373,4 +374,32 @@ func (suite *candlesIntegrationTestSuite) TestDealsConsumeAndSave(t *testing.T) 
 
 func TestIntegrationCandlesTestSuite(t *testing.T) {
 	suite.Run(t, &candlesIntegrationTestSuite{})
+}
+
+func Test_GetCurrentCandle_manual(t *testing.T) {
+	t.Skip()
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	// mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
+	)
+
+	service := candle.NewService(
+		&candle.Storage{DealsDbCollection: dealCollection},
+		new(candle.Aggregator),
+		GetAvailableMarkets(),
+		domain.GetAvailableResolutions(),
+		broker.NewInMemory(),
+	)
+
+	chart, err := service.GetCurrentCandle(context.Background(), "ETH/LTC", domain.Candle15MResolution)
+	require.NoError(t, err)
+	fmt.Println(chart)
+
 }

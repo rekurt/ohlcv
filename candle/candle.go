@@ -12,7 +12,7 @@ const chartsPubTimeout = 16 * time.Second
 
 type Service struct {
 	Storage              *Storage
-	Aggregator           *Agregator
+	Aggregator           *Aggregator
 	Markets              map[string]string
 	AvailableResolutions []string
 	broadcaster          domain.Broadcaster
@@ -21,7 +21,7 @@ type Service struct {
 
 func NewService(
 	storage *Storage,
-	aggregator *Agregator,
+	aggregator *Aggregator,
 	markets map[string]string,
 	availableResolutions []string,
 	internalBus domain.EventsBroker,
@@ -64,7 +64,7 @@ func (s Service) GetCurrentCandle(
 	resolution string,
 ) (*domain.Chart, error) {
 	from := time.Unix(
-		s.Aggregator.GetCurrentResolutionStartTimestamp(resolution),
+		s.Aggregator.GetCurrentResolutionStartTimestamp(resolution, time.Now()),
 		0,
 	)
 	to := time.Now()
