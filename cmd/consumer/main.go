@@ -117,45 +117,45 @@ func chartToCurrentCandle(chart *domain.Chart, resolution string) (candle.Curren
 			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
 		}, nil
 	}
-	if len(chart.O) != 1 {
+	if len(chart.O) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
 	}
-	open, err := strconv.ParseFloat(chart.O[0].String(), 64)
+	open, err := strconv.ParseFloat(chart.O[len(chart.O)-1].String(), 64)
 	if err != nil {
 		return candle.CurrentCandle{}, err
 	}
-	if len(chart.H) != 1 {
+	if len(chart.H) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
 	}
-	high, err := strconv.ParseFloat(chart.H[0].String(), 64)
+	high, err := strconv.ParseFloat(chart.H[len(chart.H)-1].String(), 64)
 	if err != nil {
 		return candle.CurrentCandle{}, err
 	}
-	if len(chart.L) != 1 {
+	if len(chart.L) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
 	}
-	low, err := strconv.ParseFloat(chart.L[0].String(), 64)
+	low, err := strconv.ParseFloat(chart.L[len(chart.L)-1].String(), 64)
 	if err != nil {
 		return candle.CurrentCandle{}, err
 	}
-	if len(chart.C) != 1 {
+	if len(chart.C) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
 	}
-	closePrice, err := strconv.ParseFloat(chart.C[0].String(), 64)
+	closePrice, err := strconv.ParseFloat(chart.C[len(chart.C)-1].String(), 64)
 	if err != nil {
 		return candle.CurrentCandle{}, err
 	}
-	if len(chart.V) != 1 {
+	if len(chart.V) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
 	}
-	volume, err := strconv.ParseFloat(chart.V[0].String(), 64)
+	volume, err := strconv.ParseFloat(chart.V[len(chart.V)-1].String(), 64)
 	if err != nil {
 		return candle.CurrentCandle{}, err
 	}
-	if len(chart.T) != 1 {
+	if len(chart.T) == 0 {
 		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
 	}
-	openTime := time.Unix(chart.T[0], 0).UTC()
+	openTime := time.Unix(chart.T[len(chart.T)-1], 0).UTC()
 	return candle.CurrentCandle{
 		Symbol:    chart.Symbol,
 		Open:      open,
