@@ -264,7 +264,7 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
-func (s *Aggregator) GetCurrentResolutionStartTimestamp(resolution string, time time.Time) int64 {
+func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
 	var ts int64
 	switch resolution {
 	case domain.Candle1MResolution:

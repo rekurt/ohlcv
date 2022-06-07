@@ -113,7 +113,7 @@ func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle
 	now := timeNow()
 	candle := c.getSafeCandle(market, resolution)
 	if candle == nil || !candle.ContainsTs(now.UnixNano()) {
-		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+		openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
 		return domain.Candle{
 			Symbol:    market,
 			OpenTime:  openTime,

@@ -44,7 +44,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
-				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:    "ETH/BTC",
 					OpenTime:  openTime,
@@ -165,7 +165,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution} {
-				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:    "ETH/BTC",
 					OpenTime:  openTime,
