@@ -90,10 +90,10 @@ func (s Aggregator) aggregateMinCandlesToChart(
 	currentTs := now.Add(time.Duration(now.Minute()%minute) * -time.Minute).Unix()
 	for _, candle := range candles {
 		var comparedCandle *domain.Candle
-		min = int(int64(candle.Timestamp.Minute()))
+		min = int(int64(candle.OpenTime.Minute()))
 		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.OpenTime.Add(mul).Unix()
 		c := result[timestamp]
 
 		if c != nil {
@@ -118,7 +118,7 @@ func (s Aggregator) compare(
 	candle *domain.Candle,
 ) *domain.Candle {
 	comparedCandle := &domain.Candle{}
-	if c.Timestamp.Unix() < candle.Timestamp.Unix() {
+	if c.OpenTime.Unix() < candle.OpenTime.Unix() {
 		comparedCandle.Open = c.Open
 		comparedCandle.Close = candle.Close
 	} else {
@@ -138,7 +138,7 @@ func (s Aggregator) compare(
 	dv2, _ := decimal.NewFromString(candle.Volume.String())
 	resultVolume, _ := primitive.ParseDecimal128(dv1.Add(dv2).String())
 	comparedCandle.Volume = resultVolume
-	comparedCandle.Timestamp = candle.Timestamp
+	comparedCandle.OpenTime = candle.OpenTime
 
 	return comparedCandle
 }
@@ -156,10 +156,10 @@ func (s *Aggregator) aggregateHoursCandlesToChart(
 	var mul time.Duration
 	var timestamp int64
 	for _, candle := range candles {
-		min = int(int64(candle.Timestamp.Hour()))
+		min = int(int64(candle.OpenTime.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
+		timestamp = candle.OpenTime.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
@@ -183,8 +183,8 @@ func (s *Aggregator) aggregateMonthCandlesToChart(
 	var timestamp int64
 	for _, candle := range candles {
 		timestamp = time.Date(
-			candle.Timestamp.Year(),
-			candle.Timestamp.Month(),
+			candle.OpenTime.Year(),
+			candle.OpenTime.Month(),
 			1,
 			0,
 			0,

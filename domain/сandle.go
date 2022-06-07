@@ -14,7 +14,12 @@ type Candle struct {
 	Low       primitive.Decimal128 `json:"l"`
 	Close     primitive.Decimal128 `json:"c"`
 	Volume    primitive.Decimal128 `json:"v"`
-	Timestamp time.Time            `json:"t"`
+	OpenTime  time.Time            `json:"t"`
+	CloseTime time.Time
+}
+
+func (c Candle) ContainsTs(nano int64) bool {
+	return c.OpenTime.UnixNano() <= nano && c.CloseTime.UnixNano() > nano
 }
 
 type Chart struct {
