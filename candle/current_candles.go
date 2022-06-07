@@ -76,7 +76,7 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 		if !currentCandle.ContainsTs(deal.CreatedAt) {
 			continue
 		}
-		currentCandle, err := c.updateCandle(currentCandle, deal)
+		currentCandle, err := updateCandle(currentCandle, deal)
 		if err != nil {
 			return fmt.Errorf("can't AddDeal to currentCandles: '%w'", err)
 		}
@@ -123,7 +123,7 @@ func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle
 	return *candle
 }
 
-func (c *currentCandles) updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {
+func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {
 	dealAmount, err := primitive.ParseDecimal128(deal.Amount)
 	if err != nil {
 		return domain.Candle{}, err
@@ -137,15 +137,7 @@ func (c *currentCandles) updateCandle(candle domain.Candle, deal matcher.Deal) (
 	if err != nil {
 		return domain.Candle{}, err
 	}
-	zero, err := primitive.ParseDecimal128("0")
-	if err != nil {
-		return domain.Candle{}, err
-	}
-	openCmp, err := compareDecimal128(candle.Open, zero)
-	if err != nil {
-		return domain.Candle{}, err
-	}
-	if openCmp == 0 {
+	if candle.Open.IsZero() {
 		candle.Open = dealPrice
 	}
 	candle.Close = dealPrice
@@ -153,18 +145,14 @@ func (c *currentCandles) updateCandle(candle domain.Candle, deal matcher.Deal) (
 	if err != nil {
 		return domain.Candle{}, err
 	}
-	if highCmp > 1 {
+	if highCmp > 0 {
 		candle.High = dealPrice
 	}
 	lowCmp, err := compareDecimal128(dealPrice, candle.Low)
 	if err != nil {
 		return domain.Candle{}, err
 	}
-	lowZeroCmp, err := compareDecimal128(candle.Low, zero)
-	if err != nil {
-		return domain.Candle{}, err
-	}
-	if lowCmp < 1 || lowZeroCmp == 0 {
+	if lowCmp < 0 || candle.Low.IsZero() {
 		candle.Low = dealPrice
 	}
 	return candle, nil

@@ -12,6 +12,27 @@ import (
 	"time"
 )
 
+func Test_updateCandle(t *testing.T) {
+	candle, err := updateCandle(domain.Candle{}, matcher.Deal{Price: "866.13", Amount: "710.47"})
+	require.NoError(t, err)
+	assert.Equal(t, domain.Candle{
+		Open:   mustParseDecimal128(t, "866.13"),
+		High:   mustParseDecimal128(t, "866.13"),
+		Low:    mustParseDecimal128(t, "866.13"),
+		Close:  mustParseDecimal128(t, "866.13"),
+		Volume: mustParseDecimal128(t, "710.47"),
+	}, candle)
+	candle, err = updateCandle(candle, matcher.Deal{Price: "861.60", Amount: "153.78"})
+	require.NoError(t, err)
+	assert.Equal(t, domain.Candle{
+		Open:   mustParseDecimal128(t, "866.13"),
+		High:   mustParseDecimal128(t, "866.13"),
+		Low:    mustParseDecimal128(t, "861.60"),
+		Close:  mustParseDecimal128(t, "861.60"),
+		Volume: mustParseDecimal128(t, "864.25"),
+	}, candle)
+}
+
 func TestNewCurrentCandles_updates(t *testing.T) {
 	t.Run("1 market 1 deal 2 resolutions", func(t *testing.T) {
 		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
