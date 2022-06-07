@@ -102,9 +102,8 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 15, from, to)
 	case domain.Candle30MResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 30, from, to)
-	case domain.Candle1HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
-	case domain.Candle1H2Resolution:
+	case domain.Candle1HResolution,
+		domain.Candle1H2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
 	case domain.Candle2HResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)

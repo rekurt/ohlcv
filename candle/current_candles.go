@@ -6,30 +6,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/robfig/cron/v3"
-	"strconv"
+	"github.com/shopspring/decimal"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 	"time"
 )
 
-type CurrentCandle struct {
-	Symbol    string
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    float64
-	OpenTime  time.Time
-	CloseTime time.Time
-}
-
-func (c CurrentCandle) containsTs(nano int64) bool {
-	return c.OpenTime.UnixNano() <= nano && c.CloseTime.UnixNano() > nano
-}
-
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
-	AddCandle(market, resolution string, candle CurrentCandle) error
-	GetUpdates() <-chan CurrentCandle
+	AddCandle(market, resolution string, candle domain.Candle) error
+	GetUpdates() <-chan domain.Candle
 }
 
 var timeNow = func() time.Time {
@@ -37,16 +23,16 @@ var timeNow = func() time.Time {
 }
 
 type currentCandles struct {
-	updatesStream chan CurrentCandle
+	updatesStream chan domain.Candle
 	candlesLock   sync.Mutex
-	candles       map[string]map[string]*CurrentCandle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
+	candles       map[string]map[string]*domain.Candle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
 	aggregator    Aggregator
 }
 
 func NewCurrentCandles(ctx context.Context) CurrentCandles {
 	cc := &currentCandles{
-		updatesStream: make(chan CurrentCandle, 512),
-		candles:       map[string]map[string]*CurrentCandle{},
+		updatesStream: make(chan domain.Candle, 512),
+		candles:       map[string]map[string]*domain.Candle{},
 		aggregator:    Aggregator{},
 	}
 	go func() {
@@ -74,7 +60,7 @@ func (c *currentCandles) refreshAll() {
 	}
 }
 
-func (c *currentCandles) AddCandle(market, resolution string, candle CurrentCandle) error {
+func (c *currentCandles) AddCandle(market, resolution string, candle domain.Candle) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
 	c.setCandle(market, resolution, candle)
@@ -87,10 +73,10 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	defer c.candlesLock.Unlock()
 	for resolution := range c.candles[deal.Market] {
 		currentCandle := c.getFreshCandle(deal.Market, resolution)
-		if !currentCandle.containsTs(deal.CreatedAt) {
+		if !currentCandle.ContainsTs(deal.CreatedAt) {
 			continue
 		}
-		currentCandle, err := c.updateCandle(currentCandle, deal)
+		currentCandle, err := updateCandle(currentCandle, deal)
 		if err != nil {
 			return fmt.Errorf("can't AddDeal to currentCandles: '%w'", err)
 		}
@@ -98,7 +84,7 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	}
 	return nil
 }
-func (c *currentCandles) setCandle(market, resolution string, candle CurrentCandle) {
+func (c *currentCandles) setCandle(market, resolution string, candle domain.Candle) {
 	oldCandle := c.getSafeCandle(market, resolution)
 	//nothing changed
 	if oldCandle != nil && *oldCandle == candle {
@@ -111,24 +97,24 @@ func (c *currentCandles) setCandle(market, resolution string, candle CurrentCand
 	c.updatesStream <- candle
 }
 
-func (c *currentCandles) getSafeCandle(market, resolution string) *CurrentCandle {
+func (c *currentCandles) getSafeCandle(market, resolution string) *domain.Candle {
 	if c.candles[market] == nil || c.candles[market][resolution] == nil {
 		return nil
 	}
 	return c.candles[market][resolution]
 }
-func (c *currentCandles) setSafeCandle(market, resolution string, candle CurrentCandle) {
+func (c *currentCandles) setSafeCandle(market, resolution string, candle domain.Candle) {
 	if c.candles[market] == nil {
-		c.candles[market] = map[string]*CurrentCandle{}
+		c.candles[market] = map[string]*domain.Candle{}
 	}
 	c.candles[market][resolution] = &candle
 }
-func (c *currentCandles) getFreshCandle(market, resolution string) CurrentCandle {
+func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle {
 	now := timeNow()
 	candle := c.getSafeCandle(market, resolution)
-	if candle == nil || !candle.containsTs(now.UnixNano()) {
+	if candle == nil || !candle.ContainsTs(now.UnixNano()) {
 		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
-		return CurrentCandle{
+		return domain.Candle{
 			Symbol:    market,
 			OpenTime:  openTime,
 			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
@@ -137,29 +123,57 @@ func (c *currentCandles) getFreshCandle(market, resolution string) CurrentCandle
 	return *candle
 }
 
-func (c *currentCandles) updateCandle(candle CurrentCandle, deal matcher.Deal) (CurrentCandle, error) {
-	dealAmount, err := strconv.ParseFloat(deal.Amount, 64)
+func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {
+	dealAmount, err := primitive.ParseDecimal128(deal.Amount)
 	if err != nil {
-		return candle, err
+		return domain.Candle{}, err
 	}
-	candle.Volume += dealAmount
-	dealPrice, err := strconv.ParseFloat(deal.Price, 64)
+	volume, err := addPrimitiveDecimal128(dealAmount, candle.Volume)
 	if err != nil {
-		return candle, err
+		return domain.Candle{}, err
 	}
-	if candle.Open == 0 {
+	candle.Volume = volume
+	dealPrice, err := primitive.ParseDecimal128(deal.Price)
+	if err != nil {
+		return domain.Candle{}, err
+	}
+	if candle.Open.IsZero() {
 		candle.Open = dealPrice
 	}
 	candle.Close = dealPrice
-	if dealPrice > candle.High {
+	highCmp, err := compareDecimal128(dealPrice, candle.High)
+	if err != nil {
+		return domain.Candle{}, err
+	}
+	if highCmp > 0 {
 		candle.High = dealPrice
 	}
-	if dealPrice < candle.Low || candle.Low == 0 {
+	lowCmp, err := compareDecimal128(dealPrice, candle.Low)
+	if err != nil {
+		return domain.Candle{}, err
+	}
+	if lowCmp < 0 || candle.Low.IsZero() {
 		candle.Low = dealPrice
 	}
 	return candle, nil
 }
 
-func (c *currentCandles) GetUpdates() <-chan CurrentCandle {
+func (c *currentCandles) GetUpdates() <-chan domain.Candle {
 	return c.updatesStream
+}
+
+func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
+	ad, err := decimal.NewFromString(a.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	bd, err := decimal.NewFromString(b.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	return result, nil
 }

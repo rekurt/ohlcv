@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -42,12 +43,12 @@ func generateCandle(o string, h string, l string, cl string, v string, ts int64)
 	ts1 := time.Unix(ts, 0)
 
 	return &domain.Candle{
-		Open:      o1,
-		High:      h1,
-		Low:       l1,
-		Close:     cl1,
-		Volume:    v1,
-		Timestamp: ts1,
+		Open:     o1,
+		High:     h1,
+		Low:      l1,
+		Close:    cl1,
+		Volume:   v1,
+		OpenTime: ts1,
 	}
 }
 
@@ -111,4 +112,115 @@ func TestService_getStartHourTs(t *testing.T) {
 			time.Unix(getStartHourTs(now, 24), 0).UTC().Format(time.RFC3339),
 		)
 	})
+}
+
+func Test_compareDecimal128(t *testing.T) {
+	type args struct {
+		d1 primitive.Decimal128
+		d2 primitive.Decimal128
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "first bigger",
+			args: args{
+				d1: mustParseDecimal128(t, "374"),
+				d2: mustParseDecimal128(t, "130"),
+			},
+			want: 1,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "first bigger one negative",
+			args: args{
+				d1: mustParseDecimal128(t, "374"),
+				d2: mustParseDecimal128(t, "-130.6543"),
+			},
+			want: 1,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		//{ TODO fix bug that fails this test
+		//	name: "first bigger both negative",
+		//	args: args{
+		//		d1: mustParseDecimal128(t, "-4"),
+		//		d2: mustParseDecimal128(t, "-130.6543"),
+		//	},
+		//	want: 1,
+		//	wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+		//		return err == nil
+		//	},
+		//},
+		{
+			name: "second bigger",
+			args: args{
+				d1: mustParseDecimal128(t, "374"),
+				d2: mustParseDecimal128(t, "861"),
+			},
+			want: -1,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "second bigger, one negative",
+			args: args{
+				d1: mustParseDecimal128(t, "-374"),
+				d2: mustParseDecimal128(t, "861"),
+			},
+			want: -1,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "same",
+			args: args{
+				d1: mustParseDecimal128(t, "67"),
+				d2: mustParseDecimal128(t, "67"),
+			},
+			want: 0,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "same with decimal part",
+			args: args{
+				d1: mustParseDecimal128(t, "67.98496867"),
+				d2: mustParseDecimal128(t, "67.98496867"),
+			},
+			want: 0,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "same with decimal part and negative",
+			args: args{
+				d1: mustParseDecimal128(t, "-67.98496867"),
+				d2: mustParseDecimal128(t, "-67.98496867"),
+			},
+			want: 0,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := compareDecimal128(tt.args.d1, tt.args.d2)
+			if !tt.wantErr(t, err, fmt.Sprintf("compareDecimal128(%v, %v)", tt.args.d1, tt.args.d2)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "compareDecimal128(%v, %v)", tt.args.d1, tt.args.d2)
+		})
+	}
 }

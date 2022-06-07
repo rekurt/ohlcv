@@ -42,12 +42,12 @@ func TestForNewCollection(t *testing.T) {
 
 	/*testCandle1*/
 	_ = &domain.Candle{
-		Open:      domain.MustParseDecimal("500"),
-		High:      domain.MustParseDecimal("500"),
-		Low:       domain.MustParseDecimal("500"),
-		Close:     domain.MustParseDecimal("500"),
-		Volume:    domain.MustParseDecimal("500"),
-		Timestamp: time.Now().Truncate(time.Minute),
+		Open:     domain.MustParseDecimal("500"),
+		High:     domain.MustParseDecimal("500"),
+		Low:      domain.MustParseDecimal("500"),
+		Close:    domain.MustParseDecimal("500"),
+		Volume:   domain.MustParseDecimal("500"),
+		OpenTime: time.Now().Truncate(time.Minute),
 	}
 
 }

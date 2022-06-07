@@ -39,31 +39,25 @@ func (s Aggregator) AggregateCandleToChartByResolution(
 		chart = s.aggregateMinCandlesToChart(candles, market, 15, count)
 	case domain.Candle30MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
-	case domain.Candle1HResolution:
+	case domain.Candle1HResolution,
+		domain.Candle1H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle1H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle2HResolution:
+	case domain.Candle2HResolution,
+		domain.Candle2H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle2H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle4HResolution:
+	case domain.Candle4HResolution,
+		domain.Candle4H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle4H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle6HResolution:
+	case domain.Candle6HResolution,
+		domain.Candle6H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle6H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle12HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
-	case domain.Candle12H2Resolution:
+	case domain.Candle12HResolution,
+		domain.Candle12H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
 	case domain.Candle1DResolution:
 		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
-	case domain.Candle1MHResolution:
-		chart = s.aggregateMonthCandlesToChart(candles, market, count)
-	case domain.Candle1MH2Resolution:
+	case domain.Candle1MHResolution,
+		domain.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	default:
 		logger.FromContext(context.Background()).WithField(
@@ -96,10 +90,10 @@ func (s Aggregator) aggregateMinCandlesToChart(
 	currentTs := now.Add(time.Duration(now.Minute()%minute) * -time.Minute).Unix()
 	for _, candle := range candles {
 		var comparedCandle *domain.Candle
-		min = int(int64(candle.Timestamp.Minute()))
+		min = int(int64(candle.OpenTime.Minute()))
 		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.OpenTime.Add(mul).Unix()
 		c := result[timestamp]
 
 		if c != nil {
@@ -124,7 +118,7 @@ func (s Aggregator) compare(
 	candle *domain.Candle,
 ) *domain.Candle {
 	comparedCandle := &domain.Candle{}
-	if c.Timestamp.Unix() < candle.Timestamp.Unix() {
+	if c.OpenTime.Unix() < candle.OpenTime.Unix() {
 		comparedCandle.Open = c.Open
 		comparedCandle.Close = candle.Close
 	} else {
@@ -144,7 +138,7 @@ func (s Aggregator) compare(
 	dv2, _ := decimal.NewFromString(candle.Volume.String())
 	resultVolume, _ := primitive.ParseDecimal128(dv1.Add(dv2).String())
 	comparedCandle.Volume = resultVolume
-	comparedCandle.Timestamp = candle.Timestamp
+	comparedCandle.OpenTime = candle.OpenTime
 
 	return comparedCandle
 }
@@ -162,10 +156,10 @@ func (s *Aggregator) aggregateHoursCandlesToChart(
 	var mul time.Duration
 	var timestamp int64
 	for _, candle := range candles {
-		min = int(int64(candle.Timestamp.Hour()))
+		min = int(int64(candle.OpenTime.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
+		timestamp = candle.OpenTime.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
@@ -189,8 +183,8 @@ func (s *Aggregator) aggregateMonthCandlesToChart(
 	var timestamp int64
 	for _, candle := range candles {
 		timestamp = time.Date(
-			candle.Timestamp.Year(),
-			candle.Timestamp.Month(),
+			candle.OpenTime.Year(),
+			candle.OpenTime.Month(),
 			1,
 			0,
 			0,

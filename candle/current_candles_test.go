@@ -4,11 +4,34 @@ import (
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
 )
+
+func Test_updateCandle(t *testing.T) {
+	candle, err := updateCandle(domain.Candle{}, matcher.Deal{Price: "866.13", Amount: "710.47"})
+	require.NoError(t, err)
+	assert.Equal(t, domain.Candle{
+		Open:   mustParseDecimal128(t, "866.13"),
+		High:   mustParseDecimal128(t, "866.13"),
+		Low:    mustParseDecimal128(t, "866.13"),
+		Close:  mustParseDecimal128(t, "866.13"),
+		Volume: mustParseDecimal128(t, "710.47"),
+	}, candle)
+	candle, err = updateCandle(candle, matcher.Deal{Price: "861.60", Amount: "153.78"})
+	require.NoError(t, err)
+	assert.Equal(t, domain.Candle{
+		Open:   mustParseDecimal128(t, "866.13"),
+		High:   mustParseDecimal128(t, "866.13"),
+		Low:    mustParseDecimal128(t, "861.60"),
+		Close:  mustParseDecimal128(t, "861.60"),
+		Volume: mustParseDecimal128(t, "864.25"),
+	}, candle)
+}
 
 func TestNewCurrentCandles_updates(t *testing.T) {
 	t.Run("1 market 1 deal 2 resolutions", func(t *testing.T) {
@@ -22,7 +45,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
 				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
-				require.NoError(t, candles.AddCandle(market, resolution, CurrentCandle{
+				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:    "ETH/BTC",
 					OpenTime:  openTime,
 					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
@@ -34,7 +57,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok := <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
@@ -43,7 +66,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
@@ -61,7 +84,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
@@ -70,13 +93,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.019,
-				Close:     0.019,
-				Volume:    14.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -84,7 +107,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
@@ -93,13 +116,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.019,
-				Close:     0.019,
-				Volume:    14.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
@@ -111,13 +134,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.019,
-				Close:     0.019,
-				Volume:    14.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -125,7 +148,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
@@ -143,7 +166,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution} {
 				openTime := time.Unix((&Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
-				require.NoError(t, candles.AddCandle(market, resolution, CurrentCandle{
+				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:    "ETH/BTC",
 					OpenTime:  openTime,
 					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
@@ -155,7 +178,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok := <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
@@ -173,7 +196,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
@@ -182,13 +205,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.019,
-				Close:     0.019,
-				Volume:    14.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -204,13 +227,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.019,
-				Close:     0.019,
-				Volume:    14.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -218,13 +241,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candle, ok = <-updates
 		assert.True(t, ok)
 		assert.Equal(t,
-			CurrentCandle{
+			domain.Candle{
 				Symbol:    "ETH/BTC",
-				Open:      0.019,
-				High:      0.019,
-				Low:       0.013,
-				Close:     0.013,
-				Volume:    14.9 + 1.9,
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.013"),
+				Close:     mustParseDecimal128(t, "0.013"),
+				Volume:    mustParseDecimal128(t, "16.8"),
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -256,4 +279,76 @@ func Test_everyMinute_manual(t *testing.T) {
 		_ = NewCurrentCandles(context.Background())
 		select {}
 	})
+}
+
+func Test_addPrimitiveDecimal128(t *testing.T) {
+	type args struct {
+		a primitive.Decimal128
+		b primitive.Decimal128
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    primitive.Decimal128
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "add with zero",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "0"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add with negative zero",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "-0"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add with negative zero with decimal part",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "-0.00"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add positive",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "6543"),
+			},
+			want: mustParseDecimal128(t, "7459.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := addPrimitiveDecimal128(tt.args.a, tt.args.b)
+			if !tt.wantErr(t, err, fmt.Sprintf("addPrimitiveDecimal128(%v, %v)", tt.args.a, tt.args.b)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "addPrimitiveDecimal128(%v, %v)", tt.args.a, tt.args.b)
+		})
+	}
+}
+func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
+	decimal128, err := primitive.ParseDecimal128(s)
+	require.NoError(t, err)
+	return decimal128
 }
