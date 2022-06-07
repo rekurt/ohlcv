@@ -264,6 +264,22 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
+func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
+	ad, err := decimal.NewFromString(a.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	bd, err := decimal.NewFromString(b.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	return result, nil
+}
+
 func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
 	var ts int64
 	switch resolution {

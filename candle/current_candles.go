@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/robfig/cron/v3"
-	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 	"time"
@@ -160,20 +159,4 @@ func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error
 
 func (c *currentCandles) GetUpdates() <-chan domain.Candle {
 	return c.updatesStream
-}
-
-func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
-	ad, err := decimal.NewFromString(a.String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	bd, err := decimal.NewFromString(b.String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	return result, nil
 }

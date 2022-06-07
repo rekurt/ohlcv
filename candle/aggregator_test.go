@@ -224,3 +224,76 @@ func Test_compareDecimal128(t *testing.T) {
 		})
 	}
 }
+
+func Test_addPrimitiveDecimal128(t *testing.T) {
+	type args struct {
+		a primitive.Decimal128
+		b primitive.Decimal128
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    primitive.Decimal128
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "add with zero",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "0"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add with negative zero",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "-0"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add with negative zero with decimal part",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "-0.00"),
+			},
+			want: mustParseDecimal128(t, "916.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+		{
+			name: "add positive",
+			args: args{
+				a: mustParseDecimal128(t, "916.88243"),
+				b: mustParseDecimal128(t, "6543"),
+			},
+			want: mustParseDecimal128(t, "7459.88243"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return err == nil
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := addPrimitiveDecimal128(tt.args.a, tt.args.b)
+			if !tt.wantErr(t, err, fmt.Sprintf("addPrimitiveDecimal128(%v, %v)", tt.args.a, tt.args.b)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "addPrimitiveDecimal128(%v, %v)", tt.args.a, tt.args.b)
+		})
+	}
+}
+
+func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
+	decimal128, err := primitive.ParseDecimal128(s)
+	require.NoError(t, err)
+	return decimal128
+}
