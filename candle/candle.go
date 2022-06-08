@@ -64,7 +64,7 @@ func (s Service) GetCurrentCandle(
 	resolution string,
 ) (*domain.Chart, error) {
 	from := time.Unix(
-		s.Aggregator.GetCurrentResolutionStartTimestamp(resolution),
+		s.Aggregator.GetResolutionStartTimestampByTime(resolution, time.Now()),
 		0,
 	)
 	to := time.Now()

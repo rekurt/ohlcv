@@ -90,10 +90,10 @@ func (s Aggregator) aggregateMinCandlesToChart(
 	currentTs := now.Add(time.Duration(now.Minute()%minute) * -time.Minute).Unix()
 	for _, candle := range candles {
 		var comparedCandle *domain.Candle
-		min = int(int64(candle.Timestamp.Minute()))
+		min = int(int64(candle.OpenTime.Minute()))
 		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.OpenTime.Add(mul).Unix()
 		c := result[timestamp]
 
 		if c != nil {
@@ -118,7 +118,7 @@ func (s Aggregator) compare(
 	candle *domain.Candle,
 ) *domain.Candle {
 	comparedCandle := &domain.Candle{}
-	if c.Timestamp.Unix() < candle.Timestamp.Unix() {
+	if c.OpenTime.Unix() < candle.OpenTime.Unix() {
 		comparedCandle.Open = c.Open
 		comparedCandle.Close = candle.Close
 	} else {
@@ -138,7 +138,7 @@ func (s Aggregator) compare(
 	dv2, _ := decimal.NewFromString(candle.Volume.String())
 	resultVolume, _ := primitive.ParseDecimal128(dv1.Add(dv2).String())
 	comparedCandle.Volume = resultVolume
-	comparedCandle.Timestamp = candle.Timestamp
+	comparedCandle.OpenTime = candle.OpenTime
 
 	return comparedCandle
 }
@@ -156,10 +156,10 @@ func (s *Aggregator) aggregateHoursCandlesToChart(
 	var mul time.Duration
 	var timestamp int64
 	for _, candle := range candles {
-		min = int(int64(candle.Timestamp.Hour()))
+		min = int(int64(candle.OpenTime.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
+		timestamp = candle.OpenTime.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
@@ -183,8 +183,8 @@ func (s *Aggregator) aggregateMonthCandlesToChart(
 	var timestamp int64
 	for _, candle := range candles {
 		timestamp = time.Date(
-			candle.Timestamp.Year(),
-			candle.Timestamp.Month(),
+			candle.OpenTime.Year(),
+			candle.OpenTime.Month(),
 			1,
 			0,
 			0,
@@ -264,50 +264,61 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
-func (s *Aggregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
-	now := time.Now()
+func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
+	ad, err := decimal.NewFromString(a.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	bd, err := decimal.NewFromString(b.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	return result, nil
+}
+
+func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
 	var ts int64
-	logger.FromContext(context.Background()).WithField(
-		"resolution",
-		resolution,
-	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
 	case domain.Candle1MResolution:
-		ts = getStartMinuteTs(now, 1)
+		ts = getStartMinuteTs(time, 1)
 	case domain.Candle3MResolution:
-		ts = getStartMinuteTs(now, 3)
+		ts = getStartMinuteTs(time, 3)
 	case domain.Candle5MResolution:
-		ts = getStartMinuteTs(now, 5)
+		ts = getStartMinuteTs(time, 5)
 	case domain.Candle15MResolution:
-		ts = getStartMinuteTs(now, 15)
+		ts = getStartMinuteTs(time, 15)
 	case domain.Candle30MResolution:
-		ts = getStartMinuteTs(now, 30)
+		ts = getStartMinuteTs(time, 30)
 	case domain.Candle1HResolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle1H2Resolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle2HResolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle2H2Resolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle4HResolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle4H2Resolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle6HResolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle6H2Resolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle12HResolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle12H2Resolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle1DResolution:
-		ts = getStartHourTs(now, 24)
+		ts = getStartHourTs(time, 24)
 	case domain.Candle1MHResolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
 	case domain.Candle1MH2Resolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
