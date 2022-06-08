@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
@@ -78,7 +77,7 @@ func main() {
 	return
 }
 
-func listenCurrentCandlesUpdates(updates <-chan candle.CurrentCandle) {
+func listenCurrentCandlesUpdates(updates <-chan domain.Candle) {
 	for update := range updates {
 		fmt.Printf("CurrentCandle: %+v\n", update)
 	}
@@ -109,60 +108,40 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 	return candles
 }
 
-func chartToCurrentCandle(chart *domain.Chart, resolution string) (candle.CurrentCandle, error) {
+func chartToCurrentCandle(chart *domain.Chart, resolution string) (domain.Candle, error) {
 	if chart == nil {
-		openTime := time.Unix((&candle.Aggregator{}).GetCurrentResolutionStartTimestamp(resolution, time.Now()), 0).UTC()
-		return candle.CurrentCandle{
+		openTime := time.Unix((&candle.Aggregator{}).GetResolutionStartTimestampByTime(resolution, time.Now()), 0).UTC()
+		return domain.Candle{
 			OpenTime:  openTime,
 			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
 		}, nil
 	}
 	if len(chart.O) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
-	}
-	open, err := strconv.ParseFloat(chart.O[len(chart.O)-1].String(), 64)
-	if err != nil {
-		return candle.CurrentCandle{}, err
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
 	}
 	if len(chart.H) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
-	}
-	high, err := strconv.ParseFloat(chart.H[len(chart.H)-1].String(), 64)
-	if err != nil {
-		return candle.CurrentCandle{}, err
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
 	}
 	if len(chart.L) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
-	}
-	low, err := strconv.ParseFloat(chart.L[len(chart.L)-1].String(), 64)
-	if err != nil {
-		return candle.CurrentCandle{}, err
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
 	}
 	if len(chart.C) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
-	}
-	closePrice, err := strconv.ParseFloat(chart.C[len(chart.C)-1].String(), 64)
-	if err != nil {
-		return candle.CurrentCandle{}, err
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
 	}
 	if len(chart.V) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
-	}
-	volume, err := strconv.ParseFloat(chart.V[len(chart.V)-1].String(), 64)
-	if err != nil {
-		return candle.CurrentCandle{}, err
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
 	}
 	if len(chart.T) == 0 {
-		return candle.CurrentCandle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
+		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
 	}
 	openTime := time.Unix(chart.T[len(chart.T)-1], 0).UTC()
-	return candle.CurrentCandle{
+	return domain.Candle{
 		Symbol:    chart.Symbol,
-		Open:      open,
-		High:      high,
-		Low:       low,
-		Close:     closePrice,
-		Volume:    volume,
+		Open:      chart.O[len(chart.O)-1],
+		High:      chart.H[len(chart.H)-1],
+		Low:       chart.L[len(chart.L)-1],
+		Close:     chart.C[len(chart.C)-1],
+		Volume:    chart.V[len(chart.V)-1],
 		OpenTime:  openTime,
 		CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
 	}, nil
