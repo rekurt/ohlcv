@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/robfig/cron/v3"
-	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 	"time"
@@ -113,7 +112,7 @@ func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle
 	now := timeNow()
 	candle := c.getSafeCandle(market, resolution)
 	if candle == nil || !candle.ContainsTs(now.UnixNano()) {
-		openTime := time.Unix(c.aggregator.GetCurrentResolutionStartTimestamp(resolution, now), 0).UTC()
+		openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
 		return domain.Candle{
 			Symbol:    market,
 			OpenTime:  openTime,
@@ -160,20 +159,4 @@ func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error
 
 func (c *currentCandles) GetUpdates() <-chan domain.Candle {
 	return c.updatesStream
-}
-
-func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
-	ad, err := decimal.NewFromString(a.String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	bd, err := decimal.NewFromString(b.String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
-	if err != nil {
-		return primitive.Decimal128{}, err
-	}
-	return result, nil
 }
