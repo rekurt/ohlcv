@@ -62,6 +62,9 @@ func (c *currentCandles) refreshAll() {
 func (c *currentCandles) AddCandle(market, resolution string, candle domain.Candle) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
+	if candle == (domain.Candle{}) {
+		candle = c.buildFreshCandle(market, resolution)
+	}
 	c.setCandle(market, resolution, candle)
 	//TODO check is it fresh
 	return nil
@@ -112,14 +115,18 @@ func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle
 	now := timeNow()
 	candle := c.getSafeCandle(market, resolution)
 	if candle == nil || !candle.ContainsTs(now.UnixNano()) {
-		openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
-		return domain.Candle{
-			Symbol:    market,
-			OpenTime:  openTime,
-			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
-		}
+		return c.buildFreshCandle(market, resolution)
 	}
 	return *candle
+}
+
+func (c *currentCandles) buildFreshCandle(market, resolution string) domain.Candle {
+	openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
+	return domain.Candle{
+		Symbol:    market,
+		OpenTime:  openTime,
+		CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+	}
 }
 
 func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {

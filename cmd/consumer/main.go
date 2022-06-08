@@ -78,8 +78,9 @@ func main() {
 }
 
 func listenCurrentCandlesUpdates(updates <-chan domain.Candle) {
-	for update := range updates {
-		fmt.Printf("CurrentCandle: %+v\n", update)
+	for range updates {
+		//fmt.Printf("CurrentCandle: %+v\n", update)
+		//TODO send to WebSocket
 	}
 }
 
@@ -93,7 +94,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 			if err != nil {
 				log.Fatal("can't GetCurrentCandle to initCurrentCandles:" + err.Error())
 			}
-			currentCandle, err := chartToCurrentCandle(chart, resolution)
+			currentCandle, err := domain.ChartToCurrentCandle(chart, resolution)
 			if err != nil {
 				log.Fatalf("can't chartToCurrentCandle to initCurrentCandles: %s, chart: %+v", err, chart)
 			}
@@ -106,45 +107,6 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 	}
 	fmt.Printf("initiated %d candles from MongoDb for %s", count, time.Since(started))
 	return candles
-}
-
-func chartToCurrentCandle(chart *domain.Chart, resolution string) (domain.Candle, error) {
-	if chart == nil {
-		openTime := time.Unix((&candle.Aggregator{}).GetResolutionStartTimestampByTime(resolution, time.Now()), 0).UTC()
-		return domain.Candle{
-			OpenTime:  openTime,
-			CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
-		}, nil
-	}
-	if len(chart.O) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
-	}
-	if len(chart.H) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
-	}
-	if len(chart.L) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
-	}
-	if len(chart.C) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
-	}
-	if len(chart.V) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
-	}
-	if len(chart.T) == 0 {
-		return domain.Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
-	}
-	openTime := time.Unix(chart.T[len(chart.T)-1], 0).UTC()
-	return domain.Candle{
-		Symbol:    chart.Symbol,
-		Open:      chart.O[len(chart.O)-1],
-		High:      chart.H[len(chart.H)-1],
-		Low:       chart.L[len(chart.L)-1],
-		Close:     chart.C[len(chart.C)-1],
-		Volume:    chart.V[len(chart.V)-1],
-		OpenTime:  openTime,
-		CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
-	}, nil
 }
 
 func buildAvailableMarkets(conf infra.Config) map[string]string {
