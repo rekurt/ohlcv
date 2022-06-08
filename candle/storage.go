@@ -60,10 +60,10 @@ func (s Storage) GetCandles(
 				}},
 			}},
 		}},
-		{"o", bson.D{{"$first", "$data.price"}}},
+		{"o", bson.D{{"$last", "$data.price"}}},
 		{"h", bson.D{{"$max", "$data.price"}}},
 		{"l", bson.D{{"$min", "$data.price"}}},
-		{"c", bson.D{{"$last", "$data.price"}}},
+		{"c", bson.D{{"$first", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
 
