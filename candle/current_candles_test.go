@@ -6,6 +6,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/rand"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -277,4 +280,41 @@ func Test_everyMinute_manual(t *testing.T) {
 		_ = NewCurrentCandles(context.Background())
 		select {}
 	})
+}
+
+func Test_concurrent(t *testing.T) {
+	candles := NewCurrentCandles(context.Background())
+	markets := []string{"market1", "market2", "market3"}
+	for _, market := range markets {
+		for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution, domain.Candle15MResolution} {
+			openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, time.Now()), 0).UTC()
+			require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
+				Symbol:    market,
+				OpenTime:  openTime,
+				CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+			}),
+			)
+		}
+	}
+	go func() {
+		for range candles.GetUpdates() {
+
+		}
+	}()
+	wg := sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 100; i++ {
+				require.NoError(t, candles.AddDeal(matcher.Deal{
+					Market:    markets[rand.Intn(len(markets))],
+					CreatedAt: time.Now().UnixNano(),
+					Price:     strconv.FormatFloat(rand.Float64()*float64(rand.Intn(100)), 'f', 5, 64),
+					Amount:    strconv.FormatFloat(rand.Float64()*float64(rand.Intn(100)), 'f', 5, 64),
+				}))
+			}
+		}()
+	}
+	wg.Wait()
 }

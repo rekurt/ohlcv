@@ -25,7 +25,8 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
-func TestForNewCollection(t *testing.T) {
+func TestForNewCollection_manual(t *testing.T) {
+	t.Skip()
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
