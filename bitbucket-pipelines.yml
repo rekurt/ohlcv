@@ -51,6 +51,8 @@ pipelines:
           image: atlassian/default-image:2
           artifacts:
             download: false
+          clone:
+            enabled: false
           services:
             - docker
           script:
@@ -73,6 +75,8 @@ pipelines:
           trigger: 'manual'
           artifacts:
             download: false
+          clone:
+            enabled: false
           script:
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
             - export NAMESPACE=xch-$BRANCH
