@@ -297,3 +297,28 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 	require.NoError(t, err)
 	return decimal128
 }
+
+func TestAggregator_aggregateHoursCandlesToChart(t *testing.T) {
+	agg := &Aggregator{}
+	chart := agg.aggregateHoursCandlesToChart([]*domain.Candle{
+		{
+			Symbol:    "ETH-BTC",
+			Open:      mustParseDecimal128(t, "538.81"),
+			High:      mustParseDecimal128(t, "273.97"),
+			Low:       mustParseDecimal128(t, "269.92"),
+			Close:     mustParseDecimal128(t, "909.56"),
+			Volume:    mustParseDecimal128(t, "711.31"),
+			OpenTime:  time.Date(2020, 1, 20, 13, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 1, 20, 16, 45, 0, 0, time.UTC),
+		},
+	}, 1)
+	assert.Equal(t, &domain.Chart{
+		Symbol: "",
+		O:      []primitive.Decimal128{mustParseDecimal128(t, "538.81")},
+		H:      []primitive.Decimal128{mustParseDecimal128(t, "273.97")},
+		L:      []primitive.Decimal128{mustParseDecimal128(t, "269.92")},
+		C:      []primitive.Decimal128{mustParseDecimal128(t, "909.56")},
+		V:      []primitive.Decimal128{mustParseDecimal128(t, "711.31")},
+		T:      []int64{time.Date(2020, 1, 20, 13, 00, 0, 0, time.UTC).Unix()},
+	}, chart)
+}
