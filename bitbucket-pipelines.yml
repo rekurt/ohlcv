@@ -340,6 +340,11 @@ pipelines:
       - step: *packing_docker
       - step: *deploy_k8s
 
+    INFRA-1475-deploy-on-button:
+      - step: *packing_docker
+
+
+
   default:
     - step:
         name: prepare env
