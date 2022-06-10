@@ -19,6 +19,20 @@ spec:
       labels:
         {{- include "app.selectorLabels" . | nindent 8 }}
     spec:
+      volumes:
+        - name: env-config
+          emptyDir: {}
+      initContainers:
+        - name: create-env-file
+          image: "alpine"
+          volumeMounts:
+            - name: env-config
+              mountPath: /env
+          command:
+            - /bin/bash
+            - -c
+            - "env | sort > .env"
+
       containers:
         - name: {{ include "app.fullname" . }}
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
@@ -31,3 +45,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "app.name" . }}-env
+          volumeMounts:
+            - name: env-config
+              mountPath: /config

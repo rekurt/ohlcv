@@ -25,3 +25,11 @@ service:
 #===== Depend
 mongodb:
   enabled: false
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+      interval: 30s
+      additionalLabels:
+        release: prom-stage
