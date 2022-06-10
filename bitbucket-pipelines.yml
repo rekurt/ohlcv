@@ -82,7 +82,6 @@ pipelines:
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
             - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
             - kubectl kustomize . | kubectl apply -n $NAMESPACE -f -
-            - helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
             - helm dependency build kubernetes/chart
             - helm upgrade --install -n $NAMESPACE ohlcv kubernetes/chart
                 --set image.name=$ECR_PATH
