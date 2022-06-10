@@ -1,6 +1,6 @@
 image: amazonlinux:2.0.20211005.0
 clone:
-  depth: 10
+  depth: 1
 
 options:
   docker: true
@@ -10,6 +10,131 @@ definitions:
   services:
     docker:
       memory: 7128
+
+# pipelines:
+#   default:
+#       - step: &building
+#           name: Build app
+#           image:  golang:1.17.11-alpine
+#           script:
+#             - apk add git libc-dev git gcc openssh
+#             - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
+#             - export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+#             - export BUILD_DATE=$(date +"%F %T %Z")
+#             - export GIT_COMMIT=$(git rev-parse HEAD)
+#             - export CGO_ENABLED=1
+#             - export GO111MODULE=on
+#             - go mod tidy -v
+#             - go build -v -o service -ldflags "-w -s -X 'main.BuildDate=$BUILD_DATE' -X 'main.BuildCommit=$GIT_COMMIT'" ./cmd/market-data/*
+#           artifacts:
+#             - service
+#       - step: &packing_docker
+#           name: Build docker image
+#           image: serafinlabs/aws-docker
+#           script:
+#               - eval $(aws ecr get-login --no-include-email)
+#               - cp ~/.docker/config.json ./config.json && chmod 666 ./config.json
+#               - |
+#                 docker run \
+#                 -v $BITBUCKET_CLONE_DIR/config.json:/kaniko/.docker/config.json \
+#                 -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:latest \
+#                 --cache=true \
+#                 --cache-copy-layers \
+#                 --use-new-run \
+#                 --cache-repo="$ECR_PATH" \
+#                 --dockerfile /workspace/Dockerfile \
+#                 --destination "$ECR_PATH:market-data-$BITBUCKET_BUILD_NUMBER" \
+#                 --context dir:///workspace
+#       - step: &security_scan
+#           name: scan image
+#           image: atlassian/default-image:2
+#           services:
+#             - docker
+#           script:
+#             - pipe: aquasecurity/trivy-pipe:1.0.0
+#               variables:
+#                 imageRef: '$ECR_PATH:market-data-$BITBUCKET_BUILD_NUMBER'
+#                 format: table
+#                 severity: CRITICAL
+#                 exitCode: "0"
+#                 AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+#                 AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+#                 AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+
+#       - step: &deploy_k8s
+#           name: deploy k8s
+#           deployment: Staging
+#           image: ipiton/helm-deployer:latest
+#           trigger: 'manual'
+#           script:
+#             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
+#             - export NAMESPACE=xch-$BRANCH
+#             - export LAST_BUILD_TIMESTAMP=`date +%s`
+#             - export KAFKA_TOPIC_PREFIX=$BRANCH
+#             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
+#             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+#             - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
+#             - kubectl kustomize . | kubectl apply -n $NAMESPACE -f -
+#             - helm upgrade --install -n $NAMESPACE market-data kubernetes/chart
+#                 --set image.name=$ECR_PATH
+#                 --set image.tag=market-data-$BITBUCKET_BUILD_NUMBER
+
+
+#   branches:
+#     production:
+#       - step: *building
+#       - step: *packing_docker
+#       - step: *security_scan
+#       - step:
+#           name: 'test to Production'
+#           script:
+#             - echo "Your deployment to staging script goes here..."
+#             - if [ $BITBUCKET_BRANCH != "production" ]; then
+#             -   echo "$BITBUCKET_BRANCH IS NOT PRODUCTION BRANCH"
+#             -   exit 1
+#             - else
+#             -   echo "deploy"
+#             - fi
+#       - step:
+#           <<: *deploy_k8s
+#           deployment: Production
+#           trigger: 'manual'
+
+#     master:
+#       - step: *building
+#       - step: *packing_docker
+#       - step: *security_scan
+#       - step:
+#           <<: *deploy_k8s
+#           deployment: Staging-master
+#           trigger: automatic
+
+#     master2:
+#       - step: *building
+#       - step: *packing_docker
+#       - step: *security_scan
+#       - step:
+#           <<: *deploy_k8s
+#           deployment: Staging-master2
+#           trigger: automatic
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pipelines:
   branches:
