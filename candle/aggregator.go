@@ -60,7 +60,7 @@ func (s Aggregator) AggregateCandleToChartByResolution(
 		domain.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	case domain.Candle1WResolution:
-		chart = s.aggregateMonthCandlesToChart(candles, market, count)
+		chart = s.aggregateWeekCandlesToChart(candles)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
@@ -202,6 +202,44 @@ func (s *Aggregator) aggregateMonthCandlesToChart(
 	return chart
 }
 
+func firstDayOfISOWeek(year int, week int, timezone *time.Location) time.Time {
+	date := time.Date(year, 0, 0, 0, 0, 0, 0, timezone)
+	isoYear, isoWeek := date.ISOWeek()
+	for date.Weekday() != time.Monday { // iterate back to Monday
+		date = date.AddDate(0, 0, -1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	for isoYear < year { // iterate forward to the first day of the first week
+		date = date.AddDate(0, 0, 1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	for isoWeek < week { // iterate forward to the first day of the given week
+		date = date.AddDate(0, 0, 1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	return date
+}
+
+func (s *Aggregator) aggregateWeekCandlesToChart(candles []*domain.Candle) *domain.Chart {
+	result := make(map[int64]*domain.Candle)
+
+	var timestamp int64
+	for _, candle := range candles {
+		year, week := candle.OpenTime.ISOWeek()
+		timestamp = firstDayOfISOWeek(year, week, time.Local).Unix()
+		c := result[timestamp]
+		if c != nil {
+			result[timestamp] = s.compare(c, candle)
+		} else {
+			result[timestamp] = candle
+		}
+	}
+
+	chart := s.GenerateChart(result)
+
+	return chart
+}
+
 func (s *Aggregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
 		O: make([]primitive.Decimal128, 0),
@@ -316,6 +354,8 @@ func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time t
 		ts = getStartMonthTs(time, 1)
 	case domain.Candle1MH2Resolution:
 		ts = getStartMonthTs(time, 1)
+	case domain.Candle1WResolution:
+		ts = getStartWeekTs(time)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
@@ -324,6 +364,11 @@ func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time t
 	}
 
 	return ts
+}
+
+func getStartWeekTs(t time.Time) int64 {
+	year, week := t.ISOWeek()
+	return firstDayOfISOWeek(year, week, time.Local).Unix()
 }
 
 func getStartMinuteTs(candleTime time.Time, minute int) int64 {

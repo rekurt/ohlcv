@@ -31,6 +31,7 @@ const MinuteUnit = "minute"
 const HourUnit = "hour"
 const DayUnit = "day"
 const MonthUnit = "month"
+const WeekUnit = "week"
 
 func GetAvailableResolutions() []string {
 	return []string{
