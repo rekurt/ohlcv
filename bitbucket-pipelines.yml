@@ -49,6 +49,8 @@ pipelines:
       - step: &security_scan
           name: scan image
           image: atlassian/default-image:2
+          artifacts:
+            download: false
           services:
             - docker
           script:
@@ -63,11 +65,14 @@ pipelines:
                 AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
                 AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
 
+
       - step: &deploy_k8s
           name: deploy k8s
           deployment: Staging
           image: ipiton/helm-deployer:latest
           trigger: 'manual'
+          artifacts:
+            download: false
           script:
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
             - export NAMESPACE=xch-$BRANCH

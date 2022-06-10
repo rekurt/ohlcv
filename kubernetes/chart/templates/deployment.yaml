@@ -47,4 +47,4 @@ spec:
                 name: {{ include "app.name" . }}-env
           volumeMounts:
             - name: env-config
-              mountPath: /config
+              mountPath: /app/service/config
