@@ -341,6 +341,56 @@ pipelines:
       - step: *deploy_k8s
 
     INFRA-1475-deploy-on-button:
+      - step:
+          name: prepare env
+          script:
+            - yum install -y gettext
+            - export PATH=`pwd`:$PATH
+            # Set environment variables
+            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
+            - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
+            - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
+            #          - export NAMESPACE=xch-$BRANCH
+            - export NAMESPACE=xch-master2
+            - export STAGE=Staging # ICO-267
+            - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
+            - export KUBECONFIG=kubernetes/staging-cluster.pointpay.io.conf
+            - export APP_DEBUG=true
+            - export APP_ENV=staging
+            # Set services hostnames
+            - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
+            - export EXCHANGE_MARKETS_SERVER_URL=$STAGE_EXCHANGE_MARKETS_SERVER_URL
+            - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
+            - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
+            - export MONGODB_HOST=$STAGING_MONGODB_HOST
+            - export MONGODB_NAME=$MONGODB_NAME
+            - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
+            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
+            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
+            - export MONGODB_AUTH_DB=$MONGODB_NAME
+
+            - export MONGODB_USER=$MONGODB_USER
+            - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
+            - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
+            - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
+            - export KAFKA_HOST=$STAGING_KAFKA_HOST
+            - export KAFKA_SSL="1"
+            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
+
+            - export LOG_LEVEL=$STAGE_LOG_LEVEL
+            - export SERVICE_NAME="ohlcv"
+
+            - cp ./config/deploy.env ./config/.env
+
+            - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
+            - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
+            - cat kubernetes/ohlcv.yaml
+            - export -p > global.env
+          artifacts:
+            - global.env
+            - kubernetes/**
+            - kubernetes/ohlcv.yaml
+            - config/.env
       - step: *packing_docker
 
 
