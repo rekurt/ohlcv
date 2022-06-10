@@ -31,7 +31,7 @@ spec:
           command:
             - /bin/sh
             - -c
-            - "env | sort > .env"
+            - "env | sort > /env/.env"
 
       containers:
         - name: {{ include "app.fullname" . }}
@@ -48,8 +48,4 @@ spec:
           volumeMounts:
             - name: env-config
               mountPath: /app/config
-          #for debug
-          command:
-            - /bin/sh
-            - -c
-            - "sleep 1000000"
+
