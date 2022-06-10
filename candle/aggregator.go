@@ -41,23 +41,25 @@ func (s Aggregator) AggregateCandleToChartByResolution(
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
 	case domain.Candle1HResolution,
 		domain.Candle1H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 1)
 	case domain.Candle2HResolution,
 		domain.Candle2H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 2)
 	case domain.Candle4HResolution,
 		domain.Candle4H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 4)
 	case domain.Candle6HResolution,
 		domain.Candle6H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 6)
 	case domain.Candle12HResolution,
 		domain.Candle12H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 12)
 	case domain.Candle1DResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
+		chart = s.aggregateHoursCandlesToChart(candles, 24)
 	case domain.Candle1MHResolution,
 		domain.Candle1MH2Resolution:
+		chart = s.aggregateMonthCandlesToChart(candles, market, count)
+	case domain.Candle1WResolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
 	default:
 		logger.FromContext(context.Background()).WithField(
@@ -143,12 +145,7 @@ func (s Aggregator) compare(
 	return comparedCandle
 }
 
-func (s *Aggregator) aggregateHoursCandlesToChart(
-	candles []*domain.Candle,
-	market string,
-	hour int,
-	count int,
-) *domain.Chart {
+func (s *Aggregator) aggregateHoursCandlesToChart(candles []*domain.Candle, hour int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
