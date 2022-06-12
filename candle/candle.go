@@ -127,6 +127,8 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
 	case domain.Candle1MH2Resolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
+	case domain.Candle1WResolution:
+		chart = s.Storage.GetCandles(ctx, market, domain.WeekUnit, 1, from, to)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
