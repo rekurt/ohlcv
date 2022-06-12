@@ -297,3 +297,80 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 	require.NoError(t, err)
 	return decimal128
 }
+
+func TestAggregator_aggregateHoursCandlesToChart(t *testing.T) {
+	agg := &Aggregator{}
+	chart := agg.aggregateHoursCandlesToChart([]*domain.Candle{
+		{
+			Symbol:    "ETH-BTC",
+			Open:      mustParseDecimal128(t, "538.81"),
+			High:      mustParseDecimal128(t, "273.97"),
+			Low:       mustParseDecimal128(t, "269.92"),
+			Close:     mustParseDecimal128(t, "909.56"),
+			Volume:    mustParseDecimal128(t, "711.31"),
+			OpenTime:  time.Date(2020, 1, 20, 13, 45, 0, 0, time.UTC),
+			CloseTime: time.Date(2020, 1, 20, 16, 45, 0, 0, time.UTC),
+		},
+	}, 1)
+	assert.Equal(t, &domain.Chart{
+		Symbol: "",
+		O:      []primitive.Decimal128{mustParseDecimal128(t, "538.81")},
+		H:      []primitive.Decimal128{mustParseDecimal128(t, "273.97")},
+		L:      []primitive.Decimal128{mustParseDecimal128(t, "269.92")},
+		C:      []primitive.Decimal128{mustParseDecimal128(t, "909.56")},
+		V:      []primitive.Decimal128{mustParseDecimal128(t, "711.31")},
+		T:      []int64{time.Date(2020, 1, 20, 13, 00, 0, 0, time.UTC).Unix()},
+	}, chart)
+}
+func TestAggregator_aggregateWeekCandlesToChart(t *testing.T) {
+	agg := &Aggregator{}
+	chart := agg.aggregateWeekCandlesToChart([]*domain.Candle{
+		{
+			Symbol:    "ETH-BTC",
+			Open:      mustParseDecimal128(t, "538.81"),
+			High:      mustParseDecimal128(t, "273.97"),
+			Low:       mustParseDecimal128(t, "269.92"),
+			Close:     mustParseDecimal128(t, "909.56"),
+			Volume:    mustParseDecimal128(t, "711.31"),
+			OpenTime:  time.Date(2020, 1, 20, 13, 45, 0, 0, time.Local),
+			CloseTime: time.Date(2020, 1, 20, 16, 45, 0, 0, time.Local),
+		},
+	})
+	assert.Equal(t, &domain.Chart{
+		Symbol: "",
+		O:      []primitive.Decimal128{mustParseDecimal128(t, "538.81")},
+		H:      []primitive.Decimal128{mustParseDecimal128(t, "273.97")},
+		L:      []primitive.Decimal128{mustParseDecimal128(t, "269.92")},
+		C:      []primitive.Decimal128{mustParseDecimal128(t, "909.56")},
+		V:      []primitive.Decimal128{mustParseDecimal128(t, "711.31")},
+		T:      []int64{time.Date(2020, 1, 20, 0, 00, 0, 0, time.Local).Unix()},
+	}, chart)
+}
+
+func Test_firstDayOfISOWeek(t *testing.T) {
+	type args struct {
+		year     int
+		week     int
+		timezone *time.Location
+	}
+	tests := []struct {
+		name string
+		args args
+		want time.Time
+	}{
+		{
+			name: "10 June",
+			args: args{
+				year:     2022,
+				week:     23,
+				timezone: time.UTC,
+			},
+			want: time.Date(2022, 6, 6, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, firstDayOfISOWeek(tt.args.year, tt.args.week, tt.args.timezone), "firstDayOfISOWeek(%v, %v, %v)", tt.args.year, tt.args.week, tt.args.timezone)
+		})
+	}
+}
