@@ -33,3 +33,7 @@ mongodb:
       interval: 30s
       additionalLabels:
         release: prom-stage
+  image:
+    registry: docker.io
+    repository: bitnami/mongodb
+    tag: 5.0.7-debian-10-r5
