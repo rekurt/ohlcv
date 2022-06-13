@@ -1,6 +1,6 @@
 image: amazonlinux:2.0.20211005.0
 clone:
-  depth: 10
+  depth: 1
 
 options:
   docker: true
@@ -12,212 +12,127 @@ definitions:
       memory: 7128
 
 pipelines:
-  branches:
-    production:
-      - step:
-          name: prepare env
-          script:
-            - yum install -y gettext
-            - export PATH=`pwd`:$PATH
-            # Set environment variables
-            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-            - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
-            - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-            #          - export NAMESPACE=xch-$BRANCH
-            - export NAMESPACE=xch-$BRANCH
-            - export STAGE=Production # ICO-267
-            - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
-            - export KUBECONFIG=kubernetes/production-cluster-v2.pointpay.io.conf
-            - export APP_DEBUG=true
-            - export APP_ENV=production
-            # Set services hostnames
-            - export EXCHANGE_MARKETS_TOKEN=$EXCHANGE_MARKETS_TOKEN
-            - export EXCHANGE_MARKETS_SERVER_URL=$EXCHANGE_MARKETS_SERVER_URL
-            - export CENTRIFUGE_HOST=$CENTRIFUGE_HOST
-            - export CENTRIFUGE_TOKEN=$CENTRIFUGE_TOKEN
-
-            - export MONGODB_URL=$MONGODB_URL
-            - export MONGODB_NAME=$MONGODB_NAME
-            - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=trades
-            - export MONGODB_ROOT_PASSWORD=$MONGODB_ROOT_PASSWORD
-            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
-            - export KAFKA_HOST=$KAFKA_HOST
-            - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-            - export KAFKA_SSL="1"
-            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-            - export LOG_LEVEL=$STAGE_LOG_LEVEL
-            - export SERVICE_NAME="ohlcv"
-
-            - cp ./config/deploy.env ./config/.env
-            - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
-            - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
-            - cat kubernetes/ohlcv.yaml
-            - export -p > global.env
-          artifacts:
-            - global.env
-            - kubernetes/**
-            - kubernetes/ohlcv.yaml
-            - config/.env
+  default:
       - step: &building
-          name: build-app
-          image: golang:1.17.7-alpine
+          name: Build app
+          image:  golang:1.17.11-alpine
           script:
-            - apk add git libc-dev gcc openssh
+            - apk add git libc-dev git gcc openssh
             - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+            - export BUILD_DATE=$(date +"%F %T %Z")
+            - export GIT_COMMIT=$(git rev-parse HEAD)
             - export CGO_ENABLED=1
             - export GO111MODULE=on
             - go mod tidy -v
-            - go build -tags=jsoniter -a -o ohlcv cmd/consumer/main.go
+            - go build -tags=jsoniter -a -o service cmd/consumer/main.go
           artifacts:
-            - ohlcv
-
+            - service
       - step: &packing_docker
-          name: build-docker-image
+          name: Build docker image
+          image: serafinlabs/aws-docker
           script:
-            - yum install -y awscli
-            - source global.env
-            - docker build -f Dockerfile -t $ECR_PATH:ohlcv-$VERSION  .
-            - eval $(aws ecr get-login --no-include-email)
-            - docker push $ECR_PATH:ohlcv-$VERSION
+              - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
+              - eval $(aws ecr get-login --no-include-email)
+              - cp ~/.docker/config.json ./config.json && chmod 666 ./config.json
+              - docker run
+                -v $BITBUCKET_CLONE_DIR/config.json:/kaniko/.docker/config.json
+                -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:latest
+                --cache=true
+                --cache-copy-layers
+                --use-new-run
+                --cache-repo="$ECR_PATH"
+                --dockerfile /workspace/Dockerfile
+                --destination "$ECR_PATH:ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER"
+                --destination "$ECR_PATH:ohlcv-$BRANCH"
+                --context dir:///workspace
+      - step: &security_scan
+          name: scan image
+          image: atlassian/default-image:2
+          artifacts:
+            download: false
+          clone:
+            enabled: false
+          services:
+            - docker
+          script:
+            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
+            - pipe: aquasecurity/trivy-pipe:1.0.0
+              variables:
+                imageRef: "$ECR_PATH:ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER"
+                format: table
+                severity: CRITICAL
+                exitCode: "0"
+                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+
 
       - step: &deploy_k8s
           name: deploy k8s
+          deployment: Staging
+          image: ipiton/helm-deployer:latest
+          trigger: 'manual'
+          artifacts:
+            download: false
           script:
-            - curl -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz && yum install -y tar gzip && tar -zxvf helm-v3.7.1-linux-amd64.tar.gz && mv ./linux-amd64/helm ./helm && chmod +x ./helm && rm -rf linux-amd64 && rm helm-v3.7.1-linux-amd64.tar.gz
-            - curl -O https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.10/2019-08-14/bin/linux/amd64/kubectl
-            - chmod +x ./kubectl
-            - source global.env
-            - export -p
-            - cat kubernetes/ohlcv.yaml
-            - ./kubectl apply -f kubernetes/ohlcv.yaml -n $NAMESPACE
+            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
+            - export NAMESPACE=xch-$BRANCH
+            - export LAST_BUILD_TIMESTAMP=`date +%s`
+            - export KAFKA_TOPIC_PREFIX=$BRANCH
             - if [ $BRANCH != "production" ] ; then
-            -   ./helm repo add bitnami https://charts.bitnami.com/bitnami && ./helm repo update
-            -   ./helm upgrade --install mongodb bitnami/mongodb --version 11.1.3 -n $NAMESPACE  --values ./kubernetes/values.yaml --set auth.rootPassword=${MONGODB_ROOT_PASSWORD},auth.username=${MONGODB_USER},auth.password=${MONGODB_PASSWORD},auth.database=${MONGODB_NAME}
+            -   export DEPLOY_MONGODB=true
+            - else
+            -   export DEPLOY_MONGODB=false
             - fi
+            - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
+            - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+            - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
+            - kubectl kustomize . | kubectl apply -n $NAMESPACE -f -
+            - helm dependency build kubernetes/chart
+            - helm upgrade --install -n $NAMESPACE ohlcv kubernetes/chart
+                --set image.name=$ECR_PATH
+                --set image.tag=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+                --set mongodb.enabled=${DEPLOY_MONGODB}
+                --set mongodb.auth.rootPassword=${MONGODB_ROOT_PASSWORD}
+                --set mongodb.auth.username=${MONGODB_USER}
+                --set mongodb.auth.password=${MONGODB_PASSWORD}
+                --set mongodb.auth.database=${MONGODB_NAME}
+
+  branches:
+    production:
+      - step: *building
+      - step: *packing_docker
+      - step: *security_scan
+      - step:
+          name: 'test to Production'
+          script:
+            - echo "Your deployment to staging script goes here..."
+            - if [ $BITBUCKET_BRANCH != "production" ]; then
+            -   echo "$BITBUCKET_BRANCH IS NOT PRODUCTION BRANCH"
+            -   exit 1
+            - else
+            -   echo "deploy"
+            - fi
+      - step:
+          <<: *deploy_k8s
+          deployment: Production
+          trigger: 'manual'
 
     master:
-      - step:
-          name: prepare env
-          script:
-            - yum install -y gettext
-            - export PATH=`pwd`:$PATH
-
-            # Set environment variables
-
-            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-            - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
-            - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-
-            # - export NAMESPACE=xch-$BRANCH
-
-            - export NAMESPACE=xch-master
-            - export STAGE=Staging # ICO-267
-            - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
-            - export KUBECONFIG=kubernetes/staging-cluster.pointpay.io.conf
-
-            - export APP_DEBUG=true
-            - export APP_ENV=staging
-
-            # Set services hostnames
-
-            - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
-            - export EXCHANGE_MARKETS_SERVER_URL=$STAGE_EXCHANGE_MARKETS_SERVER_URL
-            - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
-            - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
-
-            - export MONGODB_URL=$STAGE_MONGODB_URL
-            - export MONGODB_NAME=$STAGING_MONGODB_NAME
-            - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
-
-            - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
-
-            - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-            - export KAFKA_HOST=$STAGING_KAFKA_HOST
-            - export KAFKA_SSL="1"
-            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-
-            - export LOG_LEVEL=$STAGE_LOG_LEVEL
-            - export SERVICE_NAME="ohlcv"
-
-            - cp ./config/deploy.env ./config/.env
-
-            - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
-            - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
-            - cat kubernetes/ohlcv.yaml
-            - export -p > global.env
-          artifacts:
-            - global.env
-            - kubernetes/**
-            - kubernetes/ohlcv.yaml
-            - config/.env
-
       - step: *building
       - step: *packing_docker
-      - step: *deploy_k8s
+      - step: *security_scan
+      - step:
+          <<: *deploy_k8s
+          deployment: Staging-master
+          trigger: automatic
 
     master2:
-      - step:
-          name: prepare env
-          script:
-            - yum install -y gettext
-            - export PATH=`pwd`:$PATH
-            # Set environment variables
-            - export BRANCH=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-            - export BITBUCKET_COMMIT_SHORT=`echo $BITBUCKET_COMMIT | cut -c1-7`
-            - export VERSION=$BRANCH-$BITBUCKET_COMMIT_SHORT
-            #          - export NAMESPACE=xch-$BRANCH
-            - export NAMESPACE=xch-master2
-            - export STAGE=Staging # ICO-267
-            - export LAST_BUILD_TIMESTAMP=`date +%s` # ICO-267
-            - export KUBECONFIG=kubernetes/staging-cluster.pointpay.io.conf
-            - export APP_DEBUG=true
-            - export APP_ENV=staging
-            # Set services hostnames
-            - export EXCHANGE_MARKETS_TOKEN=$STAGE_EXCHANGE_MARKETS_TOKEN
-            - export EXCHANGE_MARKETS_SERVER_URL=$STAGE_EXCHANGE_MARKETS_SERVER_URL
-            - export CENTRIFUGE_HOST=$STAGING_CENTRIFUGE_HOST
-            - export CENTRIFUGE_TOKEN=$STAGING_CENTRIFUGE_TOKEN
-            - export MONGODB_HOST=$STAGING_MONGODB_HOST
-            - export MONGODB_NAME=$MONGODB_NAME
-            - export MONGODB_TIMEOUT=$MONGODB_TIMEOUT #second
-            - export MONGODB_DEAL_COLLECTION_NAME=$MONGODB_DEAL_COLLECTION_NAME
-            - export MONGODB_MINUTE_CANDLE_COLLECTION_NAME=minutes
-            - export MONGODB_AUTH_DB=$MONGODB_NAME
-
-            - export MONGODB_USER=$MONGODB_USER
-            - export MONGODB_PASSWORD=$STAGE_MONGODB_PASSWORD
-            - export MONGODB_ROOT_PASSWORD=$STAGE_MONGODB_ROOT_PASSWORD
-            - export KAFKA_SUBSCRIBER_COUNT=$STAGE_KAFKA_SUBSCRIBER_COUNT
-            - export KAFKA_HOST=$STAGING_KAFKA_HOST
-            - export KAFKA_SSL="1"
-            - export KAFKA_TOPIC_PREFIX=`echo $BITBUCKET_BRANCH | sed 's/./\L&/g' | sed 's/[^a-zA-Z0-9-]/-/'`
-
-            - export LOG_LEVEL=$STAGE_LOG_LEVEL
-            - export SERVICE_NAME="ohlcv"
-
-            - cp ./config/deploy.env ./config/.env
-
-            - declare -a CONFIG_FILES=("$KUBECONFIG" config/.env kubernetes/ohlcv.yaml)
-            - for CONFIG_FILE in ${CONFIG_FILES[@]}; do envsubst < $CONFIG_FILE > /tmp/config && mv /tmp/config $CONFIG_FILE; done
-            - cat kubernetes/ohlcv.yaml
-            - export -p > global.env
-          artifacts:
-            - global.env
-            - kubernetes/**
-            - kubernetes/ohlcv.yaml
-            - config/.env
-
       - step: *building
       - step: *packing_docker
-      - step: *deploy_k8s
-
-  default:
-    - step:
-        name: prepare env
-        script:
-          - echo "Staging pipeline is not implemented yet."
-          - exit 1
+      - step: *security_scan
+      - step:
+          <<: *deploy_k8s
+          deployment: Staging-master2
+          trigger: automatic

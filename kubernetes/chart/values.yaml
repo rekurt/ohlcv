@@ -1,0 +1,35 @@
+fullnameOverride: ""
+nameOverride: ""
+annotations: {}
+image:
+  name: matcher
+  tag: latest
+
+resources:
+  app:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+service_port_http: &service_port_http 8023
+
+service:
+  port: *service_port_http
+  protocol: TCP
+  targetPort: *service_port_http
+
+
+#===== Depend
+mongodb:
+  enabled: false
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: "monitoring"
+      interval: 30s
+      additionalLabels:
+        release: prom-stage

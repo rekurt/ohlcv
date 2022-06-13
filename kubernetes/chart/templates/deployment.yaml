@@ -1,0 +1,51 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}
+  annotations:
+    deploymentTime: {{ now | date "2006-01-02T15:04:05" }}
+  {{ if .Values.annotations}}
+   {{ toYaml .Values.annotations | indent 4}}}}
+  {{- end }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: env-config
+          emptyDir: {}
+      initContainers:
+        - name: create-env-file
+          image: "alpine"
+          volumeMounts:
+            - name: env-config
+              mountPath: /env
+          command:
+            - /bin/sh
+            - -c
+            - "env | sort > /env/.env"
+
+      containers:
+        - name: {{ include "app.fullname" . }}
+          image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          ports:
+            - name: app-port
+              containerPort: {{ .Values.service_port_http }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources.app | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "app.name" . }}-env
+          volumeMounts:
+            - name: env-config
+              mountPath: /app/config
+
