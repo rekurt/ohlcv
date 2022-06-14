@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"os"
 	"os/signal"
@@ -60,7 +61,7 @@ func main() {
 		eventsBroker,
 	)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap)
-	go listenCurrentCandlesUpdates(currentCandles.GetUpdates())
+	go listenCurrentCandlesUpdates(ctx, currentCandles.GetUpdates(), eventsBroker)
 	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
@@ -77,10 +78,20 @@ func main() {
 	return
 }
 
-func listenCurrentCandlesUpdates(updates <-chan domain.Candle) {
-	for range updates {
-		//fmt.Printf("CurrentCandle: %+v\n", update)
-		//TODO send to WebSocket
+func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Candle, eventsBroker *broker.EventsInMemory) {
+	for upd := range updates {
+		charts := []*domain.Chart{
+			{
+				Symbol: upd.Symbol,
+				O:      []primitive.Decimal128{upd.Open},
+				H:      []primitive.Decimal128{upd.High},
+				L:      []primitive.Decimal128{upd.Low},
+				C:      []primitive.Decimal128{upd.Close},
+				V:      []primitive.Decimal128{upd.Volume},
+				T:      []int64{upd.OpenTime.Unix()},
+			},
+		}
+		eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, charts))
 	}
 }
 
