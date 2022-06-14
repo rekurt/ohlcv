@@ -32,7 +32,10 @@ spec:
             - /bin/sh
             - -c
             - "env | sort > /env/.env"
-
+          envFrom:
+            - configMapRef:
+                name: {{ include "app.name" . }}-env
+                
       containers:
         - name: {{ include "app.fullname" . }}
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
@@ -48,4 +51,3 @@ spec:
           volumeMounts:
             - name: env-config
               mountPath: /app/config
-
