@@ -20,7 +20,7 @@ func TestService_AggregateCandleToChartByResolution(t *testing.T) {
 		market := "BTC/USDT"
 		cs := getCandles()
 		chart := s.AggregateCandleToChartByResolution(cs, market, domain.Candle5MResolution, 0)
-		assert.Len(t, chart, 1)
+		assert.Len(t, chart.T, 1)
 	})
 }
 

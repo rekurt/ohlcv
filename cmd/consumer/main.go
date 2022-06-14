@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/common/events/topics"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
-	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
@@ -16,7 +18,6 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -50,7 +51,6 @@ func main() {
 	)
 	// Start consuming, preparing, saving deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
-	dealService.RunConsuming(ctx, consumer, dealsTopic)
 
 	candleService := candle.NewService(
 		&candle.Storage{DealsDbCollection: dealsCollection},
@@ -59,6 +59,9 @@ func main() {
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
+	currentCandles := initCurrentCandles(ctx, candleService, marketsMap)
+	go listenCurrentCandlesUpdates(currentCandles.GetUpdates())
+	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
 
@@ -72,6 +75,38 @@ func main() {
 	server.Stop(ctx)
 
 	return
+}
+
+func listenCurrentCandlesUpdates(updates <-chan domain.Candle) {
+	for range updates {
+		//fmt.Printf("CurrentCandle: %+v\n", update)
+		//TODO send to WebSocket
+	}
+}
+
+func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string) candle.CurrentCandles {
+	candles := candle.NewCurrentCandles(ctx)
+	count := 0
+	started := time.Now()
+	for marketId, marketName := range marketsMap {
+		for _, resolution := range domain.GetAvailableResolutions() {
+			chart, err := service.GetCurrentCandle(ctx, marketName, resolution)
+			if err != nil {
+				log.Fatal("can't GetCurrentCandle to initCurrentCandles:" + err.Error())
+			}
+			currentCandle, err := domain.ChartToCurrentCandle(chart, resolution)
+			if err != nil {
+				log.Fatalf("can't chartToCurrentCandle to initCurrentCandles: %s, chart: %+v", err, chart)
+			}
+			err = candles.AddCandle(marketId, resolution, currentCandle)
+			if err != nil {
+				log.Fatal("can't AddCandle to initCurrentCandles:" + err.Error())
+			}
+			count++
+		}
+	}
+	fmt.Printf("initiated %d candles from MongoDb for %s", count, time.Since(started))
+	return candles
 }
 
 func buildAvailableMarkets(conf infra.Config) map[string]string {

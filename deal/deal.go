@@ -1,6 +1,7 @@
 package deal
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"context"
 	"fmt"
 	"strconv"
@@ -225,11 +226,7 @@ func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
 	return change, priceChangePercent
 }
 
-func (s *Service) RunConsuming(
-	ctx context.Context,
-	consumer pubsub.Subscriber,
-	topic string,
-) {
+func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
 	go func() {
 		err := func() error {
 			return consumer.Consume(
@@ -251,7 +248,12 @@ func (s *Service) RunConsuming(
 							"unmarshal error with protobuf deals msg",
 						)
 					}
-
+					err := currentCandles.AddDeal(dealMessage)
+					if err != nil {
+						logger.FromContext(ctx).
+							WithField("method", "currentCandles.AddDeal in consuming").
+							Errorf(err)
+					}
 					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					} else {
