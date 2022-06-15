@@ -16,7 +16,7 @@ type KafkaConfig struct {
 	Host          string `envconfig:"KAFKA_HOST" required:"true"`
 	ConsumerCount int    `envconfig:"KAFKA_CONSUMER_COUNT" required:"true"`
 	TopicPrefix   string `envconfig:"KAFKA_TOPIC_PREFIX" required:"true" default:"master"`
-	SslFlag       bool   `envconfig:"KAFKA_SSL_FLAG" required:"true" default:"false"`
+	SslFlag       bool   `envconfig:"KAFKA_SSL" required:"true" default:"false"`
 }
 
 type MongoDbConfig struct {
