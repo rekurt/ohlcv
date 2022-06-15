@@ -1,12 +1,11 @@
 package centrifuge
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type broadcaster struct {
@@ -61,14 +60,14 @@ func (b broadcaster) BroadcastCandleCharts(
 
 func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
 	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
-	for marketId := range marketsMap {
+	for marketId, market := range marketsMap {
 		resolutions := domain.GetAvailableResolutions()
 		marketChannels := make(
 			map[string]*domain.ChartChannel,
 			len(resolutions),
 		)
 		for _, resolution := range resolutions {
-			marketChannels[resolution] = NewChartChannel(marketId, resolution)
+			marketChannels[resolution] = NewChartChannel(market, resolution)
 		}
 		c[marketId] = marketChannels
 	}
