@@ -60,7 +60,7 @@ func (b broadcaster) BroadcastCandleCharts(
 
 func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
 	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
-	for marketId, market := range marketsMap {
+	for _, market := range marketsMap {
 		resolutions := domain.GetAvailableResolutions()
 		marketChannels := make(
 			map[string]*domain.ChartChannel,
@@ -69,7 +69,7 @@ func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*doma
 		for _, resolution := range resolutions {
 			marketChannels[resolution] = NewChartChannel(market, resolution)
 		}
-		c[marketId] = marketChannels
+		c[market] = marketChannels
 	}
 	return c
 }
