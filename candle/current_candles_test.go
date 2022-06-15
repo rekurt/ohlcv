@@ -40,8 +40,8 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		timeNow = func() time.Time {
 			return now
 		}
-		candles := NewCurrentCandles(context.Background()).(*currentCandles)
-		updates := candles.GetUpdates()
+		updatesStream := make(chan domain.Candle, 512)
+		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
@@ -54,8 +54,8 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			}
 		}
 		//2 new candles after init
-		require.Len(t, updates, 2)
-		candle, ok := <-updates
+		require.Len(t, updatesStream, 2)
+		candle, ok := <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -64,7 +64,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -80,9 +80,9 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Amount:    "14.9",
 		}))
 		//both candles are updated
-		require.Len(t, updates, 4, "two empty old and two new with the deal")
+		require.Len(t, updatesStream, 4, "two empty old and two new with the deal")
 		//old empty minute candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -91,7 +91,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//new minute candle with the deal
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -105,7 +105,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//old empty hour candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -114,7 +114,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
 		//new hour candle with the deal
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -131,8 +131,8 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
 		candles.refreshAll()
 		//the minute candle is closed, but hour candle is not closed
-		require.Len(t, updates, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
-		candle, ok = <-updates
+		require.Len(t, updatesStream, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -146,7 +146,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//new minute candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -154,15 +154,15 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
 			}, candle)
-		require.Len(t, updates, 0)
+		require.Len(t, updatesStream, 0)
 	})
 	t.Run("1 market 2 deal 1 resolutions", func(t *testing.T) {
 		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
 		timeNow = func() time.Time {
 			return now
 		}
-		candles := NewCurrentCandles(context.Background()).(*currentCandles)
-		updates := candles.GetUpdates()
+		updatesStream := make(chan domain.Candle, 512)
+		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution} {
@@ -175,8 +175,8 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			}
 		}
 		//1 new candles after init
-		require.Len(t, updates, 1)
-		candle, ok := <-updates
+		require.Len(t, updatesStream, 1)
+		candle, ok := <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -192,9 +192,9 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Amount:    "14.9",
 		}))
 		//minute candle is updated
-		require.Len(t, updates, 2)
+		require.Len(t, updatesStream, 2)
 		//old empty minute candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -203,7 +203,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//new minute candle with the deal
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -223,9 +223,9 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Price:     "0.013",
 			Amount:    "1.9",
 		}))
-		require.Len(t, updates, 2)
+		require.Len(t, updatesStream, 2)
 		//old minute candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -239,7 +239,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//new minute candle
-		candle, ok = <-updates
+		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
@@ -252,7 +252,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
-		require.Len(t, updates, 0)
+		require.Len(t, updatesStream, 0)
 		//make miss deal with a non-existent market
 		require.NoError(t, candles.AddDeal(matcher.Deal{
 			Market:    "ETH/CRONA",
@@ -261,7 +261,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Amount:    "1.9",
 		}))
 		//no updates
-		require.Len(t, updates, 0)
+		require.Len(t, updatesStream, 0)
 	})
 
 }
@@ -277,13 +277,14 @@ Output:
 func Test_everyMinute_manual(t *testing.T) {
 	t.Skip()
 	t.Run("regular", func(t *testing.T) {
-		_ = NewCurrentCandles(context.Background())
+		_ = NewCurrentCandles(context.Background(), nil)
 		select {}
 	})
 }
 
 func Test_concurrent(t *testing.T) {
-	candles := NewCurrentCandles(context.Background())
+	updatesStream := make(chan domain.Candle, 512)
+	candles := NewCurrentCandles(context.Background(), updatesStream)
 	markets := []string{"market1", "market2", "market3"}
 	for _, market := range markets {
 		for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution, domain.Candle15MResolution} {
@@ -297,7 +298,7 @@ func Test_concurrent(t *testing.T) {
 		}
 	}
 	go func() {
-		for range candles.GetUpdates() {
+		for range updatesStream {
 
 		}
 	}()

@@ -14,7 +14,6 @@ import (
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
 	AddCandle(market, resolution string, candle domain.Candle) error
-	GetUpdates() <-chan domain.Candle
 }
 
 var timeNow = func() time.Time {
@@ -28,9 +27,9 @@ type currentCandles struct {
 	aggregator    Aggregator
 }
 
-func NewCurrentCandles(ctx context.Context) CurrentCandles {
+func NewCurrentCandles(ctx context.Context, updatesStream chan domain.Candle) CurrentCandles {
 	cc := &currentCandles{
-		updatesStream: make(chan domain.Candle, 512),
+		updatesStream: updatesStream,
 		candles:       map[string]map[string]*domain.Candle{},
 		aggregator:    Aggregator{},
 	}
@@ -162,8 +161,4 @@ func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error
 		candle.Low = dealPrice
 	}
 	return candle, nil
-}
-
-func (c *currentCandles) GetUpdates() <-chan domain.Candle {
-	return c.updatesStream
 }
