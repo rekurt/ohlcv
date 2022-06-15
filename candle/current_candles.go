@@ -122,9 +122,10 @@ func (c *currentCandles) getFreshCandle(market, resolution string) domain.Candle
 func (c *currentCandles) buildFreshCandle(market, resolution string) domain.Candle {
 	openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
 	return domain.Candle{
-		Symbol:    market,
-		OpenTime:  openTime,
-		CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+		Symbol:     market,
+		Resolution: resolution,
+		OpenTime:   openTime,
+		CloseTime:  openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
 	}
 }
 

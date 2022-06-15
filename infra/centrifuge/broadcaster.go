@@ -39,7 +39,7 @@ func (b broadcaster) BroadcastCandleCharts(
 	messages := make([]MessageData, 0)
 
 	for _, chart := range cht {
-		channel := b.Channels[chart.Market()][chart.Resolution()]
+		channel := b.Channels[chart.Symbol][chart.Resolution]
 		payload, _ := json.Marshal(chart)
 		messages = append(
 			messages, MessageData{
@@ -61,16 +61,16 @@ func (b broadcaster) BroadcastCandleCharts(
 
 func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
 	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
-	for _, market := range marketsMap {
+	for marketId := range marketsMap {
 		resolutions := domain.GetAvailableResolutions()
 		marketChannels := make(
 			map[string]*domain.ChartChannel,
 			len(resolutions),
 		)
 		for _, resolution := range resolutions {
-			marketChannels[resolution] = NewChartChannel(market, resolution)
+			marketChannels[resolution] = NewChartChannel(marketId, resolution)
 		}
-		c[market] = marketChannels
+		c[marketId] = marketChannels
 	}
 	return c
 }
