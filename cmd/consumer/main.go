@@ -60,8 +60,9 @@ func main() {
 		domain.GetAvailableResolutions(),
 		eventsBroker,
 	)
-	currentCandles := initCurrentCandles(ctx, candleService, marketsMap)
-	go listenCurrentCandlesUpdates(ctx, currentCandles.GetUpdates(), eventsBroker)
+	updatesStream := make(chan domain.Candle, 512)
+	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
+	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker)
 	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
@@ -95,8 +96,8 @@ func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Cand
 	}
 }
 
-func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string) candle.CurrentCandles {
-	candles := candle.NewCurrentCandles(ctx)
+func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string, updatesStream chan domain.Candle) candle.CurrentCandles {
+	candles := candle.NewCurrentCandles(ctx, updatesStream)
 	count := 0
 	started := time.Now()
 	for marketId, marketName := range marketsMap {
@@ -116,7 +117,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 			count++
 		}
 	}
-	fmt.Printf("initiated %d candles from MongoDb for %s", count, time.Since(started))
+	log.Printf("initiated %d candles from MongoDb for %s\n", count, time.Since(started))
 	return candles
 }
 
