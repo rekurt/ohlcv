@@ -83,13 +83,14 @@ func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Cand
 	for upd := range updates {
 		charts := []*domain.Chart{
 			{
-				Symbol: upd.Symbol,
-				O:      []primitive.Decimal128{upd.Open},
-				H:      []primitive.Decimal128{upd.High},
-				L:      []primitive.Decimal128{upd.Low},
-				C:      []primitive.Decimal128{upd.Close},
-				V:      []primitive.Decimal128{upd.Volume},
-				T:      []int64{upd.OpenTime.Unix()},
+				Symbol:     upd.Symbol,
+				Resolution: upd.Resolution,
+				O:          []primitive.Decimal128{upd.Open},
+				H:          []primitive.Decimal128{upd.High},
+				L:          []primitive.Decimal128{upd.Low},
+				C:          []primitive.Decimal128{upd.Close},
+				V:          []primitive.Decimal128{upd.Volume},
+				T:          []int64{upd.OpenTime.Unix()},
 			},
 		}
 		eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, charts))

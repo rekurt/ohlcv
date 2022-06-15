@@ -17,7 +17,7 @@ func TestChartToCurrentCandle(t *testing.T) {
 	t.Run("one-sized", func(t *testing.T) {
 		candle, err := ChartToCurrentCandle(&Chart{
 			Symbol:     "0b2xJe",
-			resolution: Candle1HResolution,
+			Resolution: Candle1HResolution,
 			O:          []primitive.Decimal128{mustParseDecimal128(t, "680.99")},
 			H:          []primitive.Decimal128{mustParseDecimal128(t, "270.27")},
 			L:          []primitive.Decimal128{mustParseDecimal128(t, "939.21")},
@@ -40,7 +40,7 @@ func TestChartToCurrentCandle(t *testing.T) {
 	t.Run("3-sized", func(t *testing.T) {
 		candle, err := ChartToCurrentCandle(&Chart{
 			Symbol:     "0b2xJe",
-			resolution: Candle1HResolution,
+			Resolution: Candle1HResolution,
 			O:          []primitive.Decimal128{mustParseDecimal128(t, "471.16"), mustParseDecimal128(t, "574.92"), mustParseDecimal128(t, "84.67")},
 			H:          []primitive.Decimal128{mustParseDecimal128(t, "503.07"), mustParseDecimal128(t, "313.81"), mustParseDecimal128(t, "163.13")},
 			L:          []primitive.Decimal128{mustParseDecimal128(t, "750.71"), mustParseDecimal128(t, "451.69"), mustParseDecimal128(t, "816.42")},
