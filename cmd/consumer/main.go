@@ -61,7 +61,7 @@ func main() {
 		eventsBroker,
 	)
 	updatesStream := make(chan domain.Candle, 512)
-	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker)
+	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
@@ -79,11 +79,15 @@ func main() {
 	return
 }
 
-func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Candle, eventsBroker *broker.EventsInMemory) {
+func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Candle, eventsBroker *broker.EventsInMemory, marketsMap map[string]string) {
 	for upd := range updates {
+		symbol := marketsMap[upd.Symbol]
+		if symbol == "" {
+			symbol = upd.Symbol
+		}
 		charts := []*domain.Chart{
 			{
-				Symbol:     upd.Symbol,
+				Symbol:     symbol,
 				Resolution: upd.Resolution,
 				O:          []primitive.Decimal128{upd.Open},
 				H:          []primitive.Decimal128{upd.High},
