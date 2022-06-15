@@ -61,8 +61,8 @@ func main() {
 		eventsBroker,
 	)
 	updatesStream := make(chan domain.Candle, 512)
-	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker)
+	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 	candleService.CronCandleGenerationStart(ctx)
 	candleService.SubscribeForDeals()
