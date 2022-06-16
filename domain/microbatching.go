@@ -25,7 +25,7 @@ func Microbatching(ctx context.Context, chartStream chan *Chart, maxBatchSize in
 						return
 					case chart, ok := <-chartStream:
 						if !ok {
-							return
+							break loop
 						}
 						batch = append(batch, chart)
 					case <-time.After(time.Second * 2):
