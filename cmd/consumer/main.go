@@ -80,24 +80,39 @@ func main() {
 }
 
 func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Candle, eventsBroker *broker.EventsInMemory, marketsMap map[string]string) {
+	chartStream := make(chan *domain.Chart)
+	defer close(chartStream)
+	batchStream := domain.Microbatching(ctx, chartStream, 10)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case batch := <-batchStream:
+				eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, batch))
+			}
+		}
+	}()
 	for upd := range updates {
 		symbol := marketsMap[upd.Symbol]
 		if symbol == "" {
 			symbol = upd.Symbol
 		}
-		charts := []*domain.Chart{
-			{
-				Symbol:     symbol,
-				Resolution: upd.Resolution,
-				O:          []primitive.Decimal128{upd.Open},
-				H:          []primitive.Decimal128{upd.High},
-				L:          []primitive.Decimal128{upd.Low},
-				C:          []primitive.Decimal128{upd.Close},
-				V:          []primitive.Decimal128{upd.Volume},
-				T:          []int64{upd.OpenTime.Unix()},
-			},
+		chart := domain.Chart{
+			Symbol:     symbol,
+			Resolution: upd.Resolution,
+			O:          []primitive.Decimal128{upd.Open},
+			H:          []primitive.Decimal128{upd.High},
+			L:          []primitive.Decimal128{upd.Low},
+			C:          []primitive.Decimal128{upd.Close},
+			V:          []primitive.Decimal128{upd.Volume},
+			T:          []int64{upd.OpenTime.Unix()},
 		}
-		eventsBroker.Publish(domain.EvTypeCharts, domain.NewEvent(ctx, charts))
+		select {
+		case <-ctx.Done():
+			return
+		case chartStream <- &chart:
+		}
 	}
 }
 
