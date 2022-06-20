@@ -2,6 +2,7 @@ package main
 
 import (
 	"bitbucket.org/novatechnologies/common/events/topics"
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"context"
 	"fmt"
@@ -118,6 +119,7 @@ func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Cand
 
 func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string, updatesStream chan domain.Candle) candle.CurrentCandles {
 	candles := candle.NewCurrentCandles(ctx, updatesStream)
+	var keys []string
 	count := 0
 	started := time.Now()
 	for marketId, marketName := range marketsMap {
@@ -134,10 +136,16 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 			if err != nil {
 				log.Fatal("can't AddCandle to initCurrentCandles:" + err.Error())
 			}
+			keys = append(keys, marketId+"-"+resolution)
 			count++
 		}
 	}
-	log.Printf("initiated %d candles from MongoDb for %s\n", count, time.Since(started))
+	logger.FromContext(ctx).
+		WithField("count", count).
+		WithField("elapsed", time.Since(started).String()).
+		WithField("keys", keys).
+		Infof("initiated %candles from MongoDb")
+	os.Exit(0)
 	return candles
 }
 
