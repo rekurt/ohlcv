@@ -144,8 +144,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 		WithField("count", count).
 		WithField("elapsed", time.Since(started).String()).
 		WithField("keys", keys).
-		Infof("initiated %candles from MongoDb")
-	os.Exit(0)
+		Infof("initiated candles from MongoDb")
 	return candles
 }
 
