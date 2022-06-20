@@ -71,3 +71,76 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 	require.NoError(t, err)
 	return decimal128
 }
+
+func TestCandle_ContainsTs(t *testing.T) {
+	type fields struct {
+		Symbol     string
+		Resolution string
+		Open       primitive.Decimal128
+		High       primitive.Decimal128
+		Low        primitive.Decimal128
+		Close      primitive.Decimal128
+		Volume     primitive.Decimal128
+		OpenTime   time.Time
+		CloseTime  time.Time
+	}
+	type args struct {
+		nano int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name: "contains",
+			fields: fields{
+				OpenTime:  time.Date(2019, 1, 25, 14, 10, 0, 0, time.UTC),
+				CloseTime: time.Date(2021, 1, 25, 14, 10, 0, 0, time.UTC),
+			},
+			args: args{
+				time.Date(2020, 1, 25, 14, 10, 0, 0, time.UTC).UnixNano(),
+			},
+			want: true,
+		},
+		{
+			name: "before",
+			fields: fields{
+				OpenTime:  time.Date(2019, 1, 25, 14, 10, 0, 0, time.UTC),
+				CloseTime: time.Date(2021, 1, 25, 14, 10, 0, 0, time.UTC),
+			},
+			args: args{
+				time.Date(2019, 1, 24, 14, 10, 0, 0, time.UTC).UnixNano(),
+			},
+			want: false,
+		},
+		{
+			name: "after",
+			fields: fields{
+				OpenTime:  time.Date(2019, 1, 25, 14, 10, 0, 0, time.UTC),
+				CloseTime: time.Date(2021, 1, 25, 14, 10, 0, 0, time.UTC),
+			},
+			args: args{
+				time.Date(2021, 1, 25, 14, 10, 0, 1, time.UTC).UnixNano(),
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := Candle{
+				Symbol:     tt.fields.Symbol,
+				Resolution: tt.fields.Resolution,
+				Open:       tt.fields.Open,
+				High:       tt.fields.High,
+				Low:        tt.fields.Low,
+				Close:      tt.fields.Close,
+				Volume:     tt.fields.Volume,
+				OpenTime:   tt.fields.OpenTime,
+				CloseTime:  tt.fields.CloseTime,
+			}
+			assert.Equalf(t, tt.want, c.ContainsTs(tt.args.nano), "ContainsTs(%v)", tt.args.nano)
+		})
+	}
+}

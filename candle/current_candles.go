@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
@@ -25,6 +26,7 @@ type currentCandles struct {
 	candlesLock   sync.Mutex
 	candles       map[string]map[string]*domain.Candle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
 	aggregator    Aggregator
+	lgr           logger.Logger
 }
 
 func NewCurrentCandles(ctx context.Context, updatesStream chan domain.Candle) CurrentCandles {
@@ -32,6 +34,7 @@ func NewCurrentCandles(ctx context.Context, updatesStream chan domain.Candle) Cu
 		updatesStream: updatesStream,
 		candles:       map[string]map[string]*domain.Candle{},
 		aggregator:    Aggregator{},
+		lgr:           logger.FromContext(ctx),
 	}
 	go func() {
 		<-ctx.Done()
@@ -72,7 +75,11 @@ func (c *currentCandles) AddCandle(market, resolution string, candle domain.Cand
 func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
-	for resolution := range c.candles[deal.Market] {
+	resolutions := c.candles[deal.Market]
+	if len(resolutions) == 0 {
+		c.lgr.WithField("m", deal.Market).Infof("absent currentCandle")
+	}
+	for resolution := range resolutions {
 		currentCandle := c.getFreshCandle(deal.Market, resolution)
 		if !currentCandle.ContainsTs(deal.CreatedAt) {
 			continue
