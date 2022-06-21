@@ -5,7 +5,6 @@ import "context"
 type EventType = string
 
 const (
-	EvTypeDeals  = "trades"
 	EvTypeCharts = "charts"
 )
 
