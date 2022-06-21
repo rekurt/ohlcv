@@ -157,6 +157,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 		},
 	}
 	aggregateOptions := options.Aggregate()
+	aggregateOptions.SetAllowDiskUse(true)
 	deadline, ok := ctx.Deadline()
 	if ok {
 		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
