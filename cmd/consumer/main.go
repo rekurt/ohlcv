@@ -46,27 +46,15 @@ func main() {
 		conf.MongoDbConfig,
 	)
 
-	dealService := deal.NewService(
-		dealsCollection,
-		marketsMap,
-		eventsBroker,
-	)
+	dealService := deal.NewService(dealsCollection, marketsMap)
 	// Start consuming, preparing, saving deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
-	candleService := candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Aggregator),
-		marketsMap,
-		domain.GetAvailableResolutions(),
-		eventsBroker,
-	)
+	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
-	candleService.CronCandleGenerationStart(ctx)
-	candleService.SubscribeForDeals()
 
 	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)

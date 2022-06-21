@@ -31,18 +31,12 @@ func TopicName(prefix string) string {
 type Service struct {
 	DbCollection *mongo.Collection
 	Markets      map[string]string
-	eventManager domain.EventsBroker
 }
 
-func NewService(
-	dbCollection *mongo.Collection,
-	markets map[string]string,
-	eventPublisher domain.EventsBroker,
-) *Service {
+func NewService(dbCollection *mongo.Collection, markets map[string]string) *Service {
 	return &Service{
 		DbCollection: dbCollection,
 		Markets:      markets,
-		eventManager: eventPublisher,
 	}
 }
 
@@ -87,7 +81,6 @@ func (s *Service) SaveDeal(
 	}
 	var deals = make([]*domain.Deal, 1)
 	deals[0] = deal
-	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deals))
 
 	return deal, nil
 }
@@ -256,14 +249,6 @@ func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, 
 					}
 					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
-					} else {
-
-						var deals = make([]*domain.Deal, 1)
-						deals[0] = deal
-						s.eventManager.Publish(
-							domain.EvTypeDeals,
-							domain.NewEvent(ctx, deals),
-						)
 					}
 					return nil
 				},
