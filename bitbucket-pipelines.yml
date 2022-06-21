@@ -85,7 +85,7 @@ pipelines:
             -   export DEPLOY_MONGODB=false
             - fi
             - echo $OHLCV_BRANCH
-            - if [ -n $OHLCV_BRANCH ]; then
+            - if [ $OHLCV_BRANCH !="" ]; then
             -    echo "$OHLCV_BRANCH - not empty"
             -    export NAMESPACE=xch-$OHLCV_BRANCH
             -    export TAG=ohclv-$(aws ecr describe-images --repository-name ohclv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
