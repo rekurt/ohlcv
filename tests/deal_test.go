@@ -67,11 +67,7 @@ func TestSaveDeal(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	dealService := deal.NewService(
-		dealCollection,
-		getTestMarkets(),
-		broker.NewInMemory(),
-	)
+	dealService := deal.NewService(dealCollection, getTestMarkets())
 	market := "BTC-USDT"
 
 	d1 := &matcher.Deal{
@@ -143,13 +139,7 @@ func initCandleService(
 	broadcaster := centrifuge.NewBroadcaster(centrifuge.NewPublisher(conf.CentrifugeConfig), eventsBroker, nil)
 	broadcaster.SubscribeForCharts()
 
-	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Aggregator),
-		GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		broker.NewInMemory(),
-	)
+	return candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), broker.NewInMemory())
 }
 
 func TestDealGenerator(t *testing.T) {
@@ -165,14 +155,8 @@ func TestDealGenerator(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(
-		dealCollection,
-		GetAvailableMarkets(),
-		eventsBroker,
-	)
+	dealService := deal.NewService(dealCollection, GetAvailableMarkets())
 	candleService := InitCandleService(conf, dealCollection, eventsBroker)
-
-	candleService.CronCandleGenerationStart(ctx)
 
 	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)
@@ -202,7 +186,7 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	service := deal.NewService(dealCollection, getTestMarkets(), broker.NewInMemory())
+	service := deal.NewService(dealCollection, getTestMarkets())
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancelFunc()
 	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
@@ -226,11 +210,7 @@ func Test_GetLastTrades(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(
-		dealCollection,
-		getTestMarkets(),
-		broker.NewInMemory(),
-	)
+	dealService := deal.NewService(dealCollection, getTestMarkets())
 	trades, err := dealService.GetLastTrades(ctx, "ETH/LTC", 10)
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)

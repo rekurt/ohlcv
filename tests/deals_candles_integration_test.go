@@ -213,20 +213,10 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 
 	// Deals service setup
 	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
-	suite.deals = deal.NewService(
-		dealsCollection,
-		GetAvailableMarkets(),
-		eventsBroker,
-	)
+	suite.deals = deal.NewService(dealsCollection, GetAvailableMarkets())
 
 	// Candles service setup
-	suite.candles = candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Aggregator),
-		GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		eventsBroker,
-	)
+	suite.candles = candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
 
 	// WS publisher and broadcaster of the market data setup
 	suite.wsPub = cfge.NewPublisher(conf.CentrifugeConfig)
@@ -390,13 +380,7 @@ func Test_GetCurrentCandle_manual(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	service := candle.NewService(
-		&candle.Storage{DealsDbCollection: dealCollection},
-		new(candle.Aggregator),
-		GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		broker.NewInMemory(),
-	)
+	service := candle.NewService(&candle.Storage{DealsDbCollection: dealCollection}, new(candle.Aggregator), broker.NewInMemory())
 
 	chart, err := service.GetCurrentCandle(context.Background(), "ETH/LTC", domain.Candle15MResolution)
 	require.NoError(t, err)
