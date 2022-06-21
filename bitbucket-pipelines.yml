@@ -44,7 +44,7 @@ pipelines:
                 --cache-repo="$ECR_PATH"
                 --dockerfile /workspace/Dockerfile
                 --destination "$ECR_PATH:ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER"
-                --destination "$ECR_PATH:ohlcv-$BRANCH"
+                --destination "$ECR_PATH:ohlcv-$BRANCH-latest"
                 --context dir:///workspace
       - step: &security_scan
           name: scan image
@@ -84,6 +84,14 @@ pipelines:
             - else
             -   export DEPLOY_MONGODB=false
             - fi
+            - if [ -n $OHLCV_BRANCH ]; then
+            -    export NAMESPACE=xch-$OHLCV_BRANCH
+            -    export TAG=ohclv-$(aws ecr describe-images --repository-name ohclv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
+            -    if [ -z $TAG ]; export TAG=ohclv-master-latest; then ; fi
+            - else
+            -    export NAMESPACE=xch-$BRANCH
+            -    export TAG=ohclv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
             - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
@@ -91,7 +99,7 @@ pipelines:
             - helm dependency build kubernetes/chart
             - helm upgrade --install -n $NAMESPACE ohlcv kubernetes/chart
                 --set image.name=$ECR_PATH
-                --set image.tag=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+                --set image.tag=$TAG
                 --set mongodb.enabled=${DEPLOY_MONGODB}
                 --set mongodb.auth.rootPassword=${MONGODB_ROOT_PASSWORD}
                 --set mongodb.auth.username=${MONGODB_USER}
@@ -134,4 +142,10 @@ pipelines:
       - step:
           <<: *deploy_k8s
           deployment: Staging-master2
+          trigger: automatic
+
+  custom:
+    stage_ohclv_deploy: # triggered by exchange repo  #ohclv option
+      - step:
+          <<: *deploy_k8s
           trigger: automatic
