@@ -107,7 +107,6 @@ func listenCurrentCandlesUpdates(ctx context.Context, updates <-chan domain.Cand
 
 func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap map[string]string, updatesStream chan domain.Candle) candle.CurrentCandles {
 	candles := candle.NewCurrentCandles(ctx, updatesStream)
-	var keys []string
 	count := 0
 	started := time.Now()
 	for marketId, marketName := range marketsMap {
@@ -124,14 +123,12 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 			if err != nil {
 				log.Fatal("can't AddCandle to initCurrentCandles:" + err.Error())
 			}
-			keys = append(keys, marketId+"-"+resolution)
 			count++
 		}
 	}
 	logger.FromContext(ctx).
 		WithField("count", count).
 		WithField("elapsed", time.Since(started).String()).
-		WithField("keys", keys).
 		Infof("initiated candles from MongoDb")
 	return candles
 }
