@@ -84,11 +84,13 @@ pipelines:
             - else
             -   export DEPLOY_MONGODB=false
             - fi
-            - if [ -n $OHLCV_BRANCH ]; then
+            - if [ $OHLCV_BRANCH != "" ]; then
+            -    echo "$OHLCV_BRANCH - not empty"
             -    export NAMESPACE=xch-$OHLCV_BRANCH
             -    export TAG=ohclv-$(aws ecr describe-images --repository-name ohclv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
-            -    if [ -z $TAG ]; export TAG=ohclv-master-latest; then ; fi
+            -    if [ -z $TAG ]; then export TAG=ohclv-master-latest; fi
             - else
+            -    echo "$OHLCV_BRANCH - empty"
             -    export NAMESPACE=xch-$BRANCH
             -    export TAG=ohclv-$BRANCH-$BITBUCKET_BUILD_NUMBER
             - fi
