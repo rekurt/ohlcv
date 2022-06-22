@@ -87,12 +87,12 @@ pipelines:
             - if [ $OHLCV_BRANCH != "" ]; then
             -    echo "$OHLCV_BRANCH - not empty"
             -    export NAMESPACE=xch-$OHLCV_BRANCH
-            -    export TAG=ohclv-$(aws ecr describe-images --repository-name ohclv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
-            -    if [ -z $TAG ]; then export TAG=ohclv-master-latest; fi
+            -    export TAG=ohlcv-$(aws ecr describe-images --repository-name ohlcv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
+            -    if [ -z $TAG ]; then export TAG=ohlcv-master-latest; fi
             - else
             -    echo "$OHLCV_BRANCH - empty"
             -    export NAMESPACE=xch-$BRANCH
-            -    export TAG=ohclv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            -    export TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
             - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
@@ -147,7 +147,7 @@ pipelines:
           trigger: automatic
 
   custom:
-    stage_ohclv_deploy: # triggered by exchange repo  #ohclv option
+    stage_ohlcv_deploy: # triggered by exchange repo  #ohlcv option
       - step:
           <<: *deploy_k8s
           trigger: automatic
