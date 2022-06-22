@@ -10,6 +10,7 @@
 package openapi
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"context"
 	"strings"
 	"time"
@@ -43,6 +44,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 
 	trades, err := s.dealService.GetLastTrades(ctx, symbol, limit)
 	if err != nil {
+		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetLastTrades error")
 		return Response(500, RespError{}), nil
 	}
 	return Response(200, convertDeals(trades)), nil
@@ -51,6 +53,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string) (ImplResponse, error) {
 	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
 	if err != nil {
+		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
 		return Response(500, RespError{}), nil
 	}
 	return Response(200, convertStatistics(statistics)), nil
@@ -103,7 +106,8 @@ func convertDeals(tr []domain.Deal) []Trade {
 func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
 	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
 	if err != nil {
-		return Response(500, RespError{Msg: "dealService.GetTickerPriceChangeStatistics:" + err.Error()}), nil
+		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
+		return Response(500, RespError{}), nil
 	}
 	markets, err := s.marketClient.List(ctx)
 	if err != nil {
