@@ -1,6 +1,5 @@
-FROM alpine:3.15 as release
+# copy to alpine image
+FROM alpine
 WORKDIR /app
-COPY ohlcv .
-COPY ./config/.env ./config/.env
-
-CMD ["/app/ohlcv"]
+COPY ./service /app/service
+CMD ["/app/service"]

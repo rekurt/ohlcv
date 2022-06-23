@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -8,18 +9,24 @@ import (
 )
 
 type Candle struct {
-	Symbol    string               `json:"symbol"`
-	Open      primitive.Decimal128 `json:"o"`
-	High      primitive.Decimal128 `json:"h"`
-	Low       primitive.Decimal128 `json:"l"`
-	Close     primitive.Decimal128 `json:"c"`
-	Volume    primitive.Decimal128 `json:"v"`
-	Timestamp time.Time            `json:"t"`
+	Symbol     string `json:"symbol"`
+	Resolution string
+	Open       primitive.Decimal128 `json:"o"`
+	High       primitive.Decimal128 `json:"h"`
+	Low        primitive.Decimal128 `json:"l"`
+	Close      primitive.Decimal128 `json:"c"`
+	Volume     primitive.Decimal128 `json:"v"`
+	OpenTime   time.Time            `json:"t"`
+	CloseTime  time.Time
+}
+
+func (c Candle) ContainsTs(nano int64) bool {
+	return c.OpenTime.UnixNano() <= nano && c.CloseTime.UnixNano() > nano
 }
 
 type Chart struct {
 	Symbol     string `json:"symbol"`
-	resolution string
+	Resolution string
 	O          []primitive.Decimal128 `json:"o"`
 	H          []primitive.Decimal128 `json:"h"`
 	L          []primitive.Decimal128 `json:"l"`
@@ -39,16 +46,8 @@ type ChartResponse struct {
 	T          []int64   `json:"t"`
 }
 
-func (c *Chart) Resolution() string {
-	return c.resolution
-}
-
 func (c *Chart) SetResolution(resolution string) {
-	c.resolution = resolution
-}
-
-func (c *Chart) Market() string {
-	return c.Symbol
+	c.Resolution = resolution
 }
 
 func (c *Chart) SetMarket(market string) {
@@ -88,4 +87,40 @@ func MakeChartResponse(market string, chart *Chart) ChartResponse {
 	}
 
 	return r
+}
+
+func ChartToCurrentCandle(chart *Chart, resolution string) (Candle, error) {
+	if chart == nil {
+		return Candle{}, nil
+	}
+	if len(chart.O) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.O))
+	}
+	if len(chart.H) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.H))
+	}
+	if len(chart.L) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.L))
+	}
+	if len(chart.C) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.C))
+	}
+	if len(chart.V) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.V))
+	}
+	if len(chart.T) == 0 {
+		return Candle{}, fmt.Errorf("unexpected len of chart: %d", len(chart.T))
+	}
+	openTime := time.Unix(chart.T[len(chart.T)-1], 0).UTC()
+	return Candle{
+		Symbol:     chart.Symbol,
+		Resolution: chart.Resolution,
+		Open:       chart.O[len(chart.O)-1],
+		High:       chart.H[len(chart.H)-1],
+		Low:        chart.L[len(chart.L)-1],
+		Close:      chart.C[len(chart.C)-1],
+		Volume:     chart.V[len(chart.V)-1],
+		OpenTime:   openTime,
+		CloseTime:  openTime.Add(StrResolutionToDuration(resolution)).UTC(),
+	}, nil
 }

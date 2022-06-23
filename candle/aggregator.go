@@ -11,9 +11,9 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-type Agregator struct{}
+type Aggregator struct{}
 
-func (s Agregator) AggregateCandleToChartByResolution(
+func (s Aggregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
 	resolution string,
@@ -39,32 +39,28 @@ func (s Agregator) AggregateCandleToChartByResolution(
 		chart = s.aggregateMinCandlesToChart(candles, market, 15, count)
 	case domain.Candle30MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
-	case domain.Candle1HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle1H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 1, count)
-	case domain.Candle2HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle2H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 2, count)
-	case domain.Candle4HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle4H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 4, count)
-	case domain.Candle6HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle6H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 6, count)
-	case domain.Candle12HResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
-	case domain.Candle12H2Resolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 12, count)
+	case domain.Candle1HResolution,
+		domain.Candle1H2Resolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 1)
+	case domain.Candle2HResolution,
+		domain.Candle2H2Resolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 2)
+	case domain.Candle4HResolution,
+		domain.Candle4H2Resolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 4)
+	case domain.Candle6HResolution,
+		domain.Candle6H2Resolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 6)
+	case domain.Candle12HResolution,
+		domain.Candle12H2Resolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 12)
 	case domain.Candle1DResolution:
-		chart = s.aggregateHoursCandlesToChart(candles, market, 24, count)
-	case domain.Candle1MHResolution:
+		chart = s.aggregateHoursCandlesToChart(candles, 24)
+	case domain.Candle1MHResolution,
+		domain.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
-	case domain.Candle1MH2Resolution:
-		chart = s.aggregateMonthCandlesToChart(candles, market, count)
+	case domain.Candle1WResolution:
+		chart = s.aggregateWeekCandlesToChart(candles)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
@@ -80,7 +76,7 @@ func (s Agregator) AggregateCandleToChartByResolution(
 	return chart
 }
 
-func (s Agregator) aggregateMinCandlesToChart(
+func (s Aggregator) aggregateMinCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	minute int,
@@ -96,10 +92,10 @@ func (s Agregator) aggregateMinCandlesToChart(
 	currentTs := now.Add(time.Duration(now.Minute()%minute) * -time.Minute).Unix()
 	for _, candle := range candles {
 		var comparedCandle *domain.Candle
-		min = int(int64(candle.Timestamp.Minute()))
+		min = int(int64(candle.OpenTime.Minute()))
 		mod = min % minute
 		mul = time.Duration(mod) * -time.Minute
-		timestamp = candle.Timestamp.Add(mul).Unix()
+		timestamp = candle.OpenTime.Add(mul).Unix()
 		c := result[timestamp]
 
 		if c != nil {
@@ -119,12 +115,12 @@ func (s Agregator) aggregateMinCandlesToChart(
 	return chart
 }
 
-func (s Agregator) compare(
+func (s Aggregator) compare(
 	c *domain.Candle,
 	candle *domain.Candle,
 ) *domain.Candle {
 	comparedCandle := &domain.Candle{}
-	if c.Timestamp.Unix() < candle.Timestamp.Unix() {
+	if c.OpenTime.Unix() < candle.OpenTime.Unix() {
 		comparedCandle.Open = c.Open
 		comparedCandle.Close = candle.Close
 	} else {
@@ -144,17 +140,12 @@ func (s Agregator) compare(
 	dv2, _ := decimal.NewFromString(candle.Volume.String())
 	resultVolume, _ := primitive.ParseDecimal128(dv1.Add(dv2).String())
 	comparedCandle.Volume = resultVolume
-	comparedCandle.Timestamp = candle.Timestamp
+	comparedCandle.OpenTime = candle.OpenTime
 
 	return comparedCandle
 }
 
-func (s *Agregator) aggregateHoursCandlesToChart(
-	candles []*domain.Candle,
-	market string,
-	hour int,
-	count int,
-) *domain.Chart {
+func (s *Aggregator) aggregateHoursCandlesToChart(candles []*domain.Candle, hour int) *domain.Chart {
 	result := make(map[int64]*domain.Candle)
 
 	var min int
@@ -162,10 +153,10 @@ func (s *Agregator) aggregateHoursCandlesToChart(
 	var mul time.Duration
 	var timestamp int64
 	for _, candle := range candles {
-		min = int(int64(candle.Timestamp.Hour()))
+		min = int(int64(candle.OpenTime.Hour()))
 		mod = min % hour
 		mul = time.Duration(mod) * -time.Hour
-		timestamp = candle.Timestamp.Add(mul).Truncate(time.Hour).Unix()
+		timestamp = candle.OpenTime.Add(mul).Truncate(time.Hour).Unix()
 		c := result[timestamp]
 		if c != nil {
 			result[timestamp] = s.compare(c, candle)
@@ -179,7 +170,7 @@ func (s *Agregator) aggregateHoursCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) aggregateMonthCandlesToChart(
+func (s *Aggregator) aggregateMonthCandlesToChart(
 	candles []*domain.Candle,
 	market string,
 	count int,
@@ -189,8 +180,8 @@ func (s *Agregator) aggregateMonthCandlesToChart(
 	var timestamp int64
 	for _, candle := range candles {
 		timestamp = time.Date(
-			candle.Timestamp.Year(),
-			candle.Timestamp.Month(),
+			candle.OpenTime.Year(),
+			candle.OpenTime.Month(),
 			1,
 			0,
 			0,
@@ -211,7 +202,45 @@ func (s *Agregator) aggregateMonthCandlesToChart(
 	return chart
 }
 
-func (s *Agregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
+func firstDayOfISOWeek(year int, week int, timezone *time.Location) time.Time {
+	date := time.Date(year, 0, 0, 0, 0, 0, 0, timezone)
+	isoYear, isoWeek := date.ISOWeek()
+	for date.Weekday() != time.Monday { // iterate back to Monday
+		date = date.AddDate(0, 0, -1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	for isoYear < year { // iterate forward to the first day of the first week
+		date = date.AddDate(0, 0, 1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	for isoWeek < week { // iterate forward to the first day of the given week
+		date = date.AddDate(0, 0, 1)
+		isoYear, isoWeek = date.ISOWeek()
+	}
+	return date
+}
+
+func (s *Aggregator) aggregateWeekCandlesToChart(candles []*domain.Candle) *domain.Chart {
+	result := make(map[int64]*domain.Candle)
+
+	var timestamp int64
+	for _, candle := range candles {
+		year, week := candle.OpenTime.ISOWeek()
+		timestamp = firstDayOfISOWeek(year, week, time.Local).Unix()
+		c := result[timestamp]
+		if c != nil {
+			result[timestamp] = s.compare(c, candle)
+		} else {
+			result[timestamp] = candle
+		}
+	}
+
+	chart := s.GenerateChart(result)
+
+	return chart
+}
+
+func (s *Aggregator) GenerateChart(result map[int64]*domain.Candle) *domain.Chart {
 	chart := &domain.Chart{
 		O: make([]primitive.Decimal128, 0),
 		H: make([]primitive.Decimal128, 0),
@@ -270,50 +299,63 @@ func compareDecimal128(d1, d2 primitive.Decimal128) (int, error) {
 	}
 }
 
-func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 {
-	now := time.Now()
+func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, error) {
+	ad, err := decimal.NewFromString(a.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	bd, err := decimal.NewFromString(b.String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	result, err := primitive.ParseDecimal128(ad.Add(bd).String())
+	if err != nil {
+		return primitive.Decimal128{}, err
+	}
+	return result, nil
+}
+
+func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
 	var ts int64
-	logger.FromContext(context.Background()).WithField(
-		"resolution",
-		resolution,
-	).Infof("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
 	case domain.Candle1MResolution:
-		ts = getStartMinuteTs(now, 1)
+		ts = getStartMinuteTs(time, 1)
 	case domain.Candle3MResolution:
-		ts = getStartMinuteTs(now, 3)
+		ts = getStartMinuteTs(time, 3)
 	case domain.Candle5MResolution:
-		ts = getStartMinuteTs(now, 5)
+		ts = getStartMinuteTs(time, 5)
 	case domain.Candle15MResolution:
-		ts = getStartMinuteTs(now, 15)
+		ts = getStartMinuteTs(time, 15)
 	case domain.Candle30MResolution:
-		ts = getStartMinuteTs(now, 30)
+		ts = getStartMinuteTs(time, 30)
 	case domain.Candle1HResolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle1H2Resolution:
-		ts = getStartHourTs(now, 1)
+		ts = getStartHourTs(time, 1)
 	case domain.Candle2HResolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle2H2Resolution:
-		ts = getStartHourTs(now, 2)
+		ts = getStartHourTs(time, 2)
 	case domain.Candle4HResolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle4H2Resolution:
-		ts = getStartHourTs(now, 4)
+		ts = getStartHourTs(time, 4)
 	case domain.Candle6HResolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle6H2Resolution:
-		ts = getStartHourTs(now, 6)
+		ts = getStartHourTs(time, 6)
 	case domain.Candle12HResolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle12H2Resolution:
-		ts = getStartHourTs(now, 12)
+		ts = getStartHourTs(time, 12)
 	case domain.Candle1DResolution:
-		ts = getStartHourTs(now, 24)
+		ts = getStartHourTs(time, 24)
 	case domain.Candle1MHResolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
 	case domain.Candle1MH2Resolution:
-		ts = getStartMonthTs(now, 1)
+		ts = getStartMonthTs(time, 1)
+	case domain.Candle1WResolution:
+		ts = getStartWeekTs(time)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",
@@ -322,6 +364,11 @@ func (s *Agregator) GetCurrentResolutionStartTimestamp(resolution string) int64 
 	}
 
 	return ts
+}
+
+func getStartWeekTs(t time.Time) int64 {
+	year, week := t.ISOWeek()
+	return firstDayOfISOWeek(year, week, time.Local).Unix()
 }
 
 func getStartMinuteTs(candleTime time.Time, minute int) int64 {

@@ -1,6 +1,7 @@
 package deal
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"context"
 	"fmt"
 	"strconv"
@@ -30,18 +31,12 @@ func TopicName(prefix string) string {
 type Service struct {
 	DbCollection *mongo.Collection
 	Markets      map[string]string
-	eventManager domain.EventsBroker
 }
 
-func NewService(
-	dbCollection *mongo.Collection,
-	markets map[string]string,
-	eventPublisher domain.EventsBroker,
-) *Service {
+func NewService(dbCollection *mongo.Collection, markets map[string]string) *Service {
 	return &Service{
 		DbCollection: dbCollection,
 		Markets:      markets,
-		eventManager: eventPublisher,
 	}
 }
 
@@ -86,7 +81,6 @@ func (s *Service) SaveDeal(
 	}
 	var deals = make([]*domain.Deal, 1)
 	deals[0] = deal
-	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deals))
 
 	return deal, nil
 }
@@ -163,6 +157,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 		},
 	}
 	aggregateOptions := options.Aggregate()
+	aggregateOptions.SetAllowDiskUse(true)
 	deadline, ok := ctx.Deadline()
 	if ok {
 		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
@@ -195,41 +190,37 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
 
 	return domain.TickerPriceChangeStatistics{
-		Symbol:    m["_id"].(string),
-		LastPrice: closePrice.String(),
-		OpenPrice: openPrice.String(),
-		HighPrice: m["highPrice"].(primitive.Decimal128).String(),
-		LowPrice:  m["lowPrice"].(primitive.Decimal128).String(),
-		Volume:    m["volume"].(primitive.Decimal128).String(),
-		OpenTime:  m["openTime"].(primitive.DateTime).Time().UnixMilli(),
-		CloseTime: m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
-		FirstId:   m["firstId"].(string),
-		LastId:    m["lastId"].(string),
-		Count:     int(m["count"].(int32)),
-		PriceChange:    strconv.FormatFloat(priceChange, 'f', 8, 64),
+		Symbol:             m["_id"].(string),
+		LastPrice:          closePrice.String(),
+		OpenPrice:          openPrice.String(),
+		HighPrice:          m["highPrice"].(primitive.Decimal128).String(),
+		LowPrice:           m["lowPrice"].(primitive.Decimal128).String(),
+		Volume:             m["volume"].(primitive.Decimal128).String(),
+		OpenTime:           m["openTime"].(primitive.DateTime).Time().UnixMilli(),
+		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
+		FirstId:            m["firstId"].(string),
+		LastId:             m["lastId"].(string),
+		Count:              int(m["count"].(int32)),
+		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
 	}
 }
 
 func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
-	closePriceF, err := strconv.ParseFloat(closePrice.String(),64)
+	closePriceF, err := strconv.ParseFloat(closePrice.String(), 64)
 	if err != nil {
-		return 0,0
+		return 0, 0
 	}
-	openPriceF, err := strconv.ParseFloat(openPrice.String(),64)
+	openPriceF, err := strconv.ParseFloat(openPrice.String(), 64)
 	if err != nil {
-		return 0,0
+		return 0, 0
 	}
-	change := closePriceF-openPriceF
-	priceChangePercent := change/openPriceF
-	return change,priceChangePercent
+	change := closePriceF - openPriceF
+	priceChangePercent := change / openPriceF
+	return change, priceChangePercent
 }
 
-func (s *Service) RunConsuming(
-	ctx context.Context,
-	consumer pubsub.Subscriber,
-	topic string,
-) {
+func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
 	go func() {
 		err := func() error {
 			return consumer.Consume(
@@ -251,17 +242,14 @@ func (s *Service) RunConsuming(
 							"unmarshal error with protobuf deals msg",
 						)
 					}
-
+					err := currentCandles.AddDeal(dealMessage)
+					if err != nil {
+						logger.FromContext(ctx).
+							WithField("method", "currentCandles.AddDeal in consuming").
+							Errorf(err)
+					}
 					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
-					} else {
-
-						var deals = make([]*domain.Deal, 1)
-						deals[0] = deal
-						s.eventManager.Publish(
-							domain.EvTypeDeals,
-							domain.NewEvent(ctx, deals),
-						)
 					}
 					return nil
 				},

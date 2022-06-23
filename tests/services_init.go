@@ -18,13 +18,7 @@ func InitCandleService(
 	broadcaster := centrifuge.NewBroadcaster(centrifuge.NewPublisher(conf.CentrifugeConfig), eventsBroker, GetAvailableMarkets())
 	broadcaster.SubscribeForCharts()
 
-	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Agregator),
-		GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		broker.NewInMemory(),
-	)
+	return candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), broker.NewInMemory())
 }
 
 func GetAvailableMarkets() map[string]string {
