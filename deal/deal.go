@@ -55,10 +55,9 @@ func (s *Service) SaveDeal(
 		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
 		return nil, nil
 	}
-	t := time.Unix(0, dealMessage.CreatedAt)
 	marketName := s.Markets[dealMessage.Market]
 	deal := &domain.Deal{
-		T: primitive.NewDateTimeFromTime(t),
+		T: primitive.NewDateTimeFromTime(time.Unix(0, dealMessage.CreatedAt)),
 		Data: domain.DealData{
 			Price:        domain.MustParseDecimal(dealMessage.Price),
 			Volume:       domain.MustParseDecimal(dealMessage.Amount),
@@ -79,9 +78,6 @@ func (s *Service) SaveDeal(
 		).Errorf("[DealService]Failed save deal.", deal)
 		return nil, err
 	}
-	var deals = make([]*domain.Deal, 1)
-	deals[0] = deal
-
 	return deal, nil
 }
 
