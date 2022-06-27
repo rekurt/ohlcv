@@ -162,7 +162,14 @@ func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marke
 	return tickers
 }
 
-func (s *MarketApiService) ApiV3AvgPriceGet(ctx context.Context, s2 string) (ImplResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *MarketApiService) ApiV3AvgPriceGet(ctx context.Context, market string) (ImplResponse, error) {
+	if strings.TrimSpace(market) == "" {
+		return Response(400, RespError{Msg: "specify symbol"}), nil
+	}
+	price, err := s.dealService.GetAvgPrice(ctx, time.Hour*24, market)
+	if err != nil {
+		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("ApiV3AvgPriceGet error")
+		return Response(500, RespError{}), nil
+	}
+	return Response(200, price), nil
 }
