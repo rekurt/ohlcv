@@ -48,6 +48,7 @@ func (s Storage) GetCandles(
 			"t", -1,
 		},
 	}}}
+
 	firstGroupStage := bson.D{{"$group", bson.D{
 		{"_id", bson.D{
 			{"symbol", "$data.market"},
@@ -59,44 +60,17 @@ func (s Storage) GetCandles(
 				}},
 			}},
 		}},
-		{"o", bson.D{{"$last", "$data.price"}}},
+		{"o", bson.D{{"$first", "$data.price"}}},
 		{"h", bson.D{{"$max", "$data.price"}}},
 		{"l", bson.D{{"$min", "$data.price"}}},
-		{"c", bson.D{{"$first", "$data.price"}}},
+		{"c", bson.D{{"$last", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
-
-	//densifyStage := bson.D{
-	//	{"$densify", bson.D{
-	//		{"field", "_id.t"},
-	//		{"partitionByFields", bson.A{"symbol"}},
-	//		{"range", bson.D{
-	//			{"step", unitSize},
-	//			{"unit", unit},
-	//			{"bounds", bson.A{
-	//				primitive.NewDateTimeFromTime(from),
-	//				primitive.NewDateTimeFromTime(to),
-	//			}},
-	//		}},
-	//	}},
-	//}
-	//
-	//fillStage := bson.D{
-	//	{"$fill", bson.D{
-	//		{"sortBy", bson.D{{"_id.t", 1}}},
-	//		{"output", bson.D{
-	//			{"o", bson.D{{"method", "locf"}}},
-	//			{"h", bson.D{{"method", "linear"}}},
-	//			{"l", bson.D{{"method", "linear"}}},
-	//			{"c", bson.D{{"method", "locf"}}},
-	//			{"v", bson.D{{"method", "linear"}}},
-	//		}},
-	//	}}}
-	tsInt := bson.D{{"$toLong", "$_id.t"}}
+	tInt := bson.D{{"$toLong", "$_id.t"}}
 	projectStage := bson.D{
 		{"$project", bson.D{
 			{"_id", 0},
-			{"t", bson.D{{"$divide", []interface{}{tsInt, 1000}}}},
+			{"t", bson.D{{"$divide", []interface{}{tInt, 1000}}}},
 			{"symbol", "$_id.symbol"},
 			{"o", bson.D{{"$toDecimal", "$o"}}},
 			{"h", bson.D{{"$toDecimal", "$h"}}},
@@ -105,15 +79,17 @@ func (s Storage) GetCandles(
 			{"v", bson.D{{"$toDecimal", "$v"}}},
 		}},
 	}
-
 	secondSortStage := bson.D{{"$sort", bson.D{
+		{
+			"symbol", 1,
+		},
 		{
 			"t", 1,
 		},
 	}}}
 
 	secondGroupStage := bson.D{{"$group", bson.D{
-		{"_id", "_id.t"},
+		{"_id", "$symbol"},
 		{"o", bson.D{{"$push", "$o"}}},
 		{"h", bson.D{{"$push", "$h"}}},
 		{"l", bson.D{{"$push", "$l"}}},
@@ -123,7 +99,6 @@ func (s Storage) GetCandles(
 	}}}
 
 	opts := options.Aggregate()
-
 	adu := true
 	opts.AllowDiskUse = &adu
 	opts.Hint = "trades"

@@ -21,7 +21,7 @@ type KafkaConfig struct {
 
 type MongoDbConfig struct {
 	ConnectionUrl              string `envconfig:"MONGODB_URL" required:"true"`
-	DatabaseName               string `envconfig:"MONGODB_NAME" default:"md"`
+	DatabaseName               string `envconfig:"MONGODB_NAME" default:"dbName"`
 	TimeOut                    int    `envconfig:"MONGODB_TIMEOUT" required:"true"`
 	MinuteCandleCollectionName string `envconfig:"MONGODB_MINUTE_CANDLE_COLLECTION_NAME" required:"true" default:"minutes"`
 	DealCollectionName         string `envconfig:"MONGODB_DEAL_COLLECTION_NAME" required:"true"`

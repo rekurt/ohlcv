@@ -15,7 +15,7 @@ func NewMongoClient(
 	ctx context.Context,
 	config infra.MongoDbConfig,
 ) *mongo.Client {
-	timeoutD := 30 * time.Second
+	timeoutD := 60 * time.Second
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 
 	clientOptions := options.Client().

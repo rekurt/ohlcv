@@ -45,7 +45,12 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
-				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
+				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
+				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
+					Symbol:    "ETH/BTC",
+					OpenTime:  openTime,
+					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				}))
 			}
 		}
 		//2 new candles after init
@@ -54,20 +59,18 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1HResolution,
-				OpenTime:   time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
 		//make a deal
 		require.NoError(t, candles.AddDeal(matcher.Deal{
@@ -77,36 +80,52 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Amount:    "14.9",
 		}))
 		//both candles are updated
-		require.Len(t, updatesStream, 2, "two new with the deal")
+		require.Len(t, updatesStream, 4, "two empty old and two new with the deal")
+		//old empty minute candle
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
 		//new minute candle with the deal
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				Open:       mustParseDecimal128(t, "0.019"),
-				High:       mustParseDecimal128(t, "0.019"),
-				Low:        mustParseDecimal128(t, "0.019"),
-				Close:      mustParseDecimal128(t, "0.019"),
-				Volume:     mustParseDecimal128(t, "14.9"),
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//old empty hour candle
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
 		//new hour candle with the deal
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1HResolution,
-				Open:       mustParseDecimal128(t, "0.019"),
-				High:       mustParseDecimal128(t, "0.019"),
-				Low:        mustParseDecimal128(t, "0.019"),
-				Close:      mustParseDecimal128(t, "0.019"),
-				Volume:     mustParseDecimal128(t, "14.9"),
-				OpenTime:   time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
 		//it's refresh time
 		now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
@@ -117,25 +136,23 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				Open:       mustParseDecimal128(t, "0.019"),
-				High:       mustParseDecimal128(t, "0.019"),
-				Low:        mustParseDecimal128(t, "0.019"),
-				Close:      mustParseDecimal128(t, "0.019"),
-				Volume:     mustParseDecimal128(t, "14.9"),
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//new minute candle
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				OpenTime:   time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
 			}, candle)
 		require.Len(t, updatesStream, 0)
 	})
@@ -149,7 +166,12 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
 			for _, resolution := range []string{domain.Candle1MResolution} {
-				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
+				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, now), 0).UTC()
+				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
+					Symbol:    "ETH/BTC",
+					OpenTime:  openTime,
+					CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				}))
 			}
 		}
 		//1 new candles after init
@@ -158,10 +180,9 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//make a deal
 		require.NoError(t, candles.AddDeal(matcher.Deal{
@@ -171,21 +192,29 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Amount:    "14.9",
 		}))
 		//minute candle is updated
-		require.Len(t, updatesStream, 1)
+		require.Len(t, updatesStream, 2)
+		//old empty minute candle
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:    "ETH/BTC",
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
 		//new minute candle with the deal
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				Open:       mustParseDecimal128(t, "0.019"),
-				High:       mustParseDecimal128(t, "0.019"),
-				Low:        mustParseDecimal128(t, "0.019"),
-				Close:      mustParseDecimal128(t, "0.019"),
-				Volume:     mustParseDecimal128(t, "14.9"),
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//make another deal
 		require.NoError(t, candles.AddDeal(matcher.Deal{
@@ -194,21 +223,34 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			Price:     "0.013",
 			Amount:    "1.9",
 		}))
-		require.Len(t, updatesStream, 1)
+		require.Len(t, updatesStream, 2)
+		//old minute candle
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.019"),
+				Close:     mustParseDecimal128(t, "0.019"),
+				Volume:    mustParseDecimal128(t, "14.9"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
 		//new minute candle
 		candle, ok = <-updatesStream
 		assert.True(t, ok)
 		assert.Equal(t,
 			domain.Candle{
-				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
-				Open:       mustParseDecimal128(t, "0.019"),
-				High:       mustParseDecimal128(t, "0.019"),
-				Low:        mustParseDecimal128(t, "0.013"),
-				Close:      mustParseDecimal128(t, "0.013"),
-				Volume:     mustParseDecimal128(t, "16.8"),
-				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
-				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				Symbol:    "ETH/BTC",
+				Open:      mustParseDecimal128(t, "0.019"),
+				High:      mustParseDecimal128(t, "0.019"),
+				Low:       mustParseDecimal128(t, "0.013"),
+				Close:     mustParseDecimal128(t, "0.013"),
+				Volume:    mustParseDecimal128(t, "16.8"),
+				OpenTime:  time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime: time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		require.Len(t, updatesStream, 0)
 		//make miss deal with a non-existent market

@@ -56,7 +56,7 @@ func (c *currentCandles) refreshAll() {
 	defer c.candlesLock.Unlock()
 	for market, resolutions := range c.candles {
 		for resolution := range resolutions {
-			c.setCandle(market, resolution, c.getFreshCandle(market, resolution), true)
+			c.setCandle(market, resolution, c.getFreshCandle(market, resolution))
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (c *currentCandles) AddCandle(market, resolution string, candle domain.Cand
 	if candle == (domain.Candle{}) {
 		candle = c.buildFreshCandle(market, resolution)
 	}
-	c.setCandle(market, resolution, candle, false)
+	c.setCandle(market, resolution, candle)
 	//TODO check is it fresh
 	return nil
 }
@@ -88,17 +88,17 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 		if err != nil {
 			return fmt.Errorf("can't AddDeal to currentCandles: '%w'", err)
 		}
-		c.setCandle(deal.Market, resolution, currentCandle, false)
+		c.setCandle(deal.Market, resolution, currentCandle)
 	}
 	return nil
 }
-func (c *currentCandles) setCandle(market, resolution string, candle domain.Candle, isRefresh bool) {
+func (c *currentCandles) setCandle(market, resolution string, candle domain.Candle) {
 	oldCandle := c.getSafeCandle(market, resolution)
 	//nothing changed
 	if oldCandle != nil && *oldCandle == candle {
 		return
 	}
-	if oldCandle != nil && isRefresh { //send old candle only on refresh (because it is closed)
+	if oldCandle != nil {
 		c.updatesStream <- *oldCandle
 	}
 	c.setSafeCandle(market, resolution, candle)
