@@ -44,6 +44,6 @@ func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, durat
 	return resp.([]domain.TickerPriceChangeStatistics), nil
 }
 
-func (s *cacheService) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (float64, error) {
+func (s *cacheService) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
 	return s.under.GetAvgPrice(ctx, duration, market)
 }

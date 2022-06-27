@@ -218,3 +218,22 @@ func Test_GetLastTrades(t *testing.T) {
 		assert.Equal(t, "ETH/LTC", tr.Data.Market)
 	}
 }
+
+func Test_GetAvgPrice(t *testing.T) {
+	t.Skip()
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	// mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
+	)
+	dealService := deal.NewService(dealCollection, getTestMarkets())
+	avg, err := dealService.GetAvgPrice(ctx, time.Hour*24*4, "ETH_TRX")
+	require.NoError(t, err)
+	fmt.Println(avg)
+}
