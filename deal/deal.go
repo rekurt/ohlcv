@@ -259,3 +259,8 @@ func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, 
 		}
 	}()
 }
+
+func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (float64, error) {
+	//TODO implement me
+	panic("implement me")
+}
