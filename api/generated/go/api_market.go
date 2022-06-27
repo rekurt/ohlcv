@@ -54,6 +54,12 @@ func (c *MarketApiController) Routes() Routes {
 			c.ApiV1TradesGet,
 		},
 		{
+			"ApiV3AvgPriceGet",
+			strings.ToUpper("Get"),
+			"/api/v3/avgPrice",
+			c.ApiV3AvgPriceGet,
+		},
+		{
 			"ApiV3Ticker24hrGet",
 			strings.ToUpper("Get"),
 			"/api/v3/ticker/24hr",
@@ -62,7 +68,6 @@ func (c *MarketApiController) Routes() Routes {
 		{
 			"V1TradingStats24hAllGet",
 			strings.ToUpper("Get"),
-
 			"/v1/trading/stats/24h/all",
 			c.V1TradingStats24hAllGet,
 		},
@@ -79,6 +84,21 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	result, err := c.service.ApiV1TradesGet(r.Context(), symbolParam, limitParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// ApiV3AvgPriceGet - Current average price for a symbol.
+func (c *MarketApiController) ApiV3AvgPriceGet(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	symbolParam := query.Get("symbol")
+	result, err := c.service.ApiV3AvgPriceGet(r.Context(), symbolParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

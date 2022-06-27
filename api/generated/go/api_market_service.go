@@ -161,3 +161,8 @@ func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marke
 	}
 	return tickers
 }
+
+func (s *MarketApiService) ApiV3AvgPriceGet(ctx context.Context, s2 string) (ImplResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
