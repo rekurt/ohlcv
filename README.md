@@ -1,4 +1,3 @@
-
 PointPay.io Exchange OHLCV data service 
 
 
