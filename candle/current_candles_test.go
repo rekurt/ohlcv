@@ -134,9 +134,13 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			domain.Candle{
 				Symbol:     "ETH/BTC",
 				Resolution: domain.Candle1MResolution,
+				Open:       mustParseDecimal128(t, "0.019"),
+				High:       mustParseDecimal128(t, "0.019"),
+				Low:        mustParseDecimal128(t, "0.019"),
+				Close:      mustParseDecimal128(t, "0.019"),
 				OpenTime:   time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 				CloseTime:  time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
-			}, candle)
+			}, candle, "inherit o h l c values from previous candle")
 		require.Len(t, updatesStream, 0)
 	})
 	t.Run("1 market 2 deal 1 resolutions", func(t *testing.T) {
