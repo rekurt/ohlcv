@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -35,6 +36,93 @@ func Test_updateCandle(t *testing.T) {
 }
 
 func TestNewCurrentCandles_updates(t *testing.T) {
+	t.Run("get last ohlc on refresh", func(t *testing.T) {
+		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
+		timeNow = func() time.Time {
+			return now
+		}
+		updatesStream := make(chan domain.Candle, 512)
+		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
+		//init with empty candles
+		for _, market := range []string{"ETH/BTC"} {
+			for _, resolution := range []string{domain.Candle1MResolution} {
+				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
+				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
+					Symbol:     "ETH/BTC",
+					Resolution: resolution,
+					Open:       mustParseDecimal128(t, "444.15"),
+					High:       mustParseDecimal128(t, "933.37"),
+					Low:        mustParseDecimal128(t, "152.63"),
+					Close:      mustParseDecimal128(t, "636.74"),
+					Volume:     mustParseDecimal128(t, "159.39"),
+					OpenTime:   openTime,
+					CloseTime:  openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				}))
+			}
+		}
+		//2 new candles after init.
+		require.Len(t, updatesStream, 1)
+		_, ok := <-updatesStream
+		assert.True(t, ok)
+		//it's refresh time
+		now = time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC)
+		candles.refreshAll()
+		require.Len(t, updatesStream, 2, "1 for old closed minute candle and 1 for the new empty minute candle")
+		candle, ok := <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:     "ETH/BTC",
+				Resolution: domain.Candle1MResolution,
+				Open:       mustParseDecimal128(t, "444.15"),
+				High:       mustParseDecimal128(t, "933.37"),
+				Low:        mustParseDecimal128(t, "152.63"),
+				Close:      mustParseDecimal128(t, "636.74"),
+				Volume:     mustParseDecimal128(t, "159.39"),
+				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
+				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+			}, candle)
+		//new minute candle
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:     "ETH/BTC",
+				Resolution: domain.Candle1MResolution,
+				Open:       mustParseDecimal128(t, "444.15"),
+				High:       mustParseDecimal128(t, "933.37"),
+				Low:        mustParseDecimal128(t, "152.63"),
+				Close:      mustParseDecimal128(t, "636.74"),
+				Volume:     primitive.Decimal128{},
+				OpenTime:   time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				CloseTime:  time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
+			}, candle, "inherit ohlc values from previous candle")
+		require.Len(t, updatesStream, 0)
+		//when first deal arrives
+		require.NoError(t, candles.AddDeal(matcher.Deal{
+			Market:    "ETH/BTC",
+			CreatedAt: time.Date(2020, 4, 14, 15, 46, 53, 0, time.UTC).UnixNano(),
+			Price:     "0.013",
+			Amount:    "1.9",
+		}))
+		candle, ok = <-updatesStream
+		assert.True(t, ok)
+		assert.Equal(t,
+			domain.Candle{
+				Symbol:     "ETH/BTC",
+				Resolution: domain.Candle1MResolution,
+				Open:       mustParseDecimal128(t, "0.013"),
+				High:       mustParseDecimal128(t, "933.37"),
+				Low:        mustParseDecimal128(t, "0.013"),
+				Close:      mustParseDecimal128(t, "0.013"),
+				Volume:     mustParseDecimal128(t, "1.9"),
+				OpenTime:   time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
+				CloseTime:  time.Date(2020, 4, 14, 15, 47, 0, 0, time.UTC),
+			},
+			candle,
+		)
+		require.Len(t, updatesStream, 0)
+	})
 	t.Run("1 market 1 deal 2 resolutions", func(t *testing.T) {
 		now := time.Date(2020, 4, 14, 15, 45, 56, 0, time.UTC)
 		timeNow = func() time.Time {

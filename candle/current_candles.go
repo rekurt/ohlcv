@@ -56,7 +56,14 @@ func (c *currentCandles) refreshAll() {
 	defer c.candlesLock.Unlock()
 	for market, resolutions := range c.candles {
 		for resolution := range resolutions {
-			c.setCandle(market, resolution, c.getFreshCandle(market, resolution), true)
+			oldCandle := c.getSafeCandle(market, resolution)
+			newCandle := c.getFreshCandle(market, resolution)
+			//inherit ohlc values from previous candle
+			newCandle.Open = oldCandle.Open
+			newCandle.High = oldCandle.High
+			newCandle.Low = oldCandle.Low
+			newCandle.Close = oldCandle.Close
+			c.setCandle(market, resolution, newCandle, true)
 		}
 	}
 }
@@ -137,6 +144,13 @@ func (c *currentCandles) buildFreshCandle(market, resolution string) domain.Cand
 }
 
 func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {
+	dealPrice, err := primitive.ParseDecimal128(deal.Price)
+	if err != nil {
+		return domain.Candle{}, err
+	}
+	if candle.Volume.IsZero() {
+		candle.Open = dealPrice
+	}
 	dealAmount, err := primitive.ParseDecimal128(deal.Amount)
 	if err != nil {
 		return domain.Candle{}, err
@@ -146,13 +160,6 @@ func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error
 		return domain.Candle{}, err
 	}
 	candle.Volume = volume
-	dealPrice, err := primitive.ParseDecimal128(deal.Price)
-	if err != nil {
-		return domain.Candle{}, err
-	}
-	if candle.Open.IsZero() {
-		candle.Open = dealPrice
-	}
 	candle.Close = dealPrice
 	highCmp, err := compareDecimal128(dealPrice, candle.High)
 	if err != nil {
