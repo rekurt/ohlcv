@@ -48,7 +48,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
 			}
 		}
-		//2 new candles after init
+		//2 new candles after init.
 		require.Len(t, updatesStream, 2)
 		candle, ok := <-updatesStream
 		assert.True(t, ok)
