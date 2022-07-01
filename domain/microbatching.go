@@ -49,7 +49,10 @@ func mergeSameChart(batch []*Chart) []*Chart {
 	for i := 0; i < len(batch); i++ {
 		if i+1 < len(batch) &&
 			batch[i].Symbol == batch[i+1].Symbol &&
-			batch[i].Resolution == batch[i+1].Resolution {
+			batch[i].Resolution == batch[i+1].Resolution &&
+			len(batch[i].T) == 1 &&
+			len(batch[i+1].T) == 1 &&
+			batch[i].T[0] < batch[i+1].T[0] {
 			ans = append(ans, &Chart{
 				Symbol:     batch[i].Symbol,
 				Resolution: batch[i].Resolution,

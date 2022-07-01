@@ -144,4 +144,34 @@ func Test_mergeSameChart(t *testing.T) {
 			batch,
 		)
 	})
+	t.Run("single chart", func(t *testing.T) {
+		batch := mergeSameChart([]*Chart{
+			{
+				Symbol:     "BTC",
+				Resolution: "1min",
+				O:          []primitive.Decimal128{mustParseDecimal128(t, "538.81")},
+				H:          []primitive.Decimal128{mustParseDecimal128(t, "273.97")},
+				L:          []primitive.Decimal128{mustParseDecimal128(t, "269.92")},
+				C:          []primitive.Decimal128{mustParseDecimal128(t, "909.56")},
+				V:          []primitive.Decimal128{mustParseDecimal128(t, "711.31")},
+				T:          []int64{time.Date(2020, 1, 20, 0, 00, 0, 0, time.Local).Unix()},
+			},
+		})
+		assert.Equal(
+			t,
+			[]*Chart{
+				{
+					Symbol:     "BTC",
+					Resolution: "1min",
+					O:          []primitive.Decimal128{mustParseDecimal128(t, "538.81")},
+					H:          []primitive.Decimal128{mustParseDecimal128(t, "273.97")},
+					L:          []primitive.Decimal128{mustParseDecimal128(t, "269.92")},
+					C:          []primitive.Decimal128{mustParseDecimal128(t, "909.56")},
+					V:          []primitive.Decimal128{mustParseDecimal128(t, "711.31")},
+					T:          []int64{time.Date(2020, 1, 20, 0, 00, 0, 0, time.Local).Unix()},
+				},
+			},
+			batch,
+		)
+	})
 }
