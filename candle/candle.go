@@ -54,7 +54,7 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	).WithField(
 		"to",
 		to,
-	).Debugf("[CandleService] Call GetCandleByResolution method.")
+	).Tracef("[CandleService] Call GetCandleByResolution method.")
 	var chart *domain.Chart
 	switch resolution {
 	case domain.Candle1MResolution:

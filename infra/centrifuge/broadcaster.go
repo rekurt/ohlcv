@@ -54,7 +54,7 @@ func (b broadcaster) BroadcastCandleCharts(
 	).WithField(
 		"messages",
 		messages,
-	).Infof("[Broadcaster.BroadcastCandleCharts] Push charts to Centrifugo.")
+	).Tracef("[Broadcaster.BroadcastCandleCharts] Push charts to Centrifugo.")
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 
