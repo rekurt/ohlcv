@@ -35,7 +35,7 @@ func Microbatching(ctx context.Context, chartStream chan *Chart, maxBatchSize in
 				select {
 				case <-ctx.Done():
 					return
-				case batchStream <- batch:
+				case batchStream <- mergeSameChart(batch):
 				}
 			}
 		}
