@@ -27,7 +27,7 @@ func (s Storage) GetCandles(
 	logger.FromContext(ctx).WithField(
 		"market",
 		market,
-	).Debugf("[CandleService] Call GetCandles")
+	).Tracef("[CandleService] Call GetCandles")
 	from, to := period[0], period[1]
 
 	matchStage := bson.D{
@@ -135,14 +135,14 @@ func (s Storage) GetCandles(
 		).WithField("err", err).WithField(
 			"period",
 			period,
-		).Infof("Candles not found.")
+		).Tracef("Candles not found.")
 		return nil
 	}
 	chart := data[0]
 	logger.FromContext(ctx).WithField(
 		"candleCount",
 		len(chart.T),
-	).Infof("Success get candles.")
+	).Tracef("Success get candles.")
 	chart.SetMarket(market)
 	return chart
 }

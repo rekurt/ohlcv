@@ -213,7 +213,7 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 
 	// Deals service setup
 	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
-	suite.deals = deal.NewService(dealsCollection, GetAvailableMarkets())
+	suite.deals = deal.NewService(dealsCollection, GetAvailableMarkets(), nil)
 
 	// Candles service setup
 	suite.candles = candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
