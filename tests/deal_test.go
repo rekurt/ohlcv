@@ -220,7 +220,7 @@ func Test_GetLastTrades(t *testing.T) {
 }
 
 func Test_GetAvgPrice(t *testing.T) {
-	//t.Skip()
+	t.Skip()
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
