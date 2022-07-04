@@ -61,8 +61,8 @@ func (c *currentCandles) refreshAll() {
 			//inherit ohlc values from previous candle
 			newCandle.Open = oldCandle.Close
 			newCandle.High = oldCandle.Close
-			newCandle.Low = oldCandle.Close
 			newCandle.Close = oldCandle.Close
+			newCandle.Low = oldCandle.Close
 			c.setCandle(market, resolution, newCandle, true)
 		}
 	}

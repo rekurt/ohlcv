@@ -323,6 +323,7 @@ Output:
 2022-06-02 11:33:00.000162 +0300 MSK m=+92.518844209 refreshAll
 2022-06-02 11:34:00.011105 +0300 MSK m=+152.519722292 refreshAll
 2022-06-02 11:35:00.013223 +0300 MSK m=+212.509831459 refreshAll
+2022-06-02 11:36:00.013223 +0300 MSK m=+212.509831459 refreshAll
 */
 func Test_everyMinute_manual(t *testing.T) {
 	t.Skip()
