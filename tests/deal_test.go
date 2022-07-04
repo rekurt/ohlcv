@@ -220,12 +220,11 @@ func Test_GetLastTrades(t *testing.T) {
 }
 
 func Test_GetAvgPrice(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-	// mongo.InitDealsCollection(ctx, mongoDbClient, conf.MongoDbConfig)
 	dealCollection := mongo.GetCollection(
 		ctx,
 		mongoDbClient,
@@ -233,7 +232,7 @@ func Test_GetAvgPrice(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 	dealService := deal.NewService(dealCollection, getTestMarkets())
-	avg, err := dealService.GetAvgPrice(ctx, time.Hour*24*4, "ETH_TRX")
+	avg, err := dealService.GetAvgPrice(ctx, time.Hour*24*40, "ETH_TRX")
 	require.NoError(t, err)
 	fmt.Println(avg)
 }
