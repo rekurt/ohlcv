@@ -10,6 +10,8 @@
 package openapi
 
 type InlineResponse200 struct {
+
+	// server time millis
 	Timestamp int64 `json:"timestamp,omitempty"`
 
 	Code int32 `json:"code,omitempty"`

@@ -44,6 +44,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/resp_error'
+  /api/v3/avgPrice:
+    get:
+      summary: Current average price for a symbol.
+      tags:
+        - Market
+      parameters:
+        - $ref: '#/components/parameters/symbol'
+      responses:
+        '200':
+          description: Trade list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/avgPrice'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/resp_error'
   /api/v3/ticker/24hr:
     get:
       summary: 24hr Ticker Price Change Statistics
@@ -183,6 +203,12 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/ticker'
+    avgPrice:
+      type: object
+      properties:
+        price:
+          type: number
+          format: double
     ticker:
       type: object
       properties:

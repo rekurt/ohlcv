@@ -259,3 +259,44 @@ func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, 
 		}
 	}()
 }
+
+func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
+	matchStageValue := bson.D{
+		{"t", bson.D{
+			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+		}},
+		bson.E{Key: "data.market", Value: market},
+	}
+	if strings.TrimSpace(market) == "" {
+		return "0", fmt.Errorf("can't GetAvgPrice, empty symbol")
+	}
+	groupStage := bson.D{
+		{"$group",
+			bson.D{
+				{"_id", "$data.market"},
+				{"avg", bson.D{{"$avg", "$data.price"}}},
+			},
+		},
+	}
+	aggregateOptions := options.Aggregate()
+	deadline, ok := ctx.Deadline()
+	if ok {
+		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
+	}
+	aggregate, err := s.DbCollection.Aggregate(
+		ctx,
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, groupStage},
+		aggregateOptions,
+	)
+	if err != nil {
+		return "0", fmt.Errorf("GetAvgPrice: Aggregate error '%w'", err)
+	}
+	var resp []bson.M
+	if err = aggregate.All(ctx, &resp); err != nil {
+		return "0", fmt.Errorf("GetAvgPrice: aggregate.All error '%w'", err)
+	}
+	if len(resp) == 0 {
+		return "0", nil
+	}
+	return resp[0]["avg"].(primitive.Decimal128).String(), nil
+}
