@@ -298,5 +298,10 @@ func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, marke
 	if len(resp) == 0 {
 		return "0", nil
 	}
-	return resp[0]["avg"].(primitive.Decimal128).String(), nil
+	decimal128 := resp[0]["avg"].(primitive.Decimal128)
+	f, err := strconv.ParseFloat(decimal128.String(), 64)
+	if err != nil {
+		return "0", nil
+	}
+	return strconv.FormatFloat(f, 'f', 4, 64), nil
 }
