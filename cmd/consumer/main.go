@@ -30,7 +30,7 @@ func main() {
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 	fmt.Println(domain.GetAvailableResolutions())
-	marketsMap := buildAvailableMarkets(conf)
+	marketsMap, marketsInfo := buildAvailableMarkets(conf)
 	broadcaster := centrifuge.NewBroadcaster(
 		centrifuge.NewPublisher(conf.CentrifugeConfig),
 		eventsBroker,
@@ -46,7 +46,7 @@ func main() {
 		conf.MongoDbConfig,
 	)
 
-	dealService := deal.NewService(dealsCollection, marketsMap)
+	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
 	// Start consuming, preparing, saving deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
@@ -133,7 +133,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 	return candles
 }
 
-func buildAvailableMarkets(conf infra.Config) map[string]string {
+func buildAvailableMarkets(conf infra.Config) (map[string]string, []market.Market) {
 	marketClient, err := market.New(
 		market.Config{ServerURL: conf.ExchangeMarketsServerURL, ServerTLS: conf.ExchangeMarketsServerSSL},
 		market.NewErrorProcessor(map[string]string{}),
@@ -147,5 +147,5 @@ func buildAvailableMarkets(conf infra.Config) map[string]string {
 	if err != nil {
 		log.Fatal("can't marketClient.List:" + err.Error())
 	}
-	return domain.GetAvailableMarketsMap(markets)
+	return domain.GetAvailableMarketsMap(markets), markets
 }

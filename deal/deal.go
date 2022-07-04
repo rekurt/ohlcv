@@ -2,6 +2,7 @@ package deal
 
 import (
 	"bitbucket.org/novatechnologies/ohlcv/candle"
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"context"
 	"fmt"
 	"strconv"
@@ -31,12 +32,14 @@ func TopicName(prefix string) string {
 type Service struct {
 	DbCollection *mongo.Collection
 	Markets      map[string]string
+	marketsInfo  []market.Market
 }
 
-func NewService(dbCollection *mongo.Collection, markets map[string]string) *Service {
+func NewService(dbCollection *mongo.Collection, markets map[string]string, marketsInfo []market.Market) *Service {
 	return &Service{
 		DbCollection: dbCollection,
 		Markets:      markets,
+		marketsInfo:  marketsInfo,
 	}
 }
 
@@ -298,10 +301,26 @@ func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, marke
 	if len(resp) == 0 {
 		return "0", nil
 	}
-	decimal128 := resp[0]["avg"].(primitive.Decimal128)
+	return s.roundByMarket(resp[0]["avg"].(primitive.Decimal128), market)
+}
+
+func (s *Service) roundByMarket(decimal128 primitive.Decimal128, market string) (string, error) {
 	f, err := strconv.ParseFloat(decimal128.String(), 64)
 	if err != nil {
 		return "0", nil
 	}
-	return strconv.FormatFloat(f, 'f', 4, 64), nil
+	return strconv.FormatFloat(
+		f,
+		'f',
+		findPrec(market, s.marketsInfo),
+		64), nil
+}
+
+func findPrec(market string, info []market.Market) int {
+	for _, i := range info {
+		if i.Name == market {
+			return int(i.BasePrecision)
+		}
+	}
+	return 4
 }
