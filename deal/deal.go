@@ -152,6 +152,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 				{"closeTime", bson.D{{"$last", "$t"}}},
 				{"firstId", bson.D{{"$first", "$data.dealid"}}},
 				{"lastId", bson.D{{"$last", "$data.dealid"}}},
+				{"lastQty", bson.D{{"$last", "$data.volume"}}},
 			},
 		},
 	}
@@ -199,6 +200,7 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
 		FirstId:            m["firstId"].(string),
 		LastId:             m["lastId"].(string),
+		LastQty:            m["lastQty"].(string),
 		Count:              int(m["count"].(int32)),
 		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
