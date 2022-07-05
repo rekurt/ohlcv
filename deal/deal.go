@@ -200,7 +200,7 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
 		FirstId:            m["firstId"].(string),
 		LastId:             m["lastId"].(string),
-		LastQty:            m["lastQty"].(string),
+		LastQty:            m["lastQty"].(primitive.Decimal128).String(),
 		Count:              int(m["count"].(int32)),
 		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
