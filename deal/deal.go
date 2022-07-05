@@ -143,7 +143,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			bson.D{
 				{"_id", "$data.market"},
 				{"volume", bson.D{{"$sum", "$data.volume"}}},
-				{"numerator", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
+				{"quoteVolume", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
 				{"count", bson.D{{"$count", bson.M{}}}},
 				{"highPrice", bson.D{{"$max", "$data.price"}}},
 				{"lowPrice", bson.D{{"$min", "$data.price"}}},
@@ -183,16 +183,15 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 				db.collection.aggregate({
 			  $group : {
 			     _id : 'weighted average', // build any group key ypo need
-			     numerator: { $sum: { $multiply: [ "$price", "$quantity" ] } },
+			     quoteVolume: { $sum: { $multiply: [ "$price", "$quantity" ] } },
 			     denominator: { $sum: "$quantity" }
 			  }
 			}, {
 			  $project: {
-			    average: { $divide: [ "$numerator", "$denominator" ] }
+			    average: { $divide: [ "$quoteVolume", "$denominator" ] }
 			  }
 			}
 
-			  "w": "0.0018",      // Weighted average price
 			  "x": "0.0009",      // First trade(F)-1 price (first trade before the 24hr rolling window)
 			  "b": "0.0024",      // Best bid price
 			  "B": "10",          // Best bid quantity
@@ -231,18 +230,19 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	closePrice := m["closePrice"].(primitive.Decimal128)
 	openPrice := m["openPrice"].(primitive.Decimal128)
-	numerator := m["numerator"].(primitive.Decimal128)
+	quoteVolume := m["quoteVolume"].(primitive.Decimal128)
 	volume := m["volume"].(primitive.Decimal128)
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
 
 	return domain.TickerPriceChangeStatistics{
 		Symbol:             m["_id"].(string),
-		WeightedAvgPrice:   calcVwap(numerator, volume),
+		WeightedAvgPrice:   calcVwap(quoteVolume, volume),
 		LastPrice:          closePrice.String(),
 		OpenPrice:          openPrice.String(),
 		HighPrice:          m["highPrice"].(primitive.Decimal128).String(),
 		LowPrice:           m["lowPrice"].(primitive.Decimal128).String(),
 		Volume:             volume.String(),
+		QuoteVolume:        quoteVolume.String(),
 		OpenTime:           m["openTime"].(primitive.DateTime).Time().UnixMilli(),
 		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
 		FirstId:            m["firstId"].(string),
@@ -254,8 +254,8 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	}
 }
 
-func calcVwap(numerator, volume primitive.Decimal128) string {
-	numeratorF, err := strconv.ParseFloat(numerator.String(), 64)
+func calcVwap(quoteVolume, volume primitive.Decimal128) string {
+	quoteVolumeF, err := strconv.ParseFloat(quoteVolume.String(), 64)
 	if err != nil {
 		return ""
 	}
@@ -263,7 +263,7 @@ func calcVwap(numerator, volume primitive.Decimal128) string {
 	if err != nil {
 		return ""
 	}
-	vwap := numeratorF / volumeF
+	vwap := quoteVolumeF / volumeF
 	return strconv.FormatFloat(vwap, 'f', 4, 64)
 }
 
