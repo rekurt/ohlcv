@@ -171,7 +171,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 						bson.D{{"$limit", 1}},
 					},
 				},
-				{"as", "result"},
+				{"as", "prev_window_trade"},
 			},
 		},
 	}
@@ -209,7 +209,6 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	quoteVolume := m["quoteVolume"].(primitive.Decimal128)
 	volume := m["volume"].(primitive.Decimal128)
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
-
 	return domain.TickerPriceChangeStatistics{
 		Symbol:             m["_id"].(string),
 		WeightedAvgPrice:   calcVwap(quoteVolume, volume),
@@ -227,7 +226,27 @@ func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 		Count:              int(m["count"].(int32)),
 		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
+		PrevClosePrice:     parsePrevClosePrice(m["prev_window_trade"]),
 	}
+}
+
+func parsePrevClosePrice(i interface{}) string {
+	a, ok := i.(bson.A)
+	if !ok {
+		return ""
+	}
+	if len(a) != 1 {
+		return ""
+	}
+	m, ok := a[0].(bson.M)
+	if !ok {
+		return ""
+	}
+	data, ok := m["data"].(bson.M)
+	if !ok {
+		return ""
+	}
+	return data["price"].(primitive.Decimal128).String()
 }
 
 func calcVwap(quoteVolume, volume primitive.Decimal128) string {
