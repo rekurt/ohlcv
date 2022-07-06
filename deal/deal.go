@@ -125,9 +125,10 @@ func (s *Service) GetLastTrades(
 }
 
 func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
 	matchStageValue := bson.D{
 		{"t", bson.D{
-			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+			{"$gte", fromTime},
 		}},
 	}
 	if strings.TrimSpace(market) != "" {
@@ -157,47 +158,23 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			},
 		},
 	}
-	/*
-		{
-		  "t": {
-		    "$date": {
-		      "$numberLong": "1655306454358"
-		    }
-		  },
-		  "data": {
-		    "dealid": "ffb51c65-8d59-453f-a172-9f71f4293516",
-		    "isbuyermaker": false,
-		    "market": "USDT_TRX",
-		    "price": {
-		      "$numberDecimal": "0.056000"
-		    },
-		    "volume": {
-		      "$numberDecimal": "113.60000000"
-		    }
-		  },
-		  "_id": {
-		    "$oid": "62a9f8d7fdca7f38bd70146d"
-		  }
-		}
-
-				db.collection.aggregate({
-			  $group : {
-			     _id : 'weighted average', // build any group key ypo need
-			     quoteVolume: { $sum: { $multiply: [ "$price", "$quantity" ] } },
-			     denominator: { $sum: "$quantity" }
-			  }
-			}, {
-			  $project: {
-			    average: { $divide: [ "$quoteVolume", "$denominator" ] }
-			  }
-			}
-
-			  "x": "0.0009",      // First trade(F)-1 price (first trade before the 24hr rolling window)
-			  "b": "0.0024",      // Best bid price
-			  "B": "10",          // Best bid quantity
-			  "a": "0.0026",      // Best ask price
-			  "A": "100",         // Best ask quantity
-	*/
+	lookupStage := bson.D{
+		{"$lookup",
+			bson.D{
+				{"from", s.DbCollection.Name()},
+				{"localField", "_id"},
+				{"foreignField", "data.market"},
+				{"pipeline",
+					bson.A{
+						bson.D{{"$match", bson.D{{"t", bson.D{{"$lt", fromTime}}}}}},
+						bson.D{{"$sort", bson.D{{"t", 1}}}},
+						bson.D{{"$limit", 1}},
+					},
+				},
+				{"as", "result"},
+			},
+		},
+	}
 	aggregateOptions := options.Aggregate()
 	aggregateOptions.SetAllowDiskUse(true)
 	deadline, ok := ctx.Deadline()
@@ -206,7 +183,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	}
 	aggregate, err := s.DbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage},
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage, lookupStage},
 		aggregateOptions,
 	)
 	if err != nil {
