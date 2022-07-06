@@ -197,7 +197,6 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			  "B": "10",          // Best bid quantity
 			  "a": "0.0026",      // Best ask price
 			  "A": "100",         // Best ask quantity
-			  "q": "18",          // Total traded quote asset volume
 	*/
 	aggregateOptions := options.Aggregate()
 	aggregateOptions.SetAllowDiskUse(true)
