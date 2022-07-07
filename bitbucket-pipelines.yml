@@ -45,6 +45,7 @@ pipelines:
                 --dockerfile /workspace/Dockerfile
                 --destination "$ECR_PATH:ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER"
                 --destination "$ECR_PATH:ohlcv-$BRANCH-latest"
+                --destination "$ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8}"
                 --context dir:///workspace
       - step: &security_scan
           name: scan image
@@ -79,20 +80,20 @@ pipelines:
             - export NAMESPACE=xch-$BRANCH
             - export LAST_BUILD_TIMESTAMP=`date +%s`
             - export KAFKA_TOPIC_PREFIX=$BRANCH
-            - if [ $BRANCH != "production" ] ; then
+            - if [ -z $BITBUCKET_TAG ]; then
             -   export DEPLOY_MONGODB=true
+            -   if [ $OHLCV_BRANCH != "" ]; then
+            -     export NAMESPACE=xch-$OHLCV_BRANCH
+            -     export TAG=ohlcv-$(aws ecr describe-images --repository-name pointpayio-exchange --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
+            -     if [ -z $TAG ]; then export TAG=ohlcv-master-latest; fi
+            -   else            -
+            -     export NAMESPACE=xch-$BRANCH
+            -     export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            -  fi
             - else
             -   export DEPLOY_MONGODB=false
-            - fi
-            - if [ $OHLCV_BRANCH != "" ]; then
-            -    echo "$OHLCV_BRANCH - not empty"
-            -    export NAMESPACE=xch-$OHLCV_BRANCH
-            -    export TAG=ohlcv-$(aws ecr describe-images --repository-name ohlcv --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
-            -    if [ -z $TAG ]; then export TAG=ohlcv-master-latest; fi
-            - else
-            -    echo "$OHLCV_BRANCH - empty"
-            -    export NAMESPACE=xch-$BRANCH
-            -    export TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            -   export NAMESPACE=xch-test
+            -   export TAG=prod-ohlcv-$BITBUCKET_TAG
             - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
@@ -110,10 +111,11 @@ pipelines:
 
   branches:
     production:
-      - step: *building
-      - step: *packing_docker
-      - step: *security_scan
       - step:
+          artifacts:
+            download: false
+          clone:
+            enabled: false
           name: 'test to Production'
           script:
             - echo "Your deployment to staging script goes here..."
@@ -121,12 +123,9 @@ pipelines:
             -   echo "$BITBUCKET_BRANCH IS NOT PRODUCTION BRANCH"
             -   exit 1
             - else
-            -   echo "deploy"
+            -   echo "deploy to production from tag"
+            -   exit 1
             - fi
-      - step:
-          <<: *deploy_k8s
-          deployment: Production
-          trigger: 'manual'
 
     master:
       - step: *building
@@ -151,3 +150,22 @@ pipelines:
       - step:
           <<: *deploy_k8s
           trigger: automatic
+
+  tags:
+    'v*.*.*':
+      - step:
+          name: tag docker
+          image: serafinlabs/aws-docker
+          artifacts:
+            download: false
+          clone:
+            enabled: false
+          script:
+            - eval $(aws ecr get-login --no-include-email)
+            - docker pull $ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8}
+            - docker tag  $ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8} $ECR_PATH:prod-ohlcv-$BITBUCKET_TAG
+            - docker push $ECR_PATH:prod-ohlcv-$BITBUCKET_TAG
+      - step:
+          <<: *deploy_k8s
+          deployment: Production
+          trigger: manual
