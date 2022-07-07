@@ -92,7 +92,7 @@ pipelines:
             -  fi
             - else
             -   export DEPLOY_MONGODB=false
-            -   export NAMESPACE=xch-test
+            -   export NAMESPACE=xch-production
             -   export TAG=prod-ohlcv-$BITBUCKET_TAG
             - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
