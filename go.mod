@@ -3,8 +3,8 @@ module bitbucket.org/novatechnologies/ohlcv
 go 1.17
 
 require (
-	bitbucket.org/novatechnologies/common v0.11.4-0.20220407085209-2e11250fffd8
-	bitbucket.org/novatechnologies/interfaces v0.0.14
+	bitbucket.org/novatechnologies/common v0.11.6
+	bitbucket.org/novatechnologies/interfaces v0.0.19
 	github.com/AlekSi/pointer v1.2.0
 	github.com/akyoto/cache v1.0.6
 	github.com/centrifugal/centrifuge-go v0.8.2
@@ -81,7 +81,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
 	github.com/segmentio/encoding v0.2.19 // indirect
 	github.com/segmentio/kafka-go v0.4.19 // indirect
-	github.com/twitchtv/twirp v8.1.1+incompatible // indirect
+	github.com/twitchtv/twirp v8.1.2+incompatible // indirect
 	github.com/uber/jaeger-client-go v2.29.1+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
