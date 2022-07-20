@@ -129,9 +129,10 @@ func (s *Service) GetLastTrades(
 }
 
 func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
 	matchStageValue := bson.D{
 		{"t", bson.D{
-			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+			{"$gte", fromTime},
 		}},
 	}
 	if strings.TrimSpace(market) != "" {
@@ -147,6 +148,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			bson.D{
 				{"_id", "$data.market"},
 				{"volume", bson.D{{"$sum", "$data.volume"}}},
+				{"quoteVolume", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
 				{"count", bson.D{{"$count", bson.M{}}}},
 				{"highPrice", bson.D{{"$max", "$data.price"}}},
 				{"lowPrice", bson.D{{"$min", "$data.price"}}},
@@ -156,6 +158,24 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 				{"closeTime", bson.D{{"$last", "$t"}}},
 				{"firstId", bson.D{{"$first", "$data.dealid"}}},
 				{"lastId", bson.D{{"$last", "$data.dealid"}}},
+				{"lastQty", bson.D{{"$last", "$data.volume"}}},
+			},
+		},
+	}
+	lookupStage := bson.D{
+		{"$lookup",
+			bson.D{
+				{"from", s.DbCollection.Name()},
+				{"localField", "_id"},
+				{"foreignField", "data.market"},
+				{"pipeline",
+					bson.A{
+						bson.D{{"$match", bson.D{{"t", bson.D{{"$lt", fromTime}}}}}},
+						bson.D{{"$sort", bson.D{{"t", 1}}}},
+						bson.D{{"$limit", 1}},
+					},
+				},
+				{"as", "prev_window_trade"},
 			},
 		},
 	}
@@ -167,7 +187,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	}
 	aggregate, err := s.DbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage},
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage, lookupStage},
 		aggregateOptions,
 	)
 	if err != nil {
@@ -190,23 +210,60 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	closePrice := m["closePrice"].(primitive.Decimal128)
 	openPrice := m["openPrice"].(primitive.Decimal128)
+	quoteVolume := m["quoteVolume"].(primitive.Decimal128)
+	volume := m["volume"].(primitive.Decimal128)
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
-
 	return domain.TickerPriceChangeStatistics{
 		Symbol:             m["_id"].(string),
+		WeightedAvgPrice:   calcVwap(quoteVolume, volume),
 		LastPrice:          closePrice.String(),
 		OpenPrice:          openPrice.String(),
 		HighPrice:          m["highPrice"].(primitive.Decimal128).String(),
 		LowPrice:           m["lowPrice"].(primitive.Decimal128).String(),
-		Volume:             m["volume"].(primitive.Decimal128).String(),
+		Volume:             volume.String(),
+		QuoteVolume:        quoteVolume.String(),
 		OpenTime:           m["openTime"].(primitive.DateTime).Time().UnixMilli(),
 		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
 		FirstId:            m["firstId"].(string),
 		LastId:             m["lastId"].(string),
+		LastQty:            m["lastQty"].(primitive.Decimal128).String(),
 		Count:              int(m["count"].(int32)),
 		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
+		PrevClosePrice:     parsePrevClosePrice(m["prev_window_trade"]),
 	}
+}
+
+func parsePrevClosePrice(i interface{}) string {
+	a, ok := i.(bson.A)
+	if !ok {
+		return ""
+	}
+	if len(a) != 1 {
+		return ""
+	}
+	m, ok := a[0].(bson.M)
+	if !ok {
+		return ""
+	}
+	data, ok := m["data"].(bson.M)
+	if !ok {
+		return ""
+	}
+	return data["price"].(primitive.Decimal128).String()
+}
+
+func calcVwap(quoteVolume, volume primitive.Decimal128) string {
+	quoteVolumeF, err := strconv.ParseFloat(quoteVolume.String(), 64)
+	if err != nil {
+		return ""
+	}
+	volumeF, err := strconv.ParseFloat(volume.String(), 64)
+	if err != nil {
+		return ""
+	}
+	vwap := quoteVolumeF / volumeF
+	return strconv.FormatFloat(vwap, 'f', 4, 64)
 }
 
 func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
