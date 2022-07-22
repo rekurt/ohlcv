@@ -18,7 +18,7 @@ pipelines:
           image:  golang:1.17.11-alpine
           script:
             - apk add git libc-dev git gcc openssh
-            - git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
+            - git config --global url."ssh://git@bitbucket.org:".insteadOf "https://bitbucket.org/"
             - export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
             - export BUILD_DATE=$(date +"%F %T %Z")
             - export GIT_COMMIT=$(git rev-parse HEAD)
