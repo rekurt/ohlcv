@@ -82,6 +82,9 @@ func (c centrifuge) Publish(ctx context.Context, message MessageData) {
 }
 
 func (c centrifuge) BatchPublish(ctx context.Context, messages []MessageData) {
+	if len(messages) == 0 {
+		return
+	}
 	log := logger.FromContext(ctx)
 	pipe := c.Client.Pipe()
 	for _, message := range messages {
