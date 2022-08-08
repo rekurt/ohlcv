@@ -83,7 +83,7 @@ pipelines:
             - export KAFKA_TOPIC_PREFIX=$BRANCH
             - if [ -z $BITBUCKET_TAG ]; then
             -   export DEPLOY_MONGODB=true
-            -   if [ $OHLCV_BRANCH != "" ]; then
+            -   if [ -z $OHLCV_BRANCH ]; then
             -     export NAMESPACE=xch-$OHLCV_BRANCH
             -     export TAG=ohlcv-$(aws ecr describe-images --repository-name pointpayio-exchange --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
             -     if [ -z $TAG ]; then export TAG=ohlcv-master-latest; fi
