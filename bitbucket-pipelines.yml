@@ -89,7 +89,7 @@ pipelines:
             - then
             -   echo "AAA-${BITBUCKET_TAG} - true"
             -   export DEPLOY_MONGODB=true
-            -   if [ -z $OHLCV_BRANCH" ]
+            -   if [ -z $OHLCV_BRANCH ]
             -   then
             -     echo "AAA$OHLCV_BRANCH - true"
             -     export NAMESPACE=xch-$OHLCV_BRANCH
