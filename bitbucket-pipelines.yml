@@ -82,19 +82,21 @@ pipelines:
             - export NAMESPACE=xch-$BRANCH
             - export LAST_BUILD_TIMESTAMP=`date +%s`
             - export KAFKA_TOPIC_PREFIX=$BRANCH
-            - if [ -n $BITBUCKET_TAG ]; then
-            -   echo "$BITBUCKET_TAG - true"
+            - if [ -z "$BITBUCKET_TAG" ]
+            - then
+            -   echo "AAA$BITBUCKET_TAGAAA - true"
             -   export DEPLOY_MONGODB=true
-            -   if [ -n $OHLCV_BRANCH ]; then
-            -     echo "$OHLCV_BRANCH - true"
+            -   if [ -z "$OHLCV_BRANCH" ]
+            -   then
+            -     echo "AAA$OHLCV_BRANCHAAA - true"
             -     export NAMESPACE=xch-$OHLCV_BRANCH
             -     export TAG=ohlcv-$(aws ecr describe-images --repository-name pointpayio-exchange --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
-            -     if [ -n $TAG ]; then export TAG=ohlcv-master-latest; fi
+            -     if [ -n "$TAG" ]; then export TAG=ohlcv-master-latest; fi
             -   else
             -     echo "$OHLCV_BRANCH - false"
             -     export NAMESPACE=xch-$BRANCH
             -     export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
-            -  fi
+            -   fi
             - else
             -   echo "$BITBUCKET_TAG - false"
             -   export DEPLOY_MONGODB=false
