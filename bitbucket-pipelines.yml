@@ -78,13 +78,29 @@ pipelines:
             download: false
           script:
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
+            - echo "Deploying $BRANCH"
             - export NAMESPACE=xch-$BRANCH
-            - echo "Deploying to $NAMESPACE"
-            - echo "OHLCV_BRANCH  $NAMESPACE"
             - export LAST_BUILD_TIMESTAMP=`date +%s`
             - export KAFKA_TOPIC_PREFIX=$BRANCH
-            - export NAMESPACE=xch-$BRANCH
-            - export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            - if [ -z "$BITBUCKET_TAG" ]
+            -  then
+            -    echo "\$BITBUCKET_TAG is NULL"
+            -  else
+            -    echo "\$BITBUCKET_TAG is NOT NULL"
+            -  fi
+            - if [ -z "$BITBUCKET_TAG" ]
+            - then
+            #   NO TAG (not production)
+            -   echo "NOT PRODUCTION"
+            -   export DEPLOY_MONGODB=true
+            -   export NAMESPACE=xch-$BRANCH
+            -   export TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            - else
+            -   echo "PRODUCTION"
+            -   export DEPLOY_MONGODB=false
+            -   export NAMESPACE=xch-production
+            -   export TAG=prod-ohlcv-$BITBUCKET_TAG
+            - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
             - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
@@ -98,6 +114,7 @@ pipelines:
                 --set mongodb.auth.username=${MONGODB_USER}
                 --set mongodb.auth.password=${MONGODB_PASSWORD}
                 --set mongodb.auth.database=${MONGODB_NAME}
+
 
   branches:
     production:
