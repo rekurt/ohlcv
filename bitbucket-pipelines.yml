@@ -88,25 +88,15 @@ pipelines:
             -  else
             -    echo "\$BITBUCKET_TAG is NOT NULL"
             -  fi
-
-            - if [ -z $BITBUCKET_TAG ]
+            - if [ -z "$BITBUCKET_TAG" ]
             - then
             #   NO TAG (not production)
             -   echo "NOT PRODUCTION"
             -   export DEPLOY_MONGODB=true
-            -   if [ -z $OHLCV_BRANCH ]
-            -   then
-            -     echo "AAA$OHLCV_BRANCH - true"
-            -     export NAMESPACE=xch-$OHLCV_BRANCH
-            -     export TAG=ohlcv-$(aws ecr describe-images --repository-name pointpayio-exchange --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "ohlcv-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
-            -     if [ -z $TAG ]; then export TAG=ohlcv-master-latest; fi
-            -   else
-            -     echo "$OHLCV_BRANCH - false"
-            -     export NAMESPACE=xch-$BRANCH
-            -     export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
-            -   fi
+            -   export NAMESPACE=xch-$BRANCH
+            -   export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
             - else
-            -   echo "$BITBUCKET_TAG - false"
+            -   echo "PRODUCTION"
             -   export DEPLOY_MONGODB=false
             -   export NAMESPACE=xch-production
             -   export TAG=prod-ohlcv-$BITBUCKET_TAG
