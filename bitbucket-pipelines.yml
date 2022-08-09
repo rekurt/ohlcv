@@ -94,7 +94,7 @@ pipelines:
             -   echo "NOT PRODUCTION"
             -   export DEPLOY_MONGODB=true
             -   export NAMESPACE=xch-$BRANCH
-            -   export TAG=TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            -   export TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
             - else
             -   echo "PRODUCTION"
             -   export DEPLOY_MONGODB=false
