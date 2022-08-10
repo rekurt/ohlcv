@@ -44,9 +44,9 @@ pipelines:
                 --use-new-run
                 --cache-repo="$ECR_PATH"
                 --dockerfile /workspace/Dockerfile
-                --destination "$ECR_PATH:ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER"
-                --destination "$ECR_PATH:ohlcv-$BRANCH-latest"
-                --destination "$ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8}"
+                --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-$BRANCH-$BITBUCKET_BUILD_NUMBER"
+                --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-$BRANCH-latest"
+                --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}"
                 --context dir:///workspace
       - step: &security_scan
           name: scan image
@@ -77,31 +77,24 @@ pipelines:
           artifacts:
             download: false
           script:
+            - echo "Deploy"
+            # used in production deployment
+          after-script:
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
-            - echo "Deploying $BRANCH"
-            - export NAMESPACE=xch-$BRANCH
             - export LAST_BUILD_TIMESTAMP=`date +%s`
-            - export KAFKA_TOPIC_PREFIX=$BRANCH
-            - if [ -z "$BITBUCKET_TAG" ]
-            -  then
-            -    echo "\$BITBUCKET_TAG is NULL"
-            -  else
-            -    echo "\$BITBUCKET_TAG is NOT NULL"
-            -  fi
-            - if [ -z "$BITBUCKET_TAG" ]
-            - then
-            #   NO TAG (not production)
-            -   echo "NOT PRODUCTION"
-            -   export DEPLOY_MONGODB=true
-            -   export NAMESPACE=xch-$BRANCH
-            -   export TAG=ohlcv-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            - if [ $STAGE != 'production' ]; then
+            -     export NAMESPACE=xch-$BRANCH
+            -     export TAG=$BITBUCKET_REPO_SLUG-$BRANCH-$BITBUCKET_BUILD_NUMBER
+            -     export KAFKA_TOPIC_PREFIX=$BRANCH
+            -     export DEPLOY_MONGODB=true
             - else
-            -   echo "PRODUCTION"
-            -   export DEPLOY_MONGODB=false
-            -   export NAMESPACE=xch-production
-            -   export TAG=prod-ohlcv-$BITBUCKET_TAG
+            -     export NAMESPACE=xch-production
+            -     export TAG=production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
+            -     export KAFKA_TOPIC_PREFIX="production"
+            -     export DEPLOY_MONGODB=false
             - fi
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
+            - export KUBECONFIG=kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
             - kubectl label namespaces $NAMESPACE stage="$STAGE" lastBuildTimestamp="$LAST_BUILD_TIMESTAMP" project="exchange.pointpay.io" --overwrite=true
             - kubectl kustomize . | kubectl apply -n $NAMESPACE -f -
@@ -130,7 +123,7 @@ pipelines:
             -   echo "$BITBUCKET_BRANCH IS NOT PRODUCTION BRANCH"
             -   exit 1
             - else
-            -   echo "deploy to production from tag"
+            -   echo "deploy to production from master"
             -   exit 1
             - fi
 
@@ -142,6 +135,17 @@ pipelines:
           <<: *deploy_k8s
           deployment: Staging-master
           trigger: automatic
+      - step:
+          <<: *deploy_k8s
+          deployment: Production
+          name: Deploy to Production k8s
+          trigger: manual
+          script:
+              # tag docker image for production
+              - eval $(aws ecr get-login --no-include-email)
+              - docker pull $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
+              - docker tag  $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8} $ECR_PATH:production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
+              - docker push $ECR_PATH:production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
 
     master2:
       - step: *building
@@ -151,28 +155,3 @@ pipelines:
           <<: *deploy_k8s
           deployment: Staging-master2
           trigger: automatic
-
-  custom:
-    stage_ohlcv_deploy: # triggered by exchange repo  #ohlcv option
-      - step:
-          <<: *deploy_k8s
-          trigger: automatic
-
-  tags:
-    'v*.*.*':
-      - step:
-          name: tag docker
-          image: serafinlabs/aws-docker
-          artifacts:
-            download: false
-          clone:
-            enabled: false
-          script:
-            - eval $(aws ecr get-login --no-include-email)
-            - docker pull $ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8}
-            - docker tag  $ECR_PATH:ohlcv-${BITBUCKET_COMMIT:0:8} $ECR_PATH:prod-ohlcv-$BITBUCKET_TAG
-            - docker push $ECR_PATH:prod-ohlcv-$BITBUCKET_TAG
-      - step:
-          <<: *deploy_k8s
-          deployment: Production
-          trigger: manual
