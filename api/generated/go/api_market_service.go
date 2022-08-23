@@ -43,7 +43,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 
 	trades, err := s.dealService.GetLastTrades(ctx, symbol, limit)
 	if err != nil {
-		return Response(500, RespError{}), nil
+		return Response(500, RespError{Msg: err.Error()}), nil
 	}
 	return Response(200, convertDeals(trades)), nil
 }
