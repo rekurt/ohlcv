@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"context"
 	"fmt"
 	"log"
@@ -25,7 +26,8 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
-func TestForNewCollection(t *testing.T) {
+func TestForNewCollection_manual(t *testing.T) {
+	t.Skip()
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("../config/.env")
 
@@ -66,11 +68,7 @@ func TestSaveDeal(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	dealService := deal.NewService(
-		dealCollection,
-		getTestMarkets(),
-		broker.NewInMemory(),
-	)
+	dealService := deal.NewService(dealCollection, getTestMarkets(), nil)
 	market := "BTC-USDT"
 
 	d1 := &matcher.Deal{
@@ -142,13 +140,7 @@ func initCandleService(
 	broadcaster := centrifuge.NewBroadcaster(centrifuge.NewPublisher(conf.CentrifugeConfig), eventsBroker, nil)
 	broadcaster.SubscribeForCharts()
 
-	return candle.NewService(
-		&candle.Storage{DealsDbCollection: dealsCollection},
-		new(candle.Aggregator),
-		GetAvailableMarkets(),
-		domain.GetAvailableResolutions(),
-		broker.NewInMemory(),
-	)
+	return candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), broker.NewInMemory())
 }
 
 func TestDealGenerator(t *testing.T) {
@@ -164,14 +156,8 @@ func TestDealGenerator(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(
-		dealCollection,
-		GetAvailableMarkets(),
-		eventsBroker,
-	)
+	dealService := deal.NewService(dealCollection, GetAvailableMarkets(), nil)
 	candleService := InitCandleService(conf, dealCollection, eventsBroker)
-
-	candleService.CronCandleGenerationStart(ctx)
 
 	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)
@@ -201,7 +187,7 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	service := deal.NewService(dealCollection, getTestMarkets(), broker.NewInMemory())
+	service := deal.NewService(dealCollection, getTestMarkets(), nil)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancelFunc()
 	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
@@ -225,15 +211,45 @@ func Test_GetLastTrades(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(
-		dealCollection,
-		getTestMarkets(),
-		broker.NewInMemory(),
-	)
+	dealService := deal.NewService(dealCollection, getTestMarkets(), nil)
 	trades, err := dealService.GetLastTrades(ctx, "ETH/LTC", 10)
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)
 	for _, tr := range trades {
 		assert.Equal(t, "ETH/LTC", tr.Data.Market)
 	}
+}
+
+func buildAvailableMarkets(conf infra.Config) []market.Market {
+	marketClient, err := market.New(
+		market.Config{ServerURL: conf.ExchangeMarketsServerURL, ServerTLS: conf.ExchangeMarketsServerSSL},
+		market.NewErrorProcessor(map[string]string{}),
+		map[interface{}]market.Option{},
+		conf.ExchangeMarketsToken,
+	)
+	if err != nil {
+		log.Fatal("can't market.New:" + err.Error())
+	}
+	markets, err := marketClient.List(context.Background())
+	if err != nil {
+		log.Fatal("can't marketClient.List:" + err.Error())
+	}
+	return markets
+}
+
+func Test_GetAvgPrice(t *testing.T) {
+	t.Skip()
+	ctx := infra.GetContext()
+	conf := infra.SetConfig("../config/.env")
+	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	dealCollection := mongo.GetCollection(
+		ctx,
+		mongoDbClient,
+		conf.MongoDbConfig,
+		conf.MongoDbConfig.DealCollectionName,
+	)
+	dealService := deal.NewService(dealCollection, getTestMarkets(), buildAvailableMarkets(conf))
+	avg, err := dealService.GetAvgPrice(ctx, time.Hour*24*40, "ETH_TRX")
+	require.NoError(t, err)
+	fmt.Println(avg)
 }

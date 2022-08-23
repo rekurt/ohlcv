@@ -27,7 +27,7 @@ func (s Storage) GetCandles(
 	logger.FromContext(ctx).WithField(
 		"market",
 		market,
-	).Infof("[CandleService] Call GetCandles")
+	).Tracef("[CandleService] Call GetCandles")
 	from, to := period[0], period[1]
 
 	matchStage := bson.D{
@@ -60,10 +60,10 @@ func (s Storage) GetCandles(
 				}},
 			}},
 		}},
-		{"o", bson.D{{"$first", "$data.price"}}},
+		{"o", bson.D{{"$last", "$data.price"}}},
 		{"h", bson.D{{"$max", "$data.price"}}},
 		{"l", bson.D{{"$min", "$data.price"}}},
-		{"c", bson.D{{"$last", "$data.price"}}},
+		{"c", bson.D{{"$first", "$data.price"}}},
 		{"v", bson.D{{"$sum", "$data.volume"}}},
 	}}}
 	tInt := bson.D{{"$toLong", "$_id.t"}}
@@ -133,16 +133,16 @@ func (s Storage) GetCandles(
 			"candleCount",
 			0,
 		).WithField("err", err).WithField(
-			"err",
+			"period",
 			period,
-		).Infof("Candles not found.")
+		).Tracef("Candles not found.")
 		return nil
 	}
 	chart := data[0]
 	logger.FromContext(ctx).WithField(
 		"candleCount",
 		len(chart.T),
-	).Infof("Success get candles.")
+	).Tracef("Success get candles.")
 	chart.SetMarket(market)
 	return chart
 }

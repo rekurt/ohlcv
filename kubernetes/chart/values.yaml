@@ -1,0 +1,39 @@
+fullnameOverride: ""
+nameOverride: ""
+annotations: {}
+image:
+  name: matcher
+  tag: latest
+
+resources:
+  app:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+service_port_http: &service_port_http 8082
+
+service:
+  port: *service_port_http
+  protocol: TCP
+  targetPort: *service_port_http
+
+
+#===== Depend
+mongodb:
+  enabled: false
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+      namespace: "monitoring"
+      interval: 30s
+      additionalLabels:
+        release: prom-stage
+  image:
+    registry: docker.io
+    repository: bitnami/mongodb
+    tag: 5.0.7-debian-10-r5

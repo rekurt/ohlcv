@@ -19,6 +19,7 @@ import (
 // pass the data to a MarketApiServicer to perform the required actions, then write the service results to the http response.
 type MarketApiRouter interface {
 	ApiV1TradesGet(http.ResponseWriter, *http.Request)
+	ApiV3AvgPriceGet(http.ResponseWriter, *http.Request)
 	ApiV3Ticker24hrGet(http.ResponseWriter, *http.Request)
 	V1TradingStats24hAllGet(http.ResponseWriter, *http.Request)
 }
@@ -29,6 +30,7 @@ type MarketApiRouter interface {
 // and updated with the logic required for the API.
 type MarketApiServicer interface {
 	ApiV1TradesGet(context.Context, string, int32) (ImplResponse, error)
+	ApiV3AvgPriceGet(context.Context, string) (ImplResponse, error)
 	ApiV3Ticker24hrGet(context.Context, string) (ImplResponse, error)
 	V1TradingStats24hAllGet(context.Context, string) (ImplResponse, error)
 }

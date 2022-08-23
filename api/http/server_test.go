@@ -26,11 +26,7 @@ func Test_Server_manual(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	dealService := deal.NewService(
-		dealCollection,
-		tests.GetAvailableMarkets(),
-		eventsBroker,
-	)
+	dealService := deal.NewService(dealCollection, tests.GetAvailableMarkets(), nil)
 	candleService := tests.InitCandleService(conf, dealCollection, eventsBroker)
 
 	server := NewServer(candleService, dealService, conf)

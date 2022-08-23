@@ -1,12 +1,11 @@
 package centrifuge
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type broadcaster struct {
@@ -39,7 +38,7 @@ func (b broadcaster) BroadcastCandleCharts(
 	messages := make([]MessageData, 0)
 
 	for _, chart := range cht {
-		channel := b.Channels[chart.Market()][chart.Resolution()]
+		channel := b.Channels[chart.Symbol][chart.Resolution]
 		payload, _ := json.Marshal(chart)
 		messages = append(
 			messages, MessageData{
@@ -55,7 +54,7 @@ func (b broadcaster) BroadcastCandleCharts(
 	).WithField(
 		"messages",
 		messages,
-	).Infof("[Broadcaster.BroadcastCandleCharts] Push charts to Centrifugo.")
+	).Tracef("[Broadcaster.BroadcastCandleCharts] Push charts to Centrifugo.")
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 

@@ -1,6 +1,8 @@
 package deal
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/candle"
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"context"
 	"fmt"
 	"strconv"
@@ -30,18 +32,14 @@ func TopicName(prefix string) string {
 type Service struct {
 	DbCollection *mongo.Collection
 	Markets      map[string]string
-	eventManager domain.EventsBroker
+	marketsInfo  []market.Market
 }
 
-func NewService(
-	dbCollection *mongo.Collection,
-	markets map[string]string,
-	eventPublisher domain.EventsBroker,
-) *Service {
+func NewService(dbCollection *mongo.Collection, markets map[string]string, marketsInfo []market.Market) *Service {
 	return &Service{
 		DbCollection: dbCollection,
 		Markets:      markets,
-		eventManager: eventPublisher,
+		marketsInfo:  marketsInfo,
 	}
 }
 
@@ -86,7 +84,6 @@ func (s *Service) SaveDeal(
 	}
 	var deals = make([]*domain.Deal, 1)
 	deals[0] = deal
-	go s.eventManager.Publish(domain.EvTypeDeals, domain.NewEvent(ctx, deals))
 
 	return deal, nil
 }
@@ -132,9 +129,10 @@ func (s *Service) GetLastTrades(
 }
 
 func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
 	matchStageValue := bson.D{
 		{"t", bson.D{
-			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+			{"$gte", fromTime},
 		}},
 	}
 	if strings.TrimSpace(market) != "" {
@@ -150,6 +148,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 			bson.D{
 				{"_id", "$data.market"},
 				{"volume", bson.D{{"$sum", "$data.volume"}}},
+				{"quoteVolume", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
 				{"count", bson.D{{"$count", bson.M{}}}},
 				{"highPrice", bson.D{{"$max", "$data.price"}}},
 				{"lowPrice", bson.D{{"$min", "$data.price"}}},
@@ -159,17 +158,36 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 				{"closeTime", bson.D{{"$last", "$t"}}},
 				{"firstId", bson.D{{"$first", "$data.dealid"}}},
 				{"lastId", bson.D{{"$last", "$data.dealid"}}},
+				{"lastQty", bson.D{{"$last", "$data.volume"}}},
+			},
+		},
+	}
+	lookupStage := bson.D{
+		{"$lookup",
+			bson.D{
+				{"from", s.DbCollection.Name()},
+				{"localField", "_id"},
+				{"foreignField", "data.market"},
+				{"pipeline",
+					bson.A{
+						bson.D{{"$match", bson.D{{"t", bson.D{{"$lt", fromTime}}}}}},
+						bson.D{{"$sort", bson.D{{"t", 1}}}},
+						bson.D{{"$limit", 1}},
+					},
+				},
+				{"as", "prev_window_trade"},
 			},
 		},
 	}
 	aggregateOptions := options.Aggregate()
+	aggregateOptions.SetAllowDiskUse(true)
 	deadline, ok := ctx.Deadline()
 	if ok {
 		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
 	}
 	aggregate, err := s.DbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage},
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, sortStage, groupStage, lookupStage},
 		aggregateOptions,
 	)
 	if err != nil {
@@ -192,23 +210,60 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
 	closePrice := m["closePrice"].(primitive.Decimal128)
 	openPrice := m["openPrice"].(primitive.Decimal128)
+	quoteVolume := m["quoteVolume"].(primitive.Decimal128)
+	volume := m["volume"].(primitive.Decimal128)
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
-
 	return domain.TickerPriceChangeStatistics{
 		Symbol:             m["_id"].(string),
+		WeightedAvgPrice:   calcVwap(quoteVolume, volume),
 		LastPrice:          closePrice.String(),
 		OpenPrice:          openPrice.String(),
 		HighPrice:          m["highPrice"].(primitive.Decimal128).String(),
 		LowPrice:           m["lowPrice"].(primitive.Decimal128).String(),
-		Volume:             m["volume"].(primitive.Decimal128).String(),
+		Volume:             volume.String(),
+		QuoteVolume:        quoteVolume.String(),
 		OpenTime:           m["openTime"].(primitive.DateTime).Time().UnixMilli(),
 		CloseTime:          m["closeTime"].(primitive.DateTime).Time().UnixMilli(),
 		FirstId:            m["firstId"].(string),
 		LastId:             m["lastId"].(string),
+		LastQty:            m["lastQty"].(primitive.Decimal128).String(),
 		Count:              int(m["count"].(int32)),
 		PriceChange:        strconv.FormatFloat(priceChange, 'f', 8, 64),
 		PriceChangePercent: strconv.FormatFloat(priceChangePercent, 'f', 8, 64),
+		PrevClosePrice:     parsePrevClosePrice(m["prev_window_trade"]),
 	}
+}
+
+func parsePrevClosePrice(i interface{}) string {
+	a, ok := i.(bson.A)
+	if !ok {
+		return ""
+	}
+	if len(a) != 1 {
+		return ""
+	}
+	m, ok := a[0].(bson.M)
+	if !ok {
+		return ""
+	}
+	data, ok := m["data"].(bson.M)
+	if !ok {
+		return ""
+	}
+	return data["price"].(primitive.Decimal128).String()
+}
+
+func calcVwap(quoteVolume, volume primitive.Decimal128) string {
+	quoteVolumeF, err := strconv.ParseFloat(quoteVolume.String(), 64)
+	if err != nil {
+		return ""
+	}
+	volumeF, err := strconv.ParseFloat(volume.String(), 64)
+	if err != nil {
+		return ""
+	}
+	vwap := quoteVolumeF / volumeF
+	return strconv.FormatFloat(vwap, 'f', 4, 64)
 }
 
 func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
@@ -225,11 +280,7 @@ func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
 	return change, priceChangePercent
 }
 
-func (s *Service) RunConsuming(
-	ctx context.Context,
-	consumer pubsub.Subscriber,
-	topic string,
-) {
+func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
 	go func() {
 		err := func() error {
 			return consumer.Consume(
@@ -251,17 +302,14 @@ func (s *Service) RunConsuming(
 							"unmarshal error with protobuf deals msg",
 						)
 					}
-
+					err := currentCandles.AddDeal(dealMessage)
+					if err != nil {
+						logger.FromContext(ctx).
+							WithField("method", "currentCandles.AddDeal in consuming").
+							Errorf(err)
+					}
 					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
-					} else {
-
-						var deals = make([]*domain.Deal, 1)
-						deals[0] = deal
-						s.eventManager.Publish(
-							domain.EvTypeDeals,
-							domain.NewEvent(ctx, deals),
-						)
 					}
 					return nil
 				},
@@ -274,4 +322,66 @@ func (s *Service) RunConsuming(
 				Errorf("Consuming session was finished with error", err)
 		}
 	}()
+}
+
+func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
+	matchStageValue := bson.D{
+		{"t", bson.D{
+			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
+		}},
+		bson.E{Key: "data.market", Value: market},
+	}
+	if strings.TrimSpace(market) == "" {
+		return "0", fmt.Errorf("can't GetAvgPrice, empty symbol")
+	}
+	groupStage := bson.D{
+		{"$group",
+			bson.D{
+				{"_id", "$data.market"},
+				{"avg", bson.D{{"$avg", "$data.price"}}},
+			},
+		},
+	}
+	aggregateOptions := options.Aggregate()
+	deadline, ok := ctx.Deadline()
+	if ok {
+		aggregateOptions.SetMaxTime(deadline.Sub(time.Now()))
+	}
+	aggregate, err := s.DbCollection.Aggregate(
+		ctx,
+		mongo.Pipeline{bson.D{{Key: "$match", Value: matchStageValue}}, groupStage},
+		aggregateOptions,
+	)
+	if err != nil {
+		return "0", fmt.Errorf("GetAvgPrice: Aggregate error '%w'", err)
+	}
+	var resp []bson.M
+	if err = aggregate.All(ctx, &resp); err != nil {
+		return "0", fmt.Errorf("GetAvgPrice: aggregate.All error '%w'", err)
+	}
+	if len(resp) == 0 {
+		return "0", nil
+	}
+	return s.roundByMarket(resp[0]["avg"].(primitive.Decimal128), market)
+}
+
+func (s *Service) roundByMarket(decimal128 primitive.Decimal128, market string) (string, error) {
+	f, err := strconv.ParseFloat(decimal128.String(), 64)
+	if err != nil {
+		return "0", nil
+	}
+	return strconv.FormatFloat(
+		f,
+		'f',
+		findPrec(market, s.marketsInfo),
+		64), nil
+}
+
+func findPrec(market string, info []market.Market) int {
+	for _, i := range info {
+		if i.Name == market {
+			return int(i.BasePrecision)
+		}
+	}
+	return 4
 }
