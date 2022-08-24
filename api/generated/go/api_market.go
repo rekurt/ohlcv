@@ -90,7 +90,7 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
+	EncodeJSONResponse(result.Body, &result.Code, w, r)
 
 }
 
@@ -105,7 +105,7 @@ func (c *MarketApiController) ApiV3AvgPriceGet(w http.ResponseWriter, r *http.Re
 		return
 	}
 	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
+	EncodeJSONResponse(result.Body, &result.Code, w, r)
 
 }
 
@@ -120,7 +120,7 @@ func (c *MarketApiController) ApiV3Ticker24hrGet(w http.ResponseWriter, r *http.
 		return
 	}
 	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
+	EncodeJSONResponse(result.Body, &result.Code, w, r)
 
 }
 
@@ -135,6 +135,6 @@ func (c *MarketApiController) V1TradingStats24hAllGet(w http.ResponseWriter, r *
 		return
 	}
 	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
+	EncodeJSONResponse(result.Body, &result.Code, w, r)
 
 }
