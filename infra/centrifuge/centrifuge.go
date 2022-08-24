@@ -3,10 +3,10 @@ package centrifuge
 import (
 	"context"
 	"fmt"
+	"github.com/centrifugal/gocent/v3"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	cfge "github.com/centrifugal/centrifuge-go"
-	"github.com/centrifugal/gocent/v3"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -73,7 +73,7 @@ func (c centrifuge) Publish(ctx context.Context, message MessageData) {
 	if err != nil {
 		log.Errorf("Error calling publish: %v", err)
 	}
-	log.Infof(
+	log.Debugf(
 		"Publish into channel %s successful, stream position {offset: %d, epoch: %s}",
 		message.Channel,
 		result.Offset,
@@ -82,6 +82,9 @@ func (c centrifuge) Publish(ctx context.Context, message MessageData) {
 }
 
 func (c centrifuge) BatchPublish(ctx context.Context, messages []MessageData) {
+	if len(messages) == 0 {
+		return
+	}
 	log := logger.FromContext(ctx)
 	pipe := c.Client.Pipe()
 	for _, message := range messages {
@@ -99,5 +102,5 @@ func (c centrifuge) BatchPublish(ctx context.Context, messages []MessageData) {
 			log.Errorf("Error in pipe reply: %v", err)
 		}
 	}
-	log.Infof("Sent %d publish commands in one HTTP request ", len(replies))
+	log.Debugf("Sent %d publish commands in one HTTP request ", len(replies))
 }
