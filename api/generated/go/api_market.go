@@ -136,5 +136,4 @@ func (c *MarketApiController) V1TradingStats24hAllGet(w http.ResponseWriter, r *
 	}
 	// If no error, encode the body and the result code
 	EncodeJSONResponse(result.Body, &result.Code, w, r)
-
 }
