@@ -12,7 +12,6 @@ package openapi
 import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
