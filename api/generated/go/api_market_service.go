@@ -10,10 +10,11 @@
 package openapi
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
 	"context"
 	"strings"
 	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
@@ -92,27 +93,14 @@ func convertDeals(tr []domain.Deal) []Trade {
 	for i := range tr {
 		trades[i] = Trade{
 			Id:           tr[i].Data.DealId,
-			Price:        trim(tr[i].Data.Price.String()),
-			Qty:          trim(tr[i].Data.Volume.String()),
-			QuoteQty:     trim(tr[i].Data.Volume.String()),
+			Price:        tr[i].Data.Price.String(),
+			Qty:          tr[i].Data.Volume.String(),
+			QuoteQty:     tr[i].Data.Volume.String(),
 			Time:         tr[i].T.Time().UnixMilli(),
 			IsBuyerMaker: tr[i].Data.IsBuyerMaker,
 		}
 	}
 	return trades
-}
-
-func trim(s string) string {
-	l := len(s)
-	cutSet := ""
-	for i := l-1; i >= 0; i-- {
-		if  s[i] == '0' {
-			cutSet = cutSet + "0"
-			continue
-		}
-		break
-	}
-	return strings.TrimRight(s, cutSet)
 }
 
 func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
