@@ -42,10 +42,11 @@ pipelines:
                 --cache=true
                 --cache-copy-layers
                 --use-new-run
-                --cache-repo="$ECR_PATH"
+                --cache-repo="$ECR_CACHE"
                 --dockerfile /workspace/Dockerfile
                 --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-$BRANCH-$BITBUCKET_BUILD_NUMBER"
                 --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-$BRANCH-latest"
+                --destination "$ECR_LATEST:$BITBUCKET_REPO_SLUG-$BRANCH-latest"
                 --destination "$ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}"
                 --context dir:///workspace
       - step: &security_scan
