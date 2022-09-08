@@ -83,17 +83,24 @@ pipelines:
           after-script:
             - export BRANCH=`echo $BITBUCKET_BRANCH | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' | sed 's/\//-/g' | cut -c 1-25 | sed 's/_/-/g'`
             - export LAST_BUILD_TIMESTAMP=`date +%s`
-            - if [ $STAGE != 'production' ]; then
+            - export NAMESPACE=xch-$BRANCH
+            - if [ -z $BITBUCKET_TAG ]; then
+            -   if [ $OHLCV_NAMESPACE != "" ]; then
+            -     export NAMESPACE=$OHLCV_NAMESPACE
+            -     export KAFKA_TOPIC_PREFIX=$OHLCV_KAFKA_PREFIX
+            -     export TAG=$BITBUCKET_REPO_SLUG-$(aws ecr describe-images --repository-name pointpayio-exchange --query 'sort_by(imageDetails,& imagePushedAt)[*].imageTags[0]' --output table | grep "$BITBUCKET_REPO_SLUG-$OHLCV_BRANCH" | tail -n 1 |awk '{print $2}' | cut -d'-' -f 2-)
+            -     if [ -z $TAG ]; then export TAG=$BITBUCKET_REPO_SLUG-master-latest; fi
+            -   else
             -     export NAMESPACE=xch-$BRANCH
             -     export TAG=$BITBUCKET_REPO_SLUG-$BRANCH-$BITBUCKET_BUILD_NUMBER
             -     export KAFKA_TOPIC_PREFIX=$BRANCH
-            -     export DEPLOY_MONGODB=true
+            -   fi
             - else
-            -     export NAMESPACE=xch-production
-            -     export TAG=production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
-            -     export KAFKA_TOPIC_PREFIX="production"
-            -     export DEPLOY_MONGODB=false
+            -   export NAMESPACE=xch-production
+            -   export TAG=production-$BITBUCKET_REPO_SLUG-$BITBUCKET_TAG
+            -   export KAFKA_TOPIC_PREFIX=production
             - fi
+            - env | sort
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
             - export KUBECONFIG=kubernetes/config
             - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
@@ -119,12 +126,7 @@ pipelines:
             enabled: false
           name: 'test to Production'
           script:
-            - echo "Your deployment to staging script goes here..."
-            - if [ $BITBUCKET_BRANCH != "production" ]; then
-            -   echo "$BITBUCKET_BRANCH IS NOT PRODUCTION BRANCH"
-            -   exit 1
-            - else
-            -   echo "deploy to production from master"
+            -   echo "deploy to production from tags"
             -   exit 1
             - fi
 
@@ -136,17 +138,7 @@ pipelines:
           <<: *deploy_k8s
           deployment: Staging-master
           trigger: automatic
-      - step:
-          <<: *deploy_k8s
-          deployment: Production
-          name: Deploy to Production k8s
-          trigger: manual
-          script:
-              # tag docker image for production
-              - eval $(aws ecr get-login --no-include-email)
-              - docker pull $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
-              - docker tag  $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8} $ECR_PATH:production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
-              - docker push $ECR_PATH:production-$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
+
 
     master2:
       - step: *building
@@ -156,3 +148,21 @@ pipelines:
           <<: *deploy_k8s
           deployment: Staging-master2
           trigger: automatic
+
+  tags:
+    'v*.*.*':
+      - step:
+          script:
+            - echo "deploy to production"
+          trigger: automatic
+      - step:
+          <<: *deploy_k8s
+          deployment: Production
+          name: Deploy to Production k8s
+          trigger: manual
+          script:
+            # tag docker image for production
+            - eval $(aws ecr get-login --no-include-email)
+            - docker pull $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8}
+            - docker tag  $ECR_PATH:$BITBUCKET_REPO_SLUG-${BITBUCKET_COMMIT:0:8} $ECR_PATH:production-$BITBUCKET_REPO_SLUG-$BITBUCKET_TAG
+            - docker push $ECR_PATH:production-$BITBUCKET_REPO_SLUG-$BITBUCKET_TAG
