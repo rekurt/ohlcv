@@ -4,9 +4,9 @@ metadata:
   name: {{ include "app.fullname" . }}
   annotations:
     deploymentTime: {{ now | date "2006-01-02T15:04:05" }}
-  {{ if .Values.annotations}}
-   {{ toYaml .Values.annotations | indent 4}}}}
-  {{- end }}
+{{- if .Values.annotations }}
+{{ toYaml .Values.annotations | nindent 4 }}
+{{- end }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:

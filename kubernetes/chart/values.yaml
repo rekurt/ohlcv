@@ -1,6 +1,7 @@
 fullnameOverride: ""
 nameOverride: ""
-annotations: {}
+annotations:
+  reloader.stakater.com/auto: "true"
 image:
   name: matcher
   tag: latest
