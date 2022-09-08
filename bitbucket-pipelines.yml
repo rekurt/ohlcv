@@ -72,7 +72,7 @@ pipelines:
 
       - step: &deploy_k8s
           name: deploy k8s
-          deployment: Staging
+          deployment: Other
           image: ipiton/helm-deployer:latest
           trigger: 'manual'
           artifacts:
