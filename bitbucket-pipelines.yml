@@ -95,10 +95,12 @@ pipelines:
             -     export TAG=$BITBUCKET_REPO_SLUG-$BRANCH-$BITBUCKET_BUILD_NUMBER
             -     export KAFKA_TOPIC_PREFIX=$BRANCH
             -   fi
+            -   export DEPLOY_MONGODB=true
             - else
             -   export NAMESPACE=xch-production
             -   export TAG=production-$BITBUCKET_REPO_SLUG-$BITBUCKET_TAG
             -   export KAFKA_TOPIC_PREFIX=production
+            -   export DEPLOY_MONGODB=false
             - fi
             - env | sort
             - echo $KUBE_CONFIG | base64 -d > ./kubernetes/config
