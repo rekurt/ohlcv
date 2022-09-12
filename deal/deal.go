@@ -1,21 +1,18 @@
 package deal
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/common/infra/logger"
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"go.mongodb.org/mongo-driver/bson"
@@ -133,10 +130,8 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	matchStageValue := bson.D{
 		{"t", bson.D{
 			{"$gte", fromTime},
+			{"$data.market", market},
 		}},
-	}
-	if strings.TrimSpace(market) != "" {
-		matchStageValue = append(matchStageValue, bson.E{Key: "data.market", Value: market})
 	}
 	sortStage := bson.D{{"$sort", bson.D{
 		{
@@ -200,6 +195,7 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	if len(resp) == 0 {
 		return nil, nil
 	}
+
 	statistics := make([]domain.TickerPriceChangeStatistics, 0, len(resp))
 	for _, v := range resp {
 		statistics = append(statistics, parseStatistics(v))
@@ -278,50 +274,6 @@ func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
 	change := closePriceF - openPriceF
 	priceChangePercent := change / openPriceF
 	return change, priceChangePercent
-}
-
-func (s *Service) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
-	go func() {
-		err := func() error {
-			return consumer.Consume(
-				ctx,
-				topic,
-				func(
-					ctx context.Context,
-					metadata map[string]string,
-					msg []byte,
-				) error {
-					dealMessage := matcher.Deal{}
-					if err := proto.Unmarshal(msg, &dealMessage); err != nil {
-						logger.FromContext(ctx).
-							WithField("method", "consumer.deals.Unmarshal").
-							Errorf(err)
-
-						return errors.Wrap(
-							err,
-							"unmarshal error with protobuf deals msg",
-						)
-					}
-					err := currentCandles.AddDeal(dealMessage)
-					if err != nil {
-						logger.FromContext(ctx).
-							WithField("method", "currentCandles.AddDeal in consuming").
-							Errorf(err)
-					}
-					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
-						return errors.Wrapf(err, "while saving deal %v into DB", deal)
-					}
-					return nil
-				},
-			)
-		}()
-		if err != nil {
-			logger.FromContext(ctx).
-				WithField("err", err).
-				WithField("svc", "DealsService").
-				Errorf("Consuming session was finished with error", err)
-		}
-	}()
 }
 
 func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
