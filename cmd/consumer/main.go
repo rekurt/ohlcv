@@ -1,16 +1,16 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/common/events/topics"
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"os"
 	"os/signal"
 	"time"
-
-	"bitbucket.org/novatechnologies/common/events/topics"
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 
@@ -20,7 +20,6 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
-	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -48,24 +47,16 @@ func main() {
 	)
 
 	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
-	dealCache := deal.NewCacheService(dealService, marketsMap)
-
-	// Uploading 24hr tickers cache
-	_, err := dealCache.GetTickerPriceChangeStatistics(ctx, time.Hour*24, "")
-	if err != nil {
-		panic(err)
-	}
-
-	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
+	// Start consuming, preparing, saving deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
 	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
-	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
+	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 
-	server := http.NewServer(candleService, dealCache, conf)
+	server := http.NewServer(candleService, dealService, conf)
 	server.Start(ctx)
 
 	//shutdown

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
+	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	log "github.com/sirupsen/logrus"
 
@@ -34,7 +35,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service, conf i
 	}
 
 	candleHandler := handler.NewCandleHandler(candleService)
-	MarketApiService := openapi.NewMarketApiService(dealService, market.NewCache(marketClient))
+	MarketApiService := openapi.NewMarketApiService(deal.NewCacheService(dealService), market.NewCache(marketClient))
 	MarketApiController := openapi.NewMarketApiController(MarketApiService)
 
 	router := openapi.NewRouter(MarketApiController)
