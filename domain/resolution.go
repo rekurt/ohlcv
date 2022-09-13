@@ -3,28 +3,34 @@ package domain
 import "time"
 
 const (
-	Candle1MResolution  = "1"
-	Candle3MResolution  = "3"
-	Candle5MResolution  = "5"
-	Candle15MResolution = "15"
-	Candle30MResolution = "30"
-	Candle1HResolution  = "60"
-	Candle2HResolution  = "120"
-	Candle4HResolution  = "240"
-	Candle6HResolution  = "360"
-	Candle12HResolution = "720"
-	Candle1MHResolution = "1MH"
-	Candle1DResolution  = "1D"
+	Day = 24 * time.Hour
+)
+
+type Resolution string
+
+const (
+	Candle1MResolution  Resolution = "1"
+	Candle3MResolution  Resolution = "3"
+	Candle5MResolution  Resolution = "5"
+	Candle15MResolution Resolution = "15"
+	Candle30MResolution Resolution = "30"
+	Candle1HResolution  Resolution = "60"
+	Candle2HResolution  Resolution = "120"
+	Candle4HResolution  Resolution = "240"
+	Candle6HResolution  Resolution = "360"
+	Candle12HResolution Resolution = "720"
+	Candle1MHResolution Resolution = "1MH"
+	Candle1DResolution  Resolution = "1D"
 
 	// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
 
-	Candle1H2Resolution  = "1H"
-	Candle2H2Resolution  = "2H"
-	Candle4H2Resolution  = "4H"
-	Candle6H2Resolution  = "6H"
-	Candle12H2Resolution = "12H"
-	Candle1WResolution   = "1W"
-	Candle1MH2Resolution = "1M"
+	Candle1H2Resolution  Resolution = "1H"
+	Candle2H2Resolution  Resolution = "2H"
+	Candle4H2Resolution  Resolution = "4H"
+	Candle6H2Resolution  Resolution = "6H"
+	Candle12H2Resolution Resolution = "12H"
+	Candle1WResolution   Resolution = "1W"
+	Candle1MH2Resolution Resolution = "1M"
 )
 
 const MinuteUnit = "minute"
@@ -33,8 +39,8 @@ const DayUnit = "day"
 const MonthUnit = "month"
 const WeekUnit = "week"
 
-func GetAvailableResolutions() []string {
-	return []string{
+func GetAvailableResolutions() []Resolution {
+	return []Resolution{
 		Candle1MResolution,
 		Candle3MResolution,
 		Candle5MResolution,
@@ -60,8 +66,14 @@ func GetAvailableResolutions() []string {
 	}
 }
 
-func StrResolutionToDuration(resolution string) time.Duration {
-	int2dur := map[string]time.Duration{
+func CalculateCloseTime(openTime time.Time, resolution Resolution) time.Time {
+	duration := resolution.ToDuration(openTime.Month())
+
+	return openTime.Add(duration - 1).UTC()
+}
+
+func (resolution Resolution) ToDuration(month time.Month) time.Duration {
+	int2dur := map[Resolution]time.Duration{
 		Candle1MResolution:  time.Minute,
 		Candle3MResolution:  3 * time.Minute,
 		Candle5MResolution:  5 * time.Minute,
@@ -73,16 +85,47 @@ func StrResolutionToDuration(resolution string) time.Duration {
 		Candle6HResolution:  360 * time.Minute,
 		Candle12HResolution: 720 * time.Minute,
 		Candle1DResolution:  1440 * time.Minute,
-		Candle1MHResolution: 43200 * time.Minute,
+		Candle1MHResolution: monthDuration(month),
 		// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
 		Candle1H2Resolution:  60 * time.Minute,
 		Candle2H2Resolution:  120 * time.Minute,
 		Candle4H2Resolution:  240 * time.Minute,
 		Candle6H2Resolution:  360 * time.Minute,
 		Candle12H2Resolution: 720 * time.Minute,
-		Candle1WResolution:   168 * time.Hour,
-		Candle1MH2Resolution: 43200 * time.Minute,
+		Candle1WResolution:   7 * Day,
+		Candle1MH2Resolution: monthDuration(month),
 	}
 
 	return int2dur[resolution]
+}
+
+func monthDuration(month time.Month) time.Duration {
+	switch month {
+	case time.January:
+		return 31 * Day
+	case time.February:
+		return 28 * Day
+	case time.March:
+		return 31 * Day
+	case time.April:
+		return 30 * Day
+	case time.May:
+		return 31 * Day
+	case time.June:
+		return 30 * Day
+	case time.July:
+		return 31 * Day
+	case time.August:
+		return 31 * Day
+	case time.September:
+		return 30 * Day
+	case time.October:
+		return 31 * Day
+	case time.November:
+		return 30 * Day
+	case time.December:
+		return 31 * Day
+	default:
+		return 30 * Day
+	}
 }

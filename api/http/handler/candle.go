@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"bitbucket.org/novatechnologies/ohlcv/candle"
@@ -48,7 +50,11 @@ func (h CandleHandler) GetCandleChart(
 		return
 	}
 
-	candleDuration, resolution := getCandlesConfig(req.URL.Query().Get("interval"))
+	interval := req.URL.Query().Get("interval")
+	resolution := domain.Resolution(strings.ToUpper(interval))
+
+	log.Println(resolution)
+	candleDuration, resolution := getCandlesConfig(resolution)
 	from, to := getDefaultTimeRange(candleDuration)
 
 	if req.URL.Query().Get("to") != "" || req.URL.Query().Get("from") != "" {
@@ -81,23 +87,53 @@ func (h CandleHandler) GetCandleChart(
 			)
 		}
 	}
-	chart, _ := h.CandleService.GetChart(ctx, market, resolution, from, to)
+	log.Println(from, to)
+
+	chart := h.CandleService.GetChart(ctx, market, resolution, from, to)
+
 	marshal, err := json.Marshal(chart)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
 	io.WriteString(res, string(marshal))
 }
 
-func getCandlesConfig(resolution string) (time.Duration, string) {
+func parseInterval(fromString, toString string, resolution domain.Resolution) (from, to time.Time, err error) {
+	fromUnix, err := strconv.Atoi(fromString)
+	if err != nil {
+		return from, to, err
+	}
 
-	candleDuration := domain.StrResolutionToDuration(resolution)
+	toUnix, err := strconv.Atoi(toString)
+	if err != nil {
+		return from, to, err
+	}
+
+	from = time.Unix(int64(fromUnix), 0)
+	to = time.Unix(int64(toUnix), 0)
+
+	if resolution == domain.Candle1MHResolution || resolution == domain.Candle1MH2Resolution {
+		from = time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
+		to = time.Date(to.Year(), to.Month()+1, 1, 0, 0, 0, 0, to.Location()).Add(time.Nanosecond)
+
+		return from, to, err
+	}
+
+	from.Add(-candleDuration).Truncate(candleDuration)
+	to.Add(-candleDuration).Truncate(candleDuration)
+
+	return
+}
+
+func getCandlesConfig(resolution domain.Resolution) (time.Duration, domain.Resolution) {
+	candleDuration := resolution.ToDuration(0)
 
 	if candleDuration == 0 {
 		candleDuration = defaultDuration
-		resolution = domain.Candle5MResolution
+		resolution = domain.Candle1MResolution
 	}
 	return candleDuration, resolution
 }
