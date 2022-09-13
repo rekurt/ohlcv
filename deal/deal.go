@@ -130,8 +130,8 @@ func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration t
 	matchStageValue := bson.D{
 		{"t", bson.D{
 			{"$gte", fromTime},
-			{"$data.market", market},
 		}},
+		{"$data.market", market},
 	}
 	sortStage := bson.D{{"$sort", bson.D{
 		{
