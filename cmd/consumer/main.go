@@ -20,6 +20,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
+	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
 )
 
@@ -47,16 +48,24 @@ func main() {
 	)
 
 	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
-	// Start consuming, preparing, saving deals into DB and notifying others.
+	dealCache := deal.NewCacheService(dealService, marketsMap)
+
+	// Uploading 24hr tickers cache
+	_, err := dealCache.GetTickerPriceChangeStatistics(ctx, time.Hour*24, "")
+	if err != nil {
+		panic(err)
+	}
+
+	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
 	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
-	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
+	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 
-	server := http.NewServer(candleService, dealService, conf)
+	server := http.NewServer(candleService, dealCache, conf)
 	server.Start(ctx)
 
 	//shutdown
