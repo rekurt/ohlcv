@@ -246,7 +246,20 @@ func parsePrevClosePrice(i interface{}) string {
 	if !ok {
 		return ""
 	}
-	return data["price"].(primitive.Decimal128).String()
+
+	if price, ok := data["price"].(primitive.Decimal128); ok {
+		return price.String()
+	}
+
+	if price, ok := data["price"].(string); ok {
+		return price
+	}
+
+	if price, ok := data["price"].(float64); ok {
+		return strconv.FormatFloat(price, 'f', -1, 64)
+	}
+
+	return ""
 }
 
 func calcVwap(quoteVolume, volume primitive.Decimal128) string {
