@@ -32,12 +32,12 @@ func main() {
 	eventsBroker := broker.NewInMemory()
 	fmt.Println(domain.GetAvailableResolutions())
 	marketsMap, marketsInfo := buildAvailableMarkets(conf)
-	// broadcaster := centrifuge.NewBroadcaster(
-	// 	centrifuge.NewPublisher(conf.CentrifugeConfig),
-	// 	eventsBroker,
-	// 	marketsMap,
-	// )
-	// broadcaster.SubscribeForCharts()
+	broadcaster := centrifuge.NewBroadcaster(
+		centrifuge.NewPublisher(conf.CentrifugeConfig),
+		eventsBroker,
+		marketsMap,
+	)
+	broadcaster.SubscribeForCharts()
 
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
 
