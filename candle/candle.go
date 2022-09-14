@@ -89,9 +89,9 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	case domain.Candle1DResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.DayUnit, 1, from, to)
 	case domain.Candle1MHResolution:
-		chart = s.Storage.GetMonthCandles(ctx, market, from, to)
+		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
 	case domain.Candle1MH2Resolution:
-		chart = s.Storage.GetMonthCandles(ctx, market, from, to)
+		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
 	case domain.Candle1WResolution:
 		chart = s.Storage.GetCandles(ctx, market, domain.WeekUnit, 1, from, to)
 	default:

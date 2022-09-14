@@ -2,14 +2,12 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
@@ -26,12 +24,6 @@ func NewCandleHandler(candleService *candle.Service) *CandleHandler {
 	return &CandleHandler{candleService}
 }
 
-func getDefaultTimeRange(candleDuration time.Duration) (time.Time, time.Time) {
-	to := time.Now().Truncate(candleDuration)
-	from := to.Add(-(candleDuration * defaultBarsCount))
-	return from, to
-}
-
 func setupCORS(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -44,104 +36,85 @@ func (h CandleHandler) GetCandleChart(
 ) {
 	setupCORS(&res)
 	ctx := req.Context()
+
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
 	if len(market) == 0 {
 		http.Error(res, "market is required", http.StatusBadRequest)
+
 		return
 	}
 
 	interval := req.URL.Query().Get("interval")
 	resolution := domain.Resolution(strings.ToUpper(interval))
 
-	log.Println(resolution)
-	candleDuration, resolution := getCandlesConfig(resolution)
-	from, to := getDefaultTimeRange(candleDuration)
+	if resolution.IsNotExist() {
+		http.Error(res, "invalid interval value", http.StatusBadRequest)
 
-	if req.URL.Query().Get("to") != "" || req.URL.Query().Get("from") != "" {
-		fromUnix, err := strconv.Atoi(req.URL.Query().Get("from"))
-		if err != nil {
-			illegalUnixTimestamp(err, res)
-			return
-		}
-		toUnix, err := strconv.Atoi(req.URL.Query().Get("to"))
-
-		if err != nil {
-			illegalUnixTimestamp(err, res)
-			return
-		}
-		from = time.Unix(
-			int64(fromUnix),
-			0,
-		).Add(-candleDuration).Truncate(candleDuration)
-
-		to = time.Unix(
-			int64(toUnix),
-			0,
-		).Add(candleDuration).Truncate(candleDuration)
-
-		if to.Sub(from) < 0 {
-			illegalUnixTimestamp(
-				fmt.Errorf(
-					"requested interval is incorrect",
-				), res,
-			)
-		}
+		return
 	}
-	log.Println(from, to)
+
+	fromStr := req.URL.Query().Get("from")
+	toStr := req.URL.Query().Get("to")
+
+	if fromStr == "" || toStr == "" {
+		illegalUnixTimestamp(res)
+
+		return
+	}
+
+	fromUnix, err := strconv.Atoi(fromStr)
+	if err != nil {
+		illegalUnixTimestamp(res)
+
+		return
+	}
+
+	toUnix, err := strconv.Atoi(toStr)
+	if err != nil {
+		illegalUnixTimestamp(res)
+
+		return
+	}
+
+	from, to := truncateInterval(
+		time.Unix(int64(fromUnix), 0),
+		time.Unix(int64(toUnix), 0),
+		resolution,
+	)
 
 	chart := h.CandleService.GetChart(ctx, market, resolution, from, to)
 
-	marshal, err := json.Marshal(chart)
+	bytes, err := json.Marshal(chart)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 
 		return
 	}
 
-	io.WriteString(res, string(marshal))
+	if _, err := res.Write(bytes); err != nil {
+		logger.FromContext(ctx).
+			Errorf("[CandleHandler_GetCandleChart] error writing response: %s", err)
+	}
 }
 
-func parseInterval(fromString, toString string, resolution domain.Resolution) (from, to time.Time, err error) {
-	fromUnix, err := strconv.Atoi(fromString)
-	if err != nil {
-		return from, to, err
-	}
-
-	toUnix, err := strconv.Atoi(toString)
-	if err != nil {
-		return from, to, err
-	}
-
-	from = time.Unix(int64(fromUnix), 0)
-	to = time.Unix(int64(toUnix), 0)
-
+func truncateInterval(from, to time.Time, resolution domain.Resolution) (time.Time, time.Time) {
 	if resolution == domain.Candle1MHResolution || resolution == domain.Candle1MH2Resolution {
 		from = time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
-		to = time.Date(to.Year(), to.Month()+1, 1, 0, 0, 0, 0, to.Location()).Add(time.Nanosecond)
+		to = time.Date(to.Year(), to.Month()+1, 1, 0, 0, 0, 0, to.Location()).Add(-time.Nanosecond)
 
-		return from, to, err
+		return from, to
 	}
 
-	from.Add(-candleDuration).Truncate(candleDuration)
-	to.Add(-candleDuration).Truncate(candleDuration)
-
-	return
-}
-
-func getCandlesConfig(resolution domain.Resolution) (time.Duration, domain.Resolution) {
 	candleDuration := resolution.ToDuration(0)
 
-	if candleDuration == 0 {
-		candleDuration = defaultDuration
-		resolution = domain.Candle1MResolution
-	}
-	return candleDuration, resolution
+	from = from.Add(-candleDuration).Truncate(candleDuration)
+	to = to.Add(candleDuration).Truncate(candleDuration)
+
+	return from, to
 }
 
-func illegalUnixTimestamp(err error, w http.ResponseWriter) {
+func illegalUnixTimestamp(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
-	msg := fmt.Sprintf(
-		"illegal timestamp parameter %v: must be Unix seconds", err,
-	)
+	msg := "illegal timestamp parameter: must be Unix seconds"
 	_, _ = w.Write([]byte(msg))
 }

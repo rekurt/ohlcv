@@ -69,7 +69,7 @@ func GetAvailableResolutions() []Resolution {
 func CalculateCloseTime(openTime time.Time, resolution Resolution) time.Time {
 	duration := resolution.ToDuration(openTime.Month())
 
-	return openTime.Add(duration - 1).UTC()
+	return openTime.Add(duration - time.Nanosecond).UTC()
 }
 
 func (resolution Resolution) ToDuration(month time.Month) time.Duration {
@@ -96,7 +96,43 @@ func (resolution Resolution) ToDuration(month time.Month) time.Duration {
 		Candle1MH2Resolution: monthDuration(month),
 	}
 
-	return int2dur[resolution]
+	if duration, ok := int2dur[resolution]; ok {
+		return duration
+	}
+
+	return 0
+}
+
+func (resolution Resolution) IsNotExist() bool {
+	resolutions := []Resolution{
+		Candle1MResolution,
+		Candle3MResolution,
+		Candle5MResolution,
+		Candle15MResolution,
+		Candle30MResolution,
+		Candle1HResolution,
+		Candle2HResolution,
+		Candle4HResolution,
+		Candle6HResolution,
+		Candle12HResolution,
+		Candle1DResolution,
+		Candle1MHResolution,
+		Candle1H2Resolution,
+		Candle2H2Resolution,
+		Candle4H2Resolution,
+		Candle6H2Resolution,
+		Candle12H2Resolution,
+		Candle1WResolution,
+		Candle1MH2Resolution,
+	}
+
+	for _, r := range resolutions {
+		if resolution == r {
+			return false
+		}
+	}
+
+	return true
 }
 
 func monthDuration(month time.Month) time.Duration {
