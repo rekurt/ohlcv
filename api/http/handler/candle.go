@@ -105,7 +105,7 @@ func truncateInterval(from, to time.Time, resolution domain.Resolution) (time.Ti
 		return from, to
 	}
 
-	candleDuration := resolution.ToDuration(0)
+	candleDuration := resolution.ToDuration(0, from.Year())
 
 	from = from.Add(-candleDuration).Truncate(candleDuration)
 	to = to.Add(candleDuration).Truncate(candleDuration)

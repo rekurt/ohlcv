@@ -67,12 +67,12 @@ func GetAvailableResolutions() []Resolution {
 }
 
 func CalculateCloseTime(openTime time.Time, resolution Resolution) time.Time {
-	duration := resolution.ToDuration(openTime.Month())
+	duration := resolution.ToDuration(openTime.Month(), openTime.Year())
 
 	return openTime.Add(duration - time.Nanosecond).UTC()
 }
 
-func (resolution Resolution) ToDuration(month time.Month) time.Duration {
+func (resolution Resolution) ToDuration(month time.Month, year int) time.Duration {
 	int2dur := map[Resolution]time.Duration{
 		Candle1MResolution:  time.Minute,
 		Candle3MResolution:  3 * time.Minute,
@@ -85,7 +85,7 @@ func (resolution Resolution) ToDuration(month time.Month) time.Duration {
 		Candle6HResolution:  360 * time.Minute,
 		Candle12HResolution: 720 * time.Minute,
 		Candle1DResolution:  1440 * time.Minute,
-		Candle1MHResolution: monthDuration(month),
+		Candle1MHResolution: monthDuration(month, year),
 		// LEGACY FOR BACKWARD COMPATIBILITY WITH OLD MOBILE APPS
 		Candle1H2Resolution:  60 * time.Minute,
 		Candle2H2Resolution:  120 * time.Minute,
@@ -93,7 +93,7 @@ func (resolution Resolution) ToDuration(month time.Month) time.Duration {
 		Candle6H2Resolution:  360 * time.Minute,
 		Candle12H2Resolution: 720 * time.Minute,
 		Candle1WResolution:   7 * Day,
-		Candle1MH2Resolution: monthDuration(month),
+		Candle1MH2Resolution: monthDuration(month, year),
 	}
 
 	if duration, ok := int2dur[resolution]; ok {
@@ -135,11 +135,14 @@ func (resolution Resolution) IsNotExist() bool {
 	return true
 }
 
-func monthDuration(month time.Month) time.Duration {
+func monthDuration(month time.Month, year int) time.Duration {
 	switch month {
 	case time.January:
 		return 31 * Day
 	case time.February:
+		if year%4 == 0 {
+			return 29 * Day
+		}
 		return 28 * Day
 	case time.March:
 		return 31 * Day
