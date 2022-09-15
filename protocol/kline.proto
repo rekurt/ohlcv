@@ -15,8 +15,7 @@ message GetKlineRequest {
   google.protobuf.Timestamp endTime = 4;
   int32 limit = 5;
 }
-
-message GetKlineResponse {
+message Kline {
   google.protobuf.Timestamp openTime = 1;
   double openPrice = 2;
   double highPrice = 3;
@@ -27,4 +26,7 @@ message GetKlineResponse {
   double quoteVolume = 8;
   double takerBuy = 9;
   double takerSell = 10;
+}
+message GetKlineResponse {
+  repeated Kline klines = 1;
 }
