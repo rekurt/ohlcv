@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.27.1
 // 	protoc        v3.19.3
-// source: klines.proto
+// source: kline.proto
 
 package kline
 

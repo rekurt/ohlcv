@@ -97,5 +97,5 @@ var KlineService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "klines.proto",
+	Metadata: "kline.proto",
 }
