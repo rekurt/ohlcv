@@ -17,15 +17,16 @@ message GetKlineRequest {
 }
 message Kline {
   google.protobuf.Timestamp openTime = 1;
-  double openPrice = 2;
-  double highPrice = 3;
-  double lowPrice = 4;
-  double closePrice = 5;
-  double volume = 6;
+  string openPrice = 2;
+  string highPrice = 3;
+  string lowPrice = 4;
+  string closePrice = 5;
+  string volume = 6;
   google.protobuf.Timestamp closeTime = 7;
-  double quoteVolume = 8;
-  double takerBuy = 9;
-  double takerSell = 10;
+  string quoteVolume = 8;
+  string takerAssets = 9;
+  string takerQuote = 10;
+  int32 trades = 11;
 }
 message GetKlineResponse {
   repeated Kline klines = 1;

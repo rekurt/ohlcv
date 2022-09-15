@@ -3,6 +3,7 @@ package centrifuge
 import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -61,7 +62,7 @@ func (b broadcaster) BroadcastCandleCharts(
 func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
 	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
 	for _, market := range marketsMap {
-		resolutions := domain.GetAvailableResolutions()
+		resolutions := model.GetAvailableResolutions()
 		marketChannels := make(
 			map[string]*domain.ChartChannel,
 			len(resolutions),

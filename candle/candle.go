@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"time"
 
@@ -57,43 +58,43 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 	).Tracef("[CandleService] Call GetCandleByResolution method.")
 	var chart *domain.Chart
 	switch resolution {
-	case domain.Candle1MResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 1, from, to)
-	case domain.Candle3MResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 3, from, to)
-	case domain.Candle5MResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 5, from, to)
-	case domain.Candle15MResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 15, from, to)
-	case domain.Candle30MResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MinuteUnit, 30, from, to)
-	case domain.Candle1HResolution,
-		domain.Candle1H2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 1, from, to)
-	case domain.Candle2HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)
-	case domain.Candle2H2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 2, from, to)
-	case domain.Candle4HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 4, from, to)
-	case domain.Candle4H2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 4, from, to)
-	case domain.Candle6HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 6, from, to)
-	case domain.Candle6H2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 6, from, to)
-	case domain.Candle12HResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 12, from, to)
-	case domain.Candle12H2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.HourUnit, 12, from, to)
-	case domain.Candle1DResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.DayUnit, 1, from, to)
-	case domain.Candle1MHResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
-	case domain.Candle1MH2Resolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.MonthUnit, 1, from, to)
-	case domain.Candle1WResolution:
-		chart = s.Storage.GetCandles(ctx, market, domain.WeekUnit, 1, from, to)
+	case model.Candle1MResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MinuteUnit, 1, from, to)
+	case model.Candle3MResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MinuteUnit, 3, from, to)
+	case model.Candle5MResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MinuteUnit, 5, from, to)
+	case model.Candle15MResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MinuteUnit, 15, from, to)
+	case model.Candle30MResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MinuteUnit, 30, from, to)
+	case model.Candle1HResolution,
+		model.Candle1H2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 1, from, to)
+	case model.Candle2HResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 2, from, to)
+	case model.Candle2H2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 2, from, to)
+	case model.Candle4HResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 4, from, to)
+	case model.Candle4H2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 4, from, to)
+	case model.Candle6HResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 6, from, to)
+	case model.Candle6H2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 6, from, to)
+	case model.Candle12HResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 12, from, to)
+	case model.Candle12H2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.HourUnit, 12, from, to)
+	case model.Candle1DResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.DayUnit, 1, from, to)
+	case model.Candle1MHResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MonthUnit, 1, from, to)
+	case model.Candle1MH2Resolution:
+		chart = s.Storage.GetCandles(ctx, market, model.MonthUnit, 1, from, to)
+	case model.Candle1WResolution:
+		chart = s.Storage.GetCandles(ctx, market, model.WeekUnit, 1, from, to)
 	default:
 		logger.FromContext(context.Background()).WithField(
 			"resolution",

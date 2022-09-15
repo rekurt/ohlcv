@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"fmt"
 	"strconv"
 	"time"
@@ -121,6 +122,6 @@ func ChartToCurrentCandle(chart *Chart, resolution string) (Candle, error) {
 		Close:      chart.C[len(chart.C)-1],
 		Volume:     chart.V[len(chart.V)-1],
 		OpenTime:   openTime,
-		CloseTime:  openTime.Add(StrResolutionToDuration(resolution)).UTC(),
+		CloseTime:  openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
 	}, nil
 }

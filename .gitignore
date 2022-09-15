@@ -14,3 +14,5 @@ docker/.volumes/*
 !docker/.volumes/kafka/.gitkeep
 !docker/.volumes/redis/.gitkeep
 !/docker/builder.key
+vendor
+consumer

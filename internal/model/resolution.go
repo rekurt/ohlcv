@@ -1,6 +1,8 @@
-package domain
+package model
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	Candle1MResolution  = "1"
@@ -85,4 +87,50 @@ func StrResolutionToDuration(resolution string) time.Duration {
 	}
 
 	return int2dur[resolution]
+}
+
+// GetResolution provides mongo unit and unitSize via interval
+func GetResolution(interval string) (string, int) {
+
+	switch interval {
+	case Candle1MResolution:
+		return MinuteUnit, 1
+	case Candle3MResolution:
+		return MinuteUnit, 3
+	case Candle5MResolution:
+		return MinuteUnit, 5
+	case Candle15MResolution:
+		return MinuteUnit, 15
+	case Candle30MResolution:
+		return MinuteUnit, 3
+	case Candle1HResolution:
+		return HourUnit, 1
+	case Candle2HResolution:
+		return HourUnit, 2
+	case Candle2H2Resolution:
+		return HourUnit, 2
+	case Candle4HResolution:
+		return HourUnit, 4
+	case Candle4H2Resolution:
+		return HourUnit, 4
+	case Candle6HResolution:
+		return HourUnit, 6
+	case Candle6H2Resolution:
+		return HourUnit, 6
+	case Candle12HResolution:
+		return HourUnit, 12
+	case Candle12H2Resolution:
+		return HourUnit, 12
+	case Candle1DResolution:
+		return DayUnit, 1
+	case Candle1MHResolution:
+		return MonthUnit, 1
+	case Candle1MH2Resolution:
+		return MonthUnit, 1
+	case Candle1WResolution:
+		return WeekUnit, 1
+	default:
+
+	}
+	return "", 0
 }

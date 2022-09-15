@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -93,11 +94,11 @@ func (h CandleHandler) GetCandleChart(
 
 func getCandlesConfig(resolution string) (time.Duration, string) {
 
-	candleDuration := domain.StrResolutionToDuration(resolution)
+	candleDuration := model.StrResolutionToDuration(resolution)
 
 	if candleDuration == 0 {
 		candleDuration = defaultDuration
-		resolution = domain.Candle5MResolution
+		resolution = model.Candle5MResolution
 	}
 	return candleDuration, resolution
 }

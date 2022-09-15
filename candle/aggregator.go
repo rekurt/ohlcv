@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"time"
 
@@ -29,37 +30,37 @@ func (s Aggregator) AggregateCandleToChartByResolution(
 		resolution,
 	).Debugf("[CandleService] Call AggregateCandleToChartByResolution method.")
 	switch resolution {
-	case domain.Candle1MResolution:
+	case model.Candle1MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 1, count)
-	case domain.Candle3MResolution:
+	case model.Candle3MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 3, count)
-	case domain.Candle5MResolution:
+	case model.Candle5MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 5, count)
-	case domain.Candle15MResolution:
+	case model.Candle15MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 15, count)
-	case domain.Candle30MResolution:
+	case model.Candle30MResolution:
 		chart = s.aggregateMinCandlesToChart(candles, market, 30, count)
-	case domain.Candle1HResolution,
-		domain.Candle1H2Resolution:
+	case model.Candle1HResolution,
+		model.Candle1H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 1)
-	case domain.Candle2HResolution,
-		domain.Candle2H2Resolution:
+	case model.Candle2HResolution,
+		model.Candle2H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 2)
-	case domain.Candle4HResolution,
-		domain.Candle4H2Resolution:
+	case model.Candle4HResolution,
+		model.Candle4H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 4)
-	case domain.Candle6HResolution,
-		domain.Candle6H2Resolution:
+	case model.Candle6HResolution,
+		model.Candle6H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 6)
-	case domain.Candle12HResolution,
-		domain.Candle12H2Resolution:
+	case model.Candle12HResolution,
+		model.Candle12H2Resolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 12)
-	case domain.Candle1DResolution:
+	case model.Candle1DResolution:
 		chart = s.aggregateHoursCandlesToChart(candles, 24)
-	case domain.Candle1MHResolution,
-		domain.Candle1MH2Resolution:
+	case model.Candle1MHResolution,
+		model.Candle1MH2Resolution:
 		chart = s.aggregateMonthCandlesToChart(candles, market, count)
-	case domain.Candle1WResolution:
+	case model.Candle1WResolution:
 		chart = s.aggregateWeekCandlesToChart(candles)
 	default:
 		logger.FromContext(context.Background()).WithField(
@@ -318,43 +319,43 @@ func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, er
 func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
 	var ts int64
 	switch resolution {
-	case domain.Candle1MResolution:
+	case model.Candle1MResolution:
 		ts = getStartMinuteTs(time, 1)
-	case domain.Candle3MResolution:
+	case model.Candle3MResolution:
 		ts = getStartMinuteTs(time, 3)
-	case domain.Candle5MResolution:
+	case model.Candle5MResolution:
 		ts = getStartMinuteTs(time, 5)
-	case domain.Candle15MResolution:
+	case model.Candle15MResolution:
 		ts = getStartMinuteTs(time, 15)
-	case domain.Candle30MResolution:
+	case model.Candle30MResolution:
 		ts = getStartMinuteTs(time, 30)
-	case domain.Candle1HResolution:
+	case model.Candle1HResolution:
 		ts = getStartHourTs(time, 1)
-	case domain.Candle1H2Resolution:
+	case model.Candle1H2Resolution:
 		ts = getStartHourTs(time, 1)
-	case domain.Candle2HResolution:
+	case model.Candle2HResolution:
 		ts = getStartHourTs(time, 2)
-	case domain.Candle2H2Resolution:
+	case model.Candle2H2Resolution:
 		ts = getStartHourTs(time, 2)
-	case domain.Candle4HResolution:
+	case model.Candle4HResolution:
 		ts = getStartHourTs(time, 4)
-	case domain.Candle4H2Resolution:
+	case model.Candle4H2Resolution:
 		ts = getStartHourTs(time, 4)
-	case domain.Candle6HResolution:
+	case model.Candle6HResolution:
 		ts = getStartHourTs(time, 6)
-	case domain.Candle6H2Resolution:
+	case model.Candle6H2Resolution:
 		ts = getStartHourTs(time, 6)
-	case domain.Candle12HResolution:
+	case model.Candle12HResolution:
 		ts = getStartHourTs(time, 12)
-	case domain.Candle12H2Resolution:
+	case model.Candle12H2Resolution:
 		ts = getStartHourTs(time, 12)
-	case domain.Candle1DResolution:
+	case model.Candle1DResolution:
 		ts = getStartHourTs(time, 24)
-	case domain.Candle1MHResolution:
+	case model.Candle1MHResolution:
 		ts = getStartMonthTs(time, 1)
-	case domain.Candle1MH2Resolution:
+	case model.Candle1MH2Resolution:
 		ts = getStartMonthTs(time, 1)
-	case domain.Candle1WResolution:
+	case model.Candle1WResolution:
 		ts = getStartWeekTs(time)
 	default:
 		logger.FromContext(context.Background()).WithField(

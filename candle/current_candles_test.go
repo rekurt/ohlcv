@@ -3,6 +3,7 @@ package candle
 import (
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +46,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{domain.Candle1MResolution} {
+			for _, resolution := range []string{model.Candle1MResolution} {
 				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:     "ETH/BTC",
@@ -56,7 +57,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 					Close:      mustParseDecimal128(t, "636.74"),
 					Volume:     mustParseDecimal128(t, "159.39"),
 					OpenTime:   openTime,
-					CloseTime:  openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+					CloseTime:  openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
 				}))
 			}
 		}
@@ -73,7 +74,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "444.15"),
 				High:       mustParseDecimal128(t, "933.37"),
 				Low:        mustParseDecimal128(t, "152.63"),
@@ -88,7 +89,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "636.74"),
 				High:       mustParseDecimal128(t, "636.74"),
 				Low:        mustParseDecimal128(t, "636.74"),
@@ -110,7 +111,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.013"),
 				High:       mustParseDecimal128(t, "636.74"),
 				Low:        mustParseDecimal128(t, "0.013"),
@@ -132,7 +133,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution} {
+			for _, resolution := range []string{model.Candle1MResolution, model.Candle1HResolution} {
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
 			}
 		}
@@ -143,7 +144,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -153,7 +154,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1HResolution,
+				Resolution: model.Candle1HResolution,
 				OpenTime:   time.Date(2020, 4, 14, 15, 0, 0, 0, time.UTC),
 				CloseTime:  time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
@@ -172,7 +173,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.019"),
@@ -187,7 +188,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1HResolution,
+				Resolution: model.Candle1HResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.019"),
@@ -206,7 +207,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.019"),
@@ -221,7 +222,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.019"),
@@ -240,7 +241,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{domain.Candle1MResolution} {
+			for _, resolution := range []string{model.Candle1MResolution} {
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
 			}
 		}
@@ -251,7 +252,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				OpenTime:   time.Date(2020, 4, 14, 15, 45, 0, 0, time.UTC),
 				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
@@ -270,7 +271,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.019"),
@@ -293,7 +294,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		assert.Equal(t,
 			domain.Candle{
 				Symbol:     "ETH/BTC",
-				Resolution: domain.Candle1MResolution,
+				Resolution: model.Candle1MResolution,
 				Open:       mustParseDecimal128(t, "0.019"),
 				High:       mustParseDecimal128(t, "0.019"),
 				Low:        mustParseDecimal128(t, "0.013"),
@@ -338,12 +339,12 @@ func Test_concurrent(t *testing.T) {
 	candles := NewCurrentCandles(context.Background(), updatesStream)
 	markets := []string{"market1", "market2", "market3"}
 	for _, market := range markets {
-		for _, resolution := range []string{domain.Candle1MResolution, domain.Candle1HResolution, domain.Candle15MResolution} {
+		for _, resolution := range []string{model.Candle1MResolution, model.Candle1HResolution, model.Candle15MResolution} {
 			openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, time.Now()), 0).UTC()
 			require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 				Symbol:    market,
 				OpenTime:  openTime,
-				CloseTime: openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+				CloseTime: openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
 			}),
 			)
 		}

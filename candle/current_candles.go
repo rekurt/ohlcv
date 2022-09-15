@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"github.com/robfig/cron/v3"
@@ -139,7 +140,7 @@ func (c *currentCandles) buildFreshCandle(market, resolution string) domain.Cand
 		Symbol:     market,
 		Resolution: resolution,
 		OpenTime:   openTime,
-		CloseTime:  openTime.Add(domain.StrResolutionToDuration(resolution)).UTC(),
+		CloseTime:  openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
 	}
 }
 

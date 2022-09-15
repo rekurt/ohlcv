@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/kline"
 	"context"
 	"fmt"
@@ -36,7 +39,7 @@ func main() {
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
-	fmt.Println(domain.GetAvailableResolutions())
+	fmt.Println(model.GetAvailableResolutions())
 	marketsMap, marketsInfo := buildAvailableMarkets(conf)
 	broadcaster := centrifuge.NewBroadcaster(
 		centrifuge.NewPublisher(conf.CentrifugeConfig),
@@ -66,6 +69,8 @@ func main() {
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
 	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
+	klineRepository := repository.NewKline(dealsCollection)
+	klineService := service.NewKline(klineRepository)
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
@@ -78,7 +83,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	srv := server.New()
+	srv := server.New(klineService)
 	s := grpc.NewServer()
 	kline.RegisterKlineServiceServer(s, srv)
 	reflection.Register(s)
@@ -139,7 +144,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 	count := 0
 	started := time.Now()
 	for marketId, marketName := range marketsMap {
-		for _, resolution := range domain.GetAvailableResolutions() {
+		for _, resolution := range model.GetAvailableResolutions() {
 			chart, err := service.GetCurrentCandle(ctx, marketName, resolution)
 			if err != nil {
 				log.Fatal("can't GetCurrentCandle to initCurrentCandles:" + err.Error())
@@ -170,7 +175,7 @@ func buildAvailableMarkets(conf infra.Config) (map[string]string, []market.Marke
 		conf.ExchangeMarketsToken,
 	)
 	if err != nil {
-		log.Fatal("can't market.New:" + err.Error())
+		log.Fatal("can't market.NewKline:" + err.Error())
 	}
 	markets, err := marketClient.List(context.Background())
 	if err != nil {

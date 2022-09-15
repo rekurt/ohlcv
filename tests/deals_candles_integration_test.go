@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/require"
@@ -382,7 +383,7 @@ func Test_GetCurrentCandle_manual(t *testing.T) {
 
 	service := candle.NewService(&candle.Storage{DealsDbCollection: dealCollection}, new(candle.Aggregator), broker.NewInMemory())
 
-	chart, err := service.GetCurrentCandle(context.Background(), "ETH/LTC", domain.Candle15MResolution)
+	chart, err := service.GetCurrentCandle(context.Background(), "ETH/LTC", model.Candle15MResolution)
 	require.NoError(t, err)
 	fmt.Println(chart)
 
