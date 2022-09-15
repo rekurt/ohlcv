@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const defaultLimit = 64
+
 type Kline struct {
 	klineRps *repository.Kline
 }
@@ -27,6 +29,9 @@ func (s *Kline) Get(ctx context.Context, symbol, interval string, fromTime, toTi
 	}
 	if toTime != nil {
 		to = *toTime
+	}
+	if limit == 0 {
+		limit = defaultLimit
 	}
 	klines, err := s.klineRps.Get(ctx, symbol, unit, from, to, limit, unitSize)
 	if err != nil {
