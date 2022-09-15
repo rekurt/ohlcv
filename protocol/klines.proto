@@ -1,0 +1,30 @@
+syntax = "proto3";
+option go_package = "./kline";
+import "google/protobuf/timestamp.proto";
+
+package proto;
+
+service KlineService {
+  rpc Get (GetKlineRequest) returns (GetKlineResponse);
+}
+
+message GetKlineRequest {
+  string symbol = 1;
+  string interval = 2;
+  google.protobuf.Timestamp startTime = 3;
+  google.protobuf.Timestamp endTime = 4;
+  int32 limit = 5;
+}
+
+message GetKlineResponse {
+  google.protobuf.Timestamp openTime = 1;
+  double openPrice = 2;
+  double highPrice = 3;
+  double lowPrice = 4;
+  double closePrice = 5;
+  double volume = 6;
+  google.protobuf.Timestamp closeTime = 7;
+  double quoteVolume = 8;
+  double takerBuy = 9;
+  double takerSell = 10;
+}

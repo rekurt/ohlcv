@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/protocol/kline"
 	"context"
 	"fmt"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"time"
@@ -22,6 +27,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
+	"bitbucket.org/novatechnologies/ohlcv/internal/server"
 )
 
 func main() {
@@ -65,15 +71,29 @@ func main() {
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 
-	server := http.NewServer(candleService, dealCache, conf)
-	server.Start(ctx)
+	httpServer := http.NewServer(candleService, dealCache, conf)
+	httpServer.Start(ctx)
 
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPCConfig.Port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	srv := server.New()
+	s := grpc.NewServer()
+	kline.RegisterKlineServiceServer(s, srv)
+	reflection.Register(s)
+	go func() {
+		err = s.Serve(listener)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 	_ = <-signalCh
-	server.Stop(ctx)
-
+	httpServer.Stop(ctx)
+	s.GracefulStop()
 	return
 }
 
