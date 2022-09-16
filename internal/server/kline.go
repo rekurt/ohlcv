@@ -38,7 +38,7 @@ func (k Kline) Get(ctx context.Context, request *kline.GetKlineRequest) (*kline.
 			OpenPrice:   klines[i].Open.String(),
 			ClosePrice:  klines[i].Close.String(),
 			TakerAssets: klines[i].TakerAssets.String(),
-			TakerQuote:  klines[i].TakerQuote.String(),
+			TakerQuote:  klines[i].TakerQuotes.String(),
 			HighPrice:   klines[i].High.String(),
 			LowPrice:    klines[i].Low.String(),
 			Volume:      klines[i].Volume.String(),

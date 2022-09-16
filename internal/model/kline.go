@@ -16,5 +16,5 @@ type Kline struct {
 	Quote       primitive.Decimal128 `json:"quote"`
 	Trades      int                  `json:"trades"`
 	TakerAssets primitive.Decimal128 `json:"takerAssets"`
-	TakerQuote  primitive.Decimal128 `json:"takerQuote"`
+	TakerQuotes primitive.Decimal128 `json:"takerQuotes"`
 }
