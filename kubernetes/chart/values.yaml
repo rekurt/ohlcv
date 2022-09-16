@@ -16,9 +16,11 @@ resources:
       memory: 128Mi
 
 service_port_http: &service_port_http 8082
+service_port_grpc: &service_port_grpc 8183
 
 service:
   port: *service_port_http
+  port_grpc: *service_port_grpc
   protocol: TCP
   targetPort: *service_port_http
 
