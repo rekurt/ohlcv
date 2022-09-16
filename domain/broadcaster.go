@@ -7,7 +7,7 @@ import (
 type ChartChannel struct {
 	Name       string
 	Market     string
-	Resolution string
+	Resolution Resolution
 }
 
 const CandleChartChannelPrefix = "candle_chart"

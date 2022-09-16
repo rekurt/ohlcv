@@ -26,7 +26,7 @@ func NewService(storage *Storage, aggregator *Aggregator, internalBus domain.Eve
 func (s Service) GetCurrentCandle(
 	ctx context.Context,
 	market string,
-	resolution string,
+	resolution domain.Resolution,
 ) (*domain.Chart, error) {
 	from := time.Unix(
 		s.Aggregator.GetResolutionStartTimestampByTime(resolution, time.Now()),
@@ -44,7 +44,7 @@ func (s Service) GetCurrentCandle(
 	return chart, nil
 }
 
-func (s Service) GetCandleByResolution(ctx context.Context, market string, resolution string, from time.Time, to time.Time) *domain.Chart {
+func (s Service) GetCandleByResolution(ctx context.Context, market string, resolution domain.Resolution, from time.Time, to time.Time) *domain.Chart {
 	logger.FromContext(ctx).WithField(
 		"resolution",
 		resolution,
@@ -114,10 +114,10 @@ func (s Service) GetCandleByResolution(ctx context.Context, market string, resol
 func (s *Service) GetChart(
 	ctx context.Context,
 	market string,
-	resolution string,
+	resolution domain.Resolution,
 	from time.Time,
 	to time.Time,
-) (domain.ChartResponse, interface{}) {
+) domain.ChartResponse {
 	chart := s.GetCandleByResolution(ctx, market, resolution, from, to)
-	return domain.MakeChartResponse(market, chart), nil
+	return domain.MakeChartResponse(market, chart)
 }
