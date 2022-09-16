@@ -16,7 +16,7 @@ type Aggregator struct{}
 func (s Aggregator) AggregateCandleToChartByResolution(
 	candles []*domain.Candle,
 	market string,
-	resolution string,
+	resolution domain.Resolution,
 	count int, // is not used. 0 for unlimit request
 ) *domain.Chart {
 	var chart *domain.Chart
@@ -315,7 +315,7 @@ func addPrimitiveDecimal128(a, b primitive.Decimal128) (primitive.Decimal128, er
 	return result, nil
 }
 
-func (s *Aggregator) GetResolutionStartTimestampByTime(resolution string, time time.Time) int64 {
+func (s *Aggregator) GetResolutionStartTimestampByTime(resolution domain.Resolution, time time.Time) int64 {
 	var ts int64
 	switch resolution {
 	case domain.Candle1MResolution:

@@ -10,10 +10,11 @@
 package openapi
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
 	"context"
 	"strings"
 	"time"
+
+	"bitbucket.org/novatechnologies/common/infra/logger"
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
@@ -90,7 +91,6 @@ func convertStatistics(statistics []domain.TickerPriceChangeStatistics) []Ticker
 func convertDeals(tr []domain.Deal) []Trade {
 	trades := make([]Trade, len(tr))
 	for i := range tr {
-
 		trades[i] = Trade{
 			Id:           tr[i].Data.DealId,
 			Price:        tr[i].Data.Price.String(),

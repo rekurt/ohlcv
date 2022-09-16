@@ -1,11 +1,12 @@
 package domain
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"testing"
-	"time"
 )
 
 func TestChartToCurrentCandle(t *testing.T) {
@@ -75,7 +76,7 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 func TestCandle_ContainsTs(t *testing.T) {
 	type fields struct {
 		Symbol     string
-		Resolution string
+		resolution domain.Resolution
 		Open       primitive.Decimal128
 		High       primitive.Decimal128
 		Low        primitive.Decimal128

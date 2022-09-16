@@ -47,16 +47,16 @@ func (e *RequiredError) Error() string {
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error, result *ImplResponse)
 
 // DefaultErrorHandler defines the default logic on how to handle errors from the controller. Any errors from parsing
-// request params will return a StatusBadRequest. Otherwise, the error code originating from the servicer will be used.
+// request params will return a StatusBadRequest. Otherwise, the error code originating from the service will be used.
 func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error, result *ImplResponse) {
 	if _, ok := err.(*ParsingError); ok {
 		// Handle parsing errors
-		EncodeJSONResponse(err.Error(), func(i int) *int { return &i }(http.StatusBadRequest), w, nil)
+		EncodeJSONResponse(err.Error(), func(i int) *int { return &i }(http.StatusBadRequest), w, r)
 	} else if _, ok := err.(*RequiredError); ok {
 		// Handle missing required errors
-		EncodeJSONResponse(err.Error(), func(i int) *int { return &i }(http.StatusUnprocessableEntity), w, nil)
+		EncodeJSONResponse(err.Error(), func(i int) *int { return &i }(http.StatusUnprocessableEntity), w, r)
 	} else {
 		// Handle all other errors
-		EncodeJSONResponse(err.Error(), &result.Code, w, nil)
+		EncodeJSONResponse(err.Error(), &result.Code, w, r)
 	}
 }
