@@ -11,7 +11,7 @@ import (
 
 type broadcaster struct {
 	Centrifuge   Centrifuge
-	Channels     map[string]map[string]*domain.ChartChannel
+	Channels     map[string]map[model.Resolution]*domain.ChartChannel
 	eventsBroker domain.EventsBroker
 }
 
@@ -59,12 +59,12 @@ func (b broadcaster) BroadcastCandleCharts(
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 
-func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*domain.ChartChannel {
-	c := make(map[string]map[string]*domain.ChartChannel, len(marketsMap))
+func GetChartsChannels(marketsMap map[string]string) map[string]map[model.Resolution]*domain.ChartChannel {
+	c := make(map[string]map[model.Resolution]*domain.ChartChannel, len(marketsMap))
 	for _, market := range marketsMap {
 		resolutions := model.GetAvailableResolutions()
 		marketChannels := make(
-			map[string]*domain.ChartChannel,
+			map[model.Resolution]*domain.ChartChannel,
 			len(resolutions),
 		)
 		for _, resolution := range resolutions {
@@ -75,7 +75,7 @@ func GetChartsChannels(marketsMap map[string]string) map[string]map[string]*doma
 	return c
 }
 
-func NewChartChannel(market string, resolution string) *domain.ChartChannel {
+func NewChartChannel(market string, resolution model.Resolution) *domain.ChartChannel {
 	name := fmt.Sprintf(
 		"%s_%s_%s",
 		domain.CandleChartChannelPrefix,

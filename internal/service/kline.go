@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -21,8 +22,12 @@ func NewKline(repository *repository.Kline) *Kline {
 
 // Get the klines via specific parameters
 func (s *Kline) Get(ctx context.Context, symbol, interval string, fromTime, toTime *time.Time, limit int) ([]*model.Kline, error) {
-	unit, unitSize := model.GetResolution(interval)
-	duration := model.StrResolutionToDuration(interval)
+	resolution := model.Resolution(strings.ToUpper(interval))
+	if resolution.IsNotExist() {
+		return nil, fmt.Errorf("resolution is not exists")
+	}
+	unit, unitSize := model.GetResolution(resolution)
+	duration := resolution.ToDuration(time.Now().Month(), time.Now().Year())
 	from, to := s.getDefaultTimeRange(duration, limit)
 	if fromTime != nil {
 		from = *fromTime

@@ -2,11 +2,12 @@ package domain
 
 import (
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"testing"
-	"time"
 )
 
 func TestChartToCurrentCandle(t *testing.T) {
@@ -76,7 +77,7 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 func TestCandle_ContainsTs(t *testing.T) {
 	type fields struct {
 		Symbol     string
-		Resolution string
+		resolution model.Resolution
 		Open       primitive.Decimal128
 		High       primitive.Decimal128
 		Low        primitive.Decimal128
@@ -132,7 +133,7 @@ func TestCandle_ContainsTs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := Candle{
 				Symbol:     tt.fields.Symbol,
-				Resolution: tt.fields.Resolution,
+				Resolution: tt.fields.resolution,
 				Open:       tt.fields.Open,
 				High:       tt.fields.High,
 				Low:        tt.fields.Low,

@@ -1,18 +1,19 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/interfaces/matcher"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"bitbucket.org/novatechnologies/interfaces/matcher"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func Test_updateCandle(t *testing.T) {
@@ -46,7 +47,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{model.Candle1MResolution} {
+			for _, resolution := range []model.Resolution{model.Candle1MResolution} {
 				openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 					Symbol:     "ETH/BTC",
@@ -57,7 +58,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 					Close:      mustParseDecimal128(t, "636.74"),
 					Volume:     mustParseDecimal128(t, "159.39"),
 					OpenTime:   openTime,
-					CloseTime:  openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
+					CloseTime:  model.CalculateCloseTime(openTime, resolution),
 				}))
 			}
 		}
@@ -133,7 +134,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{model.Candle1MResolution, model.Candle1HResolution} {
+			for _, resolution := range []model.Resolution{model.Candle1MResolution, model.Candle1HResolution} {
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
 			}
 		}
@@ -241,7 +242,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 		candles := NewCurrentCandles(context.Background(), updatesStream).(*currentCandles)
 		//init with empty candles
 		for _, market := range []string{"ETH/BTC"} {
-			for _, resolution := range []string{model.Candle1MResolution} {
+			for _, resolution := range []model.Resolution{model.Candle1MResolution} {
 				require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{}))
 			}
 		}
@@ -339,12 +340,12 @@ func Test_concurrent(t *testing.T) {
 	candles := NewCurrentCandles(context.Background(), updatesStream)
 	markets := []string{"market1", "market2", "market3"}
 	for _, market := range markets {
-		for _, resolution := range []string{model.Candle1MResolution, model.Candle1HResolution, model.Candle15MResolution} {
+		for _, resolution := range []model.Resolution{model.Candle1MResolution, model.Candle1HResolution, model.Candle15MResolution} {
 			openTime := time.Unix((&Aggregator{}).GetResolutionStartTimestampByTime(resolution, time.Now()), 0).UTC()
 			require.NoError(t, candles.AddCandle(market, resolution, domain.Candle{
 				Symbol:    market,
 				OpenTime:  openTime,
-				CloseTime: openTime.Add(model.StrResolutionToDuration(resolution)).UTC(),
+				CloseTime: model.CalculateCloseTime(openTime, resolution),
 			}),
 			)
 		}

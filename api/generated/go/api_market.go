@@ -76,6 +76,7 @@ func (c *MarketApiController) Routes() Routes {
 
 // ApiV1TradesGet - Recent Trades List
 func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Request) {
+	SetupCORS(&w)
 	query := r.URL.Query()
 	symbolParam := query.Get("symbol")
 	limitParam, err := parseInt32Parameter(query.Get("limit"), false)
@@ -90,12 +91,12 @@ func (c *MarketApiController) ApiV1TradesGet(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w, r)
-
+	err = EncodeJSONResponse(result.Body, &result.Code, w, r)
 }
 
 // ApiV3AvgPriceGet - Current average price for a symbol.
 func (c *MarketApiController) ApiV3AvgPriceGet(w http.ResponseWriter, r *http.Request) {
+	SetupCORS(&w)
 	query := r.URL.Query()
 	symbolParam := query.Get("symbol")
 	result, err := c.service.ApiV3AvgPriceGet(r.Context(), symbolParam)
@@ -111,6 +112,7 @@ func (c *MarketApiController) ApiV3AvgPriceGet(w http.ResponseWriter, r *http.Re
 
 // ApiV3Ticker24hrGet - 24hr Ticker Price Change Statistics
 func (c *MarketApiController) ApiV3Ticker24hrGet(w http.ResponseWriter, r *http.Request) {
+	SetupCORS(&w)
 	query := r.URL.Query()
 	symbolParam := query.Get("symbol")
 	result, err := c.service.ApiV3Ticker24hrGet(r.Context(), symbolParam)
@@ -126,6 +128,7 @@ func (c *MarketApiController) ApiV3Ticker24hrGet(w http.ResponseWriter, r *http.
 
 // V1TradingStats24hAllGet - 24hr Ticker Price Change Statistics With Market Info
 func (c *MarketApiController) V1TradingStats24hAllGet(w http.ResponseWriter, r *http.Request) {
+	SetupCORS(&w)
 	query := r.URL.Query()
 	symbolParam := query.Get("symbol")
 	result, err := c.service.V1TradingStats24hAllGet(r.Context(), symbolParam)
