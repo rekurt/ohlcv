@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,7 +11,7 @@ import (
 
 type Candle struct {
 	Symbol     string `json:"symbol"`
-	Resolution Resolution
+	Resolution model.Resolution
 	Open       primitive.Decimal128 `json:"o"`
 	High       primitive.Decimal128 `json:"h"`
 	Low        primitive.Decimal128 `json:"l"`
@@ -26,7 +27,7 @@ func (c Candle) ContainsTs(nano int64) bool {
 
 type Chart struct {
 	Symbol     string `json:"symbol"`
-	Resolution Resolution
+	Resolution model.Resolution
 	O          []primitive.Decimal128 `json:"o"`
 	H          []primitive.Decimal128 `json:"h"`
 	L          []primitive.Decimal128 `json:"l"`
@@ -37,7 +38,7 @@ type Chart struct {
 
 type ChartResponse struct {
 	Symbol     string `json:"symbol"`
-	resolution Resolution
+	resolution model.Resolution
 	O          []float64 `json:"o"`
 	H          []float64 `json:"h"`
 	L          []float64 `json:"l"`
@@ -46,7 +47,7 @@ type ChartResponse struct {
 	T          []int64   `json:"t"`
 }
 
-func (c *Chart) SetResolution(resolution Resolution) {
+func (c *Chart) SetResolution(resolution model.Resolution) {
 	c.Resolution = resolution
 }
 
@@ -89,7 +90,7 @@ func MakeChartResponse(market string, chart *Chart) ChartResponse {
 	return r
 }
 
-func ChartToCurrentCandle(chart *Chart, resolution Resolution) (Candle, error) {
+func ChartToCurrentCandle(chart *Chart, resolution model.Resolution) (Candle, error) {
 	if chart == nil {
 		return Candle{}, nil
 	}
@@ -121,6 +122,6 @@ func ChartToCurrentCandle(chart *Chart, resolution Resolution) (Candle, error) {
 		Close:      chart.C[len(chart.C)-1],
 		Volume:     chart.V[len(chart.V)-1],
 		OpenTime:   openTime,
-		CloseTime:  CalculateCloseTime(openTime, resolution),
+		CloseTime:  model.CalculateCloseTime(openTime, resolution),
 	}, nil
 }

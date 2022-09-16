@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"log"
@@ -118,14 +119,14 @@ func TestSaveDeal(t *testing.T) {
 	chart5Min, _ := candleService.GetChart(
 		ctx,
 		market,
-		domain.Candle5MResolution,
+		model.Candle5MResolution,
 		from,
 		to,
 	)
 	currentChart, _ := candleService.GetCurrentCandle(
 		ctx,
 		market,
-		domain.Candle5MResolution,
+		model.Candle5MResolution,
 	)
 	// assert.Equal(t, a, b, "The two words should be the same.")
 	log.Print(currentChart, chart5Min)

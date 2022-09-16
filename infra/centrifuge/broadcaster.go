@@ -1,17 +1,17 @@
 package centrifuge
 
 import (
+	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/domain"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type broadcaster struct {
 	Centrifuge   Centrifuge
-	Channels     map[string]map[domain.Resolution]*domain.ChartChannel
+	Channels     map[string]map[model.Resolution]*domain.ChartChannel
 	eventsBroker domain.EventsBroker
 }
 
@@ -59,12 +59,12 @@ func (b broadcaster) BroadcastCandleCharts(
 	b.Centrifuge.BatchPublish(ctx, messages)
 }
 
-func GetChartsChannels(marketsMap map[string]string) map[string]map[domain.Resolution]*domain.ChartChannel {
-	c := make(map[string]map[domain.Resolution]*domain.ChartChannel, len(marketsMap))
+func GetChartsChannels(marketsMap map[string]string) map[string]map[model.Resolution]*domain.ChartChannel {
+	c := make(map[string]map[model.Resolution]*domain.ChartChannel, len(marketsMap))
 	for _, market := range marketsMap {
-		resolutions := domain.GetAvailableResolutions()
+		resolutions := model.GetAvailableResolutions()
 		marketChannels := make(
-			map[domain.Resolution]*domain.ChartChannel,
+			map[model.Resolution]*domain.ChartChannel,
 			len(resolutions),
 		)
 		for _, resolution := range resolutions {
@@ -75,7 +75,7 @@ func GetChartsChannels(marketsMap map[string]string) map[string]map[domain.Resol
 	return c
 }
 
-func NewChartChannel(market string, resolution domain.Resolution) *domain.ChartChannel {
+func NewChartChannel(market string, resolution model.Resolution) *domain.ChartChannel {
 	name := fmt.Sprintf(
 		"%s_%s_%s",
 		domain.CandleChartChannelPrefix,

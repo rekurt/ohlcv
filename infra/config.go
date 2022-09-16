@@ -8,6 +8,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type GRPCConfig struct {
+	Port int `envconfig:"GRPC_PORT" default:"8183"`
+}
+
 type HttpConfig struct {
 	Port int `envconfig:"API_PORT" required:"false" default:"8082"`
 }
@@ -49,6 +53,7 @@ type CentrifugeConfig struct {
 
 type Config struct {
 	KafkaConfig              KafkaConfig
+	GRPCConfig               GRPCConfig
 	MongoDbConfig            MongoDbConfig
 	CentrifugeConfig         CentrifugeConfig
 	HttpConfig               HttpConfig

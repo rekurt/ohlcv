@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"fmt"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ func TestService_AggregateCandleToChartByResolution(t *testing.T) {
 		s := Aggregator{}
 		market := "BTC/USDT"
 		cs := getCandles()
-		chart := s.AggregateCandleToChartByResolution(cs, market, domain.Candle5MResolution, 0)
+		chart := s.AggregateCandleToChartByResolution(cs, market, model.Candle5MResolution, 0)
 		assert.Len(t, chart.T, 1)
 	})
 }

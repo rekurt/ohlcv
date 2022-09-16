@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"testing"
 	"time"
 
@@ -11,21 +12,21 @@ import (
 
 func TestChartToCurrentCandle(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
-		candle, err := ChartToCurrentCandle(nil, Candle1HResolution)
+		candle, err := ChartToCurrentCandle(nil, model.Candle1HResolution)
 		require.NoError(t, err)
 		assert.Equal(t, Candle{}, candle)
 	})
 	t.Run("one-sized", func(t *testing.T) {
 		candle, err := ChartToCurrentCandle(&Chart{
 			Symbol:     "0b2xJe",
-			Resolution: Candle1HResolution,
+			Resolution: model.Candle1HResolution,
 			O:          []primitive.Decimal128{mustParseDecimal128(t, "680.99")},
 			H:          []primitive.Decimal128{mustParseDecimal128(t, "270.27")},
 			L:          []primitive.Decimal128{mustParseDecimal128(t, "939.21")},
 			C:          []primitive.Decimal128{mustParseDecimal128(t, "282.29")},
 			V:          []primitive.Decimal128{mustParseDecimal128(t, "908.63")},
 			T:          []int64{time.Date(2010, 1, 1, 14, 30, 0, 0, time.UTC).Unix()},
-		}, Candle1HResolution)
+		}, model.Candle1HResolution)
 		require.NoError(t, err)
 		assert.Equal(t, Candle{
 			Symbol:    "0b2xJe",
@@ -41,7 +42,7 @@ func TestChartToCurrentCandle(t *testing.T) {
 	t.Run("3-sized", func(t *testing.T) {
 		candle, err := ChartToCurrentCandle(&Chart{
 			Symbol:     "0b2xJe",
-			Resolution: Candle1HResolution,
+			Resolution: model.Candle1HResolution,
 			O:          []primitive.Decimal128{mustParseDecimal128(t, "471.16"), mustParseDecimal128(t, "574.92"), mustParseDecimal128(t, "84.67")},
 			H:          []primitive.Decimal128{mustParseDecimal128(t, "503.07"), mustParseDecimal128(t, "313.81"), mustParseDecimal128(t, "163.13")},
 			L:          []primitive.Decimal128{mustParseDecimal128(t, "750.71"), mustParseDecimal128(t, "451.69"), mustParseDecimal128(t, "816.42")},
@@ -52,7 +53,7 @@ func TestChartToCurrentCandle(t *testing.T) {
 				time.Date(2010, 1, 1, 15, 30, 0, 0, time.UTC).Unix(),
 				time.Date(2010, 1, 1, 16, 30, 0, 0, time.UTC).Unix(),
 			},
-		}, Candle1HResolution)
+		}, model.Candle1HResolution)
 		require.NoError(t, err)
 		assert.Equal(t, Candle{
 			Symbol:    "0b2xJe",
@@ -76,7 +77,7 @@ func mustParseDecimal128(t *testing.T, s string) primitive.Decimal128 {
 func TestCandle_ContainsTs(t *testing.T) {
 	type fields struct {
 		Symbol     string
-		resolution domain.Resolution
+		resolution model.Resolution
 		Open       primitive.Decimal128
 		High       primitive.Decimal128
 		Low        primitive.Decimal128
@@ -132,7 +133,7 @@ func TestCandle_ContainsTs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := Candle{
 				Symbol:     tt.fields.Symbol,
-				Resolution: tt.fields.Resolution,
+				Resolution: tt.fields.resolution,
 				Open:       tt.fields.Open,
 				High:       tt.fields.High,
 				Low:        tt.fields.Low,

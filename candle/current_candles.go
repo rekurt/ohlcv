@@ -1,6 +1,7 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"sync"
@@ -15,7 +16,7 @@ import (
 
 type CurrentCandles interface {
 	AddDeal(deal matcher.Deal) error
-	AddCandle(market string, resolution domain.Resolution, candle domain.Candle) error
+	AddCandle(market string, resolution model.Resolution, candle domain.Candle) error
 }
 
 var timeNow = func() time.Time {
@@ -25,7 +26,7 @@ var timeNow = func() time.Time {
 type currentCandles struct {
 	updatesStream chan domain.Candle
 	candlesLock   sync.Mutex
-	candles       map[string]map[domain.Resolution]*domain.Candle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
+	candles       map[string]map[model.Resolution]*domain.Candle //market-resolution-Candle, invariant: Candle is always fresh (now in [openTime;closeTime)
 	aggregator    Aggregator
 	lgr           logger.Logger
 }
@@ -33,7 +34,7 @@ type currentCandles struct {
 func NewCurrentCandles(ctx context.Context, updatesStream chan domain.Candle) CurrentCandles {
 	cc := &currentCandles{
 		updatesStream: updatesStream,
-		candles:       map[string]map[domain.Resolution]*domain.Candle{},
+		candles:       map[string]map[model.Resolution]*domain.Candle{},
 		aggregator:    Aggregator{},
 		lgr:           logger.FromContext(ctx),
 	}
@@ -69,7 +70,7 @@ func (c *currentCandles) refreshAll() {
 	}
 }
 
-func (c *currentCandles) AddCandle(market string, resolution domain.Resolution, candle domain.Candle) error {
+func (c *currentCandles) AddCandle(market string, resolution model.Resolution, candle domain.Candle) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
 	if candle == (domain.Candle{}) {
@@ -100,7 +101,7 @@ func (c *currentCandles) AddDeal(deal matcher.Deal) error {
 	}
 	return nil
 }
-func (c *currentCandles) setCandle(market string, resolution domain.Resolution, candle domain.Candle, isRefresh bool) {
+func (c *currentCandles) setCandle(market string, resolution model.Resolution, candle domain.Candle, isRefresh bool) {
 	oldCandle := c.getSafeCandle(market, resolution)
 	//nothing changed
 	if oldCandle != nil && *oldCandle == candle {
@@ -113,19 +114,19 @@ func (c *currentCandles) setCandle(market string, resolution domain.Resolution, 
 	c.updatesStream <- candle
 }
 
-func (c *currentCandles) getSafeCandle(market string, resolution domain.Resolution) *domain.Candle {
+func (c *currentCandles) getSafeCandle(market string, resolution model.Resolution) *domain.Candle {
 	if c.candles[market] == nil || c.candles[market][resolution] == nil {
 		return nil
 	}
 	return c.candles[market][resolution]
 }
-func (c *currentCandles) setSafeCandle(market string, resolution domain.Resolution, candle domain.Candle) {
+func (c *currentCandles) setSafeCandle(market string, resolution model.Resolution, candle domain.Candle) {
 	if c.candles[market] == nil {
-		c.candles[market] = map[domain.Resolution]*domain.Candle{}
+		c.candles[market] = map[model.Resolution]*domain.Candle{}
 	}
 	c.candles[market][resolution] = &candle
 }
-func (c *currentCandles) getFreshCandle(market string, resolution domain.Resolution) domain.Candle {
+func (c *currentCandles) getFreshCandle(market string, resolution model.Resolution) domain.Candle {
 	now := timeNow()
 	candle := c.getSafeCandle(market, resolution)
 	if candle == nil || !candle.ContainsTs(now.UnixNano()) {
@@ -134,13 +135,13 @@ func (c *currentCandles) getFreshCandle(market string, resolution domain.Resolut
 	return *candle
 }
 
-func (c *currentCandles) buildFreshCandle(market string, resolution domain.Resolution) domain.Candle {
+func (c *currentCandles) buildFreshCandle(market string, resolution model.Resolution) domain.Candle {
 	openTime := time.Unix(c.aggregator.GetResolutionStartTimestampByTime(resolution, timeNow()), 0).UTC()
 	return domain.Candle{
 		Symbol:     market,
 		Resolution: resolution,
 		OpenTime:   openTime,
-		CloseTime:  domain.CalculateCloseTime(openTime, resolution),
+		CloseTime:  model.CalculateCloseTime(openTime, resolution),
 	}
 }
 

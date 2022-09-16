@@ -1,13 +1,14 @@
 package domain
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 )
 
 type ChartChannel struct {
 	Name       string
 	Market     string
-	Resolution Resolution
+	Resolution model.Resolution
 }
 
 const CandleChartChannelPrefix = "candle_chart"

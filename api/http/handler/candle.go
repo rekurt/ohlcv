@@ -3,6 +3,7 @@ package handler
 import (
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	openapi "bitbucket.org/novatechnologies/ohlcv/api/generated/go"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -40,7 +41,7 @@ func (h CandleHandler) GetCandleChart(
 	}
 
 	interval := req.URL.Query().Get("interval")
-	resolution := domain.Resolution(strings.ToUpper(interval))
+	resolution := model.Resolution(strings.ToUpper(interval))
 
 	if resolution.IsNotExist() {
 		http.Error(res, "invalid interval value", http.StatusBadRequest)
@@ -92,8 +93,8 @@ func (h CandleHandler) GetCandleChart(
 	}
 }
 
-func truncateInterval(from, to time.Time, resolution domain.Resolution) (time.Time, time.Time) {
-	if resolution == domain.Candle1MHResolution || resolution == domain.Candle1MH2Resolution {
+func truncateInterval(from, to time.Time, resolution model.Resolution) (time.Time, time.Time) {
+	if resolution == model.Candle1MHResolution || resolution == model.Candle1MH2Resolution {
 		from = time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
 		to = time.Date(to.Year(), to.Month()+1, 1, 0, 0, 0, 0, to.Location()).Add(-time.Nanosecond)
 

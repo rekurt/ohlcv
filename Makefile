@@ -1,6 +1,6 @@
 #!/bin/env make
 
-$(shell cp -u config/.env.sample config/.env)
+$(shell cp config/.env.sample config/.env)
 -include config/.env
 export
 
@@ -209,5 +209,8 @@ help: ## Show this help
 		awk 'BEGIN {FS = "::"}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' | \
 		awk 'BEGIN {FS = ":"}; {printf "%s \033[36m%s\033[0m\n", $$1, $$2}'
 
+.PHONY: generate-proto
+generate-proto:
+	protoc --proto_path=protocol protocol/*.proto --go_out=./protocol --go-grpc_out=./protocol
 %:
 	true

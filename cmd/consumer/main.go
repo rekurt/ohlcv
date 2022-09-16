@@ -1,9 +1,17 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
+	"bitbucket.org/novatechnologies/ohlcv/protocol/kline"
 	"context"
 	"fmt"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"time"
@@ -22,6 +30,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
+	"bitbucket.org/novatechnologies/ohlcv/internal/server"
 )
 
 func main() {
@@ -30,7 +39,7 @@ func main() {
 
 	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
-	fmt.Println(domain.GetAvailableResolutions())
+	fmt.Println(model.GetAvailableResolutions())
 	marketsMap, marketsInfo := buildAvailableMarkets(conf)
 	broadcaster := centrifuge.NewBroadcaster(
 		centrifuge.NewPublisher(conf.CentrifugeConfig),
@@ -60,20 +69,36 @@ func main() {
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
 	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
+	klineRepository := repository.NewKline(dealsCollection)
+	klineService := service.NewKline(klineRepository)
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 
-	server := http.NewServer(candleService, dealCache, conf)
-	server.Start(ctx)
+	httpServer := http.NewServer(candleService, dealCache, conf)
+	httpServer.Start(ctx)
 
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPCConfig.Port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	srv := server.New(klineService)
+	s := grpc.NewServer()
+	kline.RegisterKlineServiceServer(s, srv)
+	reflection.Register(s)
+	go func() {
+		err = s.Serve(listener)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)
 	_ = <-signalCh
-	server.Stop(ctx)
-
+	httpServer.Stop(ctx)
+	s.GracefulStop()
 	return
 }
 
@@ -119,7 +144,7 @@ func initCurrentCandles(ctx context.Context, service *candle.Service, marketsMap
 	count := 0
 	started := time.Now()
 	for marketId, marketName := range marketsMap {
-		for _, resolution := range domain.GetAvailableResolutions() {
+		for _, resolution := range model.GetAvailableResolutions() {
 			chart, err := service.GetCurrentCandle(ctx, marketName, resolution)
 			if err != nil {
 				log.Fatal("can't GetCurrentCandle to initCurrentCandles:" + err.Error())
@@ -150,7 +175,7 @@ func buildAvailableMarkets(conf infra.Config) (map[string]string, []market.Marke
 		conf.ExchangeMarketsToken,
 	)
 	if err != nil {
-		log.Fatal("can't market.New:" + err.Error())
+		log.Fatal("can't market.NewKline:" + err.Error())
 	}
 	markets, err := marketClient.List(context.Background())
 	if err != nil {
