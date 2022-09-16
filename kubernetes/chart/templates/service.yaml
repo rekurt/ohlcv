@@ -14,7 +14,10 @@ spec:
   type: ClusterIP
   ports:
     - port: {{ .Values.service.port }}
-      name: {{ .Values.service.name }}
+      name: http
+      protocol: {{ .Values.service.protocol }}
+    - port: {{ .Values.service.port_grpc }}
+      name: grpc
       protocol: {{ .Values.service.protocol }}
   selector:
     {{- include "app.selectorLabels" . | nindent 4 }}

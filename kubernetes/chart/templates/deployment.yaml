@@ -43,6 +43,9 @@ spec:
             - name: app-port
               containerPort: {{ .Values.service_port_http }}
               protocol: TCP
+            - name: grpc-port
+              containerPort: {{ .Values.service_port_grpc }}
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources.app | nindent 12 }}
           envFrom:
