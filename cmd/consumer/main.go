@@ -59,11 +59,7 @@ func main() {
 	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
 	dealCache := deal.NewCacheService(dealService, marketsMap)
 
-	// Uploading 24hr tickers cache
-	_, err := dealCache.GetTickerPriceChangeStatistics(ctx, time.Hour*24, "")
-	if err != nil {
-		panic(err)
-	}
+	go dealCache.LoadCache(ctx)
 
 	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals

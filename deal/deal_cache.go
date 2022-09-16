@@ -37,19 +37,6 @@ func (s *cacheService) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) 
 		return nil, err
 	}
 
-	symbol := s.marketsMap[dealMessage.Market]
-
-	currentTicker, err := s.under.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, symbol)
-	if err != nil {
-		return nil, err
-	}
-
-	s.cache.Set(
-		key{24 * time.Hour, symbol},
-		currentTicker,
-		time.Second*30,
-	)
-
 	return deal, nil
 }
 
@@ -58,43 +45,51 @@ func (s *cacheService) GetLastTrades(ctx context.Context, symbol string, limit i
 }
 
 func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+	const op = "cacheService_GetTickerPriceChangeStatistics"
+
+	result := make([]domain.TickerPriceChangeStatistics, 0)
+
 	if market != "" {
-		return s.getTickerPriceChangeStatisticsByMarket(ctx, duration, market)
-	}
+		k := key{duration: duration, market: market}
 
-	result := make([]domain.TickerPriceChangeStatistics, 0, len(s.marketsMap))
-
-	for _, m := range s.marketsMap {
-		resp, err := s.getTickerPriceChangeStatisticsByMarket(ctx, duration, m)
-		if err != nil {
+		resp, ok := s.cache.Get(k)
+		if !ok {
 			logger.
 				FromContext(ctx).
-				WithField("op", "GetTickerPriceChangeStatistics").
-				Errorf("error getting 24hr ticker: %s", err)
+				WithField("op", op).
+				WithField("market", market).
+				Errorf("error getting 24hr ticker: no data in cache")
+
+			return result, nil
+		}
+
+		if r, ok := resp.(domain.TickerPriceChangeStatistics); ok {
+			return []domain.TickerPriceChangeStatistics{r}, nil
+		}
+
+		return result, nil
+	}
+
+	for _, m := range s.marketsMap {
+		k := key{duration: duration, market: m}
+
+		resp, ok := s.cache.Get(k)
+		if !ok {
+			logger.
+				FromContext(ctx).
+				WithField("op", op).
+				WithField("market", m).
+				Errorf("error getting 24hr ticker: no data in cache")
 
 			continue
 		}
 
-		result = append(result, resp...)
+		if r, ok := resp.(domain.TickerPriceChangeStatistics); ok {
+			result = append(result, r)
+		}
 	}
 
 	return result, nil
-}
-
-func (s *cacheService) getTickerPriceChangeStatisticsByMarket(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
-	k := key{duration: duration, market: market}
-
-	resp, ok := s.cache.Get(k)
-	if !ok {
-		underResp, err := s.under.GetTickerPriceChangeStatistics(ctx, duration, market)
-		if err != nil {
-			return nil, err
-		}
-		s.cache.Set(k, underResp, time.Second*30)
-		return underResp, nil
-	}
-
-	return resp.([]domain.TickerPriceChangeStatistics), nil
 }
 
 func (s *cacheService) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
@@ -139,10 +134,41 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 		if err != nil {
 			logger.FromContext(ctx).
 				WithField("err", err).
-				WithField("svc", "DealsService").
+				WithField("svc", "cacheService").
 				Errorf("Consuming session was finished with error", err)
 		}
 	}()
+}
+
+func (s *cacheService) LoadCache(ctx context.Context) {
+	const op = "cacheService_LoadCache"
+
+	ticker := time.NewTicker(time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			currentTickers, err := s.under.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
+			if err != nil {
+				logger.FromContext(ctx).
+					WithField("err", err).
+					WithField("op", op).
+					Errorf("loading cache with error", err)
+
+				continue
+			}
+
+			for _, ct := range currentTickers {
+				s.cache.Set(
+					key{24 * time.Hour, ct.Symbol},
+					ct,
+					time.Second*30,
+				)
+			}
+		}
+	}
 }
 
 type key struct {
