@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"bitbucket.org/novatechnologies/common/infra/logger"
-	openapi "bitbucket.org/novatechnologies/ohlcv/api/generated/go"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
@@ -25,11 +24,17 @@ func NewCandleHandler(candleService *candle.Service) *CandleHandler {
 	return &CandleHandler{candleService}
 }
 
+func setupCORS(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, sentry-trace")
+}
+
 func (h CandleHandler) GetCandleChart(
 	res http.ResponseWriter,
 	req *http.Request,
 ) {
-	openapi.SetupCORS(&res)
+	setupCORS(&res)
 	ctx := req.Context()
 
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
