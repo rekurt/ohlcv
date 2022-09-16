@@ -168,7 +168,7 @@ func (s *cacheService) LoadCache(ctx context.Context) {
 				if ct.Symbol == "BTC_LINK" {
 					logger.FromContext(ctx).
 						WithField("op", op).
-						Infof("setting %s ticker in cache: %+v", ct.Symbol, ct)
+						Debugf("setting %s ticker in cache: %+v", ct.Symbol, ct)
 				}
 
 				s.cache.Set(
