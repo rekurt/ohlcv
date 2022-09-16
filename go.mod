@@ -23,6 +23,7 @@ require (
 	github.com/valyala/fasthttp v1.34.0
 	go.mongodb.org/mongo-driver v1.8.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	google.golang.org/grpc v1.39.0
 	google.golang.org/protobuf v1.27.1
 )
 
@@ -96,7 +97,6 @@ require (
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
-	google.golang.org/grpc v1.39.0 // indirect
 	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
 	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
 	gopkg.in/jcmturner/gokrb5.v7 v7.4.0 // indirect
