@@ -28,15 +28,23 @@ func TopicName(prefix string) string {
 
 type Service struct {
 	DbCollection *mongo.Collection
-	Markets      map[string]string
+	MarketsMap   map[string]string
+	markets      []string
 	marketsInfo  []market.Market
 }
 
-func NewService(dbCollection *mongo.Collection, markets map[string]string, marketsInfo []market.Market) *Service {
+func NewService(dbCollection *mongo.Collection, marketsMap map[string]string, marketsInfo []market.Market) *Service {
+	markets := make([]string, 0, len(marketsMap))
+
+	for _, m := range marketsMap {
+		markets = append(markets, m)
+	}
+
 	return &Service{
 		DbCollection: dbCollection,
-		Markets:      markets,
+		MarketsMap:   marketsMap,
 		marketsInfo:  marketsInfo,
+		markets:      markets,
 	}
 }
 
@@ -56,7 +64,7 @@ func (s *Service) SaveDeal(
 		return nil, nil
 	}
 	t := time.Unix(0, dealMessage.CreatedAt)
-	marketName := s.Markets[dealMessage.Market]
+	marketName := s.MarketsMap[dealMessage.Market]
 	deal := &domain.Deal{
 		T: primitive.NewDateTimeFromTime(t),
 		Data: domain.DealData{
@@ -127,11 +135,22 @@ func (s *Service) GetLastTrades(
 
 func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
 	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
+
+	markets := []interface{}{market}
+
+	if market == "" {
+		markets = []interface{}{}
+
+		for _, m := range s.markets {
+			markets = append(markets, m)
+		}
+	}
+
 	matchStageValue := bson.D{
 		{"t", bson.D{
 			{"$gte", fromTime},
 		}},
-		{"data.market", market},
+		{"data.market", bson.D{{"$in", bson.A(markets)}}},
 	}
 	sortStage := bson.D{{"$sort", bson.D{
 		{
