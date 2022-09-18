@@ -33,6 +33,9 @@ func (h CandleHandler) GetCandleChart(
 	res.Header().Set("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS, PUT, DELETE, HEAD")
 	res.Header().Set("Access-Control-Allow-Credentials", "true")
 
+	res.Header().Set("Access-Control-Expose-Headers", "Content-Security-Policy, Location")
+	res.Header().Set("Access-Control-Allow-Headers", "Content-Length, Accept-Encoding, X-CSRF-Token, Host, Authorization, sentry-trace, Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+
 	ctx := req.Context()
 
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
