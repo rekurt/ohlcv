@@ -30,9 +30,8 @@ func (h CandleHandler) GetCandleChart(
 	req *http.Request,
 ) {
 	res.Header().Set("Access-Control-Allow-Origin", "*")
-	res.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD")
-	res.Header().Set("Access-Control-Max-Age", "86400")
-	res.Header().Set("Access-Control-Allow-Headers", "Content-Length, Accept-Encoding, X-CSRF-Token, Host, Authorization, sentry-trace, Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+	res.Header().Set("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS, PUT, DELETE, HEAD")
+	res.Header().Set("Access-Control-Allow-Credentials", "true")
 
 	ctx := req.Context()
 
