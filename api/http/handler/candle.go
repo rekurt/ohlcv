@@ -25,17 +25,15 @@ func NewCandleHandler(candleService *candle.Service) *CandleHandler {
 	return &CandleHandler{candleService}
 }
 
-func setupCORS(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, sentry-trace")
-}
-
 func (h CandleHandler) GetCandleChart(
 	res http.ResponseWriter,
 	req *http.Request,
 ) {
-	setupCORS(&res)
+	res.Header().Set("Access-Control-Allow-Origin", req.Header.Get("Origin"))
+	res.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD")
+	res.Header().Set("Access-Control-Max-Age", "86400")
+	res.Header().Set("Access-Control-Allow-Headers", "Content-Length, Accept-Encoding, X-CSRF-Token, Host, Authorization, sentry-trace, Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+
 	ctx := req.Context()
 
 	market := domain.NormalizeMarketName(req.URL.Query().Get("market"))
@@ -88,7 +86,6 @@ func (h CandleHandler) GetCandleChart(
 	bytes, err := json.Marshal(chart)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
-
 		return
 	}
 
