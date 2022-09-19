@@ -65,7 +65,7 @@ func EncodeJSONResponse(i interface{}, status *int, w http.ResponseWriter, r *ht
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 
 	w.Header().Set("Access-Control-Expose-Headers", "Content-Security-Policy, Location")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Length, Accept-Encoding, X-CSRF-Token, Host, Authorization, sentry-trace, Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Length, baggage, Accept-Encoding, X-CSRF-Token, Host, Authorization, sentry-trace, Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PATCH, OPTIONS, PUT, DELETE, HEAD")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
