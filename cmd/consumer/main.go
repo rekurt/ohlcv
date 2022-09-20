@@ -5,6 +5,7 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/kline"
+	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
 	"context"
 	"fmt"
 
@@ -79,9 +80,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	srv := server.New(klineService)
+	klibneSrv := server.NewKline(klineService)
+	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)))
 	s := grpc.NewServer()
-	kline.RegisterKlineServiceServer(s, srv)
+	kline.RegisterKlineServiceServer(s, klibneSrv)
+	ohlcv.RegisterOHLCVServiceServer(s, ohlcvSrv)
+
 	reflection.Register(s)
 	go func() {
 		err = s.Serve(listener)
