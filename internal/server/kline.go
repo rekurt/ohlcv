@@ -51,6 +51,6 @@ func (k Kline) Get(ctx context.Context, request *kline.GetKlineRequest) (*kline.
 	return rsp, nil
 }
 
-func New(service *service.Kline) *Kline {
+func NewKline(service *service.Kline) *Kline {
 	return &Kline{klineService: service}
 }

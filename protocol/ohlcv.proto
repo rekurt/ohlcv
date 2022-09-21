@@ -1,0 +1,26 @@
+syntax = "proto3";
+option go_package = "./ohlcv";
+import "google/protobuf/timestamp.proto";
+
+package proto;
+
+service OHLCVService {
+  rpc GenerateMinutesCandle (GenerateMinuteCandlesRequest) returns (GenerateMinuteCandlesResponse);
+}
+
+message GenerateMinuteCandlesRequest {
+  google.protobuf.Timestamp startTime = 3;
+  google.protobuf.Timestamp endTime = 4;
+}
+message Candle {
+  google.protobuf.Timestamp openTime = 1;
+  string open = 2;
+  string high = 3;
+  string low = 4;
+  string close = 5;
+  string volume = 6;
+  string symbol = 7;
+}
+message GenerateMinuteCandlesResponse {
+  repeated Candle candles = 1;
+}
