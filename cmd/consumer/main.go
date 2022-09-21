@@ -47,9 +47,7 @@ func main() {
 		marketsMap,
 	)
 	broadcaster.SubscribeForCharts()
-
 	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
-
 	dealsCollection := mongo.GetOrCreateDealsCollection(
 		ctx,
 		mongoDbClient,
