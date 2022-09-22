@@ -6,15 +6,16 @@ import (
 )
 
 type Kline struct {
-	OpenTime    time.Time            `json:"openTime"`
-	Open        primitive.Decimal128 `json:"open"`
-	High        primitive.Decimal128 `json:"high"`
-	Low         primitive.Decimal128 `json:"low"`
-	Close       primitive.Decimal128 `json:"close"`
-	Volume      primitive.Decimal128 `json:"volume"`
-	CloseTime   time.Time            `json:"closeTime"`
-	Quote       primitive.Decimal128 `json:"quote"`
-	Trades      int                  `json:"trades"`
-	TakerAssets primitive.Decimal128 `json:"takerAssets"`
-	TakerQuotes primitive.Decimal128 `json:"takerQuotes"`
+	OpenTime    time.Time            `bson:"openTime"`
+	Open        primitive.Decimal128 `bson:"open"`
+	High        primitive.Decimal128 `bson:"high"`
+	Low         primitive.Decimal128 `bson:"low"`
+	Close       primitive.Decimal128 `bson:"close"`
+	Volume      primitive.Decimal128 `bson:"volume"`
+	CloseTime   time.Time            `bson:"closeTime"`
+	Quote       primitive.Decimal128 `bson:"quote"`
+	Trades      int                  `bson:"trades"`
+	TakerAssets primitive.Decimal128 `bson:"takerAssets"`
+	TakerQuotes primitive.Decimal128 `bson:"takerQuotes"`
+	Symbol      string               `bson:"symbol"`
 }

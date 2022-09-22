@@ -21,10 +21,9 @@ func NewKline(dealsDbCollection *mongo.Collection) *Kline {
 }
 
 // Get klines according parameters
-func (r *Kline) Get(ctx context.Context, symbol, unit string, from, to time.Time, limit, unitSize int) ([]*model.Kline, error) {
+func (r *Kline) Get(ctx context.Context, from, to time.Time) ([]*model.Kline, error) {
 	matchStage := bson.D{
 		{"$match", bson.D{
-			{"data.market", symbol},
 			{"t", bson.D{
 				{"$gte", primitive.NewDateTimeFromTime(from)},
 				{"$lte", primitive.NewDateTimeFromTime(to)},
@@ -47,12 +46,11 @@ func (r *Kline) Get(ctx context.Context, symbol, unit string, from, to time.Time
 			{"openTime", bson.D{
 				{"$dateTrunc", bson.D{
 					{"date", "$t"},
-					{"unit", unit},
-					{"binSize", unitSize},
+					{"unit", model.MinuteUnit},
+					{"binSize", 1},
 				}},
 			}},
 		}},
-		{"openTime", bson.D{{"$first", "$t"}}},
 		{"open", bson.D{{"$last", "$data.price"}}},
 		{"high", bson.D{{"$max", "$data.price"}}},
 		{"low", bson.D{{"$min", "$data.price"}}},
@@ -86,14 +84,15 @@ func (r *Kline) Get(ctx context.Context, symbol, unit string, from, to time.Time
 
 	projectStage := bson.D{
 		{"$project", bson.D{
-			{"openTime", "$openTime"},
+			{"openTime", "$_id.openTime"},
 			{"closeTime", bson.D{{
 				"$dateAdd", bson.D{
-					{"startDate", "$openTime"},
-					{"unit", unit},
-					{"amount", unitSize},
+					{"startDate", "$_id.openTime"},
+					{"unit", model.MinuteUnit},
+					{"amount", 1},
 				},
 			}}},
+			{"symbol", "$_id.symbol"},
 			{"open", "$open"},
 			{"high", "$high"},
 			{"low", "$low"},
@@ -105,7 +104,6 @@ func (r *Kline) Get(ctx context.Context, symbol, unit string, from, to time.Time
 			{"takerQuotes", "$takerQuotes"},
 		}},
 	}
-	limitStage := bson.D{{"$limit", limit}}
 
 	opts := options.Aggregate()
 	adu := true
@@ -113,7 +111,7 @@ func (r *Kline) Get(ctx context.Context, symbol, unit string, from, to time.Time
 	opts.Hint = "trades"
 	cursor, err := r.dealsDbCollection.Aggregate(
 		ctx,
-		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage, limitStage},
+		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage},
 		opts,
 	)
 

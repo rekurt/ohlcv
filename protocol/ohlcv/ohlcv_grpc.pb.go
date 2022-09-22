@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OHLCVServiceClient interface {
 	GenerateMinutesCandle(ctx context.Context, in *GenerateMinuteCandlesRequest, opts ...grpc.CallOption) (*GenerateMinuteCandlesResponse, error)
+	GenerateMinutesKlines(ctx context.Context, in *GenerateMinuteKlinesRequest, opts ...grpc.CallOption) (*GenerateMinuteKlinesResponse, error)
 }
 
 type oHLCVServiceClient struct {
@@ -31,7 +32,16 @@ func NewOHLCVServiceClient(cc grpc.ClientConnInterface) OHLCVServiceClient {
 
 func (c *oHLCVServiceClient) GenerateMinutesCandle(ctx context.Context, in *GenerateMinuteCandlesRequest, opts ...grpc.CallOption) (*GenerateMinuteCandlesResponse, error) {
 	out := new(GenerateMinuteCandlesResponse)
-	err := c.cc.Invoke(ctx, "/proto.OHLCVService/GenerateMinutesCandle", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ohlcv.OHLCVService/GenerateMinutesCandle", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *oHLCVServiceClient) GenerateMinutesKlines(ctx context.Context, in *GenerateMinuteKlinesRequest, opts ...grpc.CallOption) (*GenerateMinuteKlinesResponse, error) {
+	out := new(GenerateMinuteKlinesResponse)
+	err := c.cc.Invoke(ctx, "/ohlcv.OHLCVService/GenerateMinutesKlines", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +53,7 @@ func (c *oHLCVServiceClient) GenerateMinutesCandle(ctx context.Context, in *Gene
 // for forward compatibility
 type OHLCVServiceServer interface {
 	GenerateMinutesCandle(context.Context, *GenerateMinuteCandlesRequest) (*GenerateMinuteCandlesResponse, error)
+	GenerateMinutesKlines(context.Context, *GenerateMinuteKlinesRequest) (*GenerateMinuteKlinesResponse, error)
 	mustEmbedUnimplementedOHLCVServiceServer()
 }
 
@@ -52,6 +63,9 @@ type UnimplementedOHLCVServiceServer struct {
 
 func (UnimplementedOHLCVServiceServer) GenerateMinutesCandle(context.Context, *GenerateMinuteCandlesRequest) (*GenerateMinuteCandlesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateMinutesCandle not implemented")
+}
+func (UnimplementedOHLCVServiceServer) GenerateMinutesKlines(context.Context, *GenerateMinuteKlinesRequest) (*GenerateMinuteKlinesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateMinutesKlines not implemented")
 }
 func (UnimplementedOHLCVServiceServer) mustEmbedUnimplementedOHLCVServiceServer() {}
 
@@ -76,10 +90,28 @@ func _OHLCVService_GenerateMinutesCandle_Handler(srv interface{}, ctx context.Co
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.OHLCVService/GenerateMinutesCandle",
+		FullMethod: "/ohlcv.OHLCVService/GenerateMinutesCandle",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OHLCVServiceServer).GenerateMinutesCandle(ctx, req.(*GenerateMinuteCandlesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OHLCVService_GenerateMinutesKlines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateMinuteKlinesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OHLCVServiceServer).GenerateMinutesKlines(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ohlcv.OHLCVService/GenerateMinutesKlines",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OHLCVServiceServer).GenerateMinutesKlines(ctx, req.(*GenerateMinuteKlinesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -88,12 +120,16 @@ func _OHLCVService_GenerateMinutesCandle_Handler(srv interface{}, ctx context.Co
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var OHLCVService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.OHLCVService",
+	ServiceName: "ohlcv.OHLCVService",
 	HandlerType: (*OHLCVServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GenerateMinutesCandle",
 			Handler:    _OHLCVService_GenerateMinutesCandle_Handler,
+		},
+		{
+			MethodName: "GenerateMinutesKlines",
+			Handler:    _OHLCVService_GenerateMinutesKlines_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

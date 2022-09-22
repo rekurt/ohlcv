@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
-	"bitbucket.org/novatechnologies/ohlcv/protocol/kline"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
 	"context"
 	"fmt"
@@ -78,10 +77,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	klibneSrv := server.NewKline(klineService)
-	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)))
+	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)), klineService)
 	s := grpc.NewServer()
-	kline.RegisterKlineServiceServer(s, klibneSrv)
 	ohlcv.RegisterOHLCVServiceServer(s, ohlcvSrv)
 
 	reflection.Register(s)
