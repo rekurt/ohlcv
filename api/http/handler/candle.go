@@ -3,25 +3,22 @@ package handler
 import (
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"encoding/json"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"bitbucket.org/novatechnologies/candles/protocol/candle"
 	"bitbucket.org/novatechnologies/common/infra/logger"
-	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type CandleHandler struct {
-	CandleService *candle.Service
+	client candle.CandleServiceClient
 }
 
-const defaultDuration = 1 * time.Minute
-
-const defaultBarsCount = 32
-
-func NewCandleHandler(candleService *candle.Service) *CandleHandler {
+func NewCandleHandler(candleService candle.CandleServiceClient) *CandleHandler {
 	return &CandleHandler{candleService}
 }
 
@@ -82,10 +79,59 @@ func (h CandleHandler) GetCandleChart(
 		time.Unix(int64(toUnix), 0),
 		resolution,
 	)
+	unit, unitSize := model.GetResolution(resolution)
+	candles, err := h.client.Get(ctx, &candle.GetRequest{
+		From:     timestamppb.New(from),
+		To:       timestamppb.New(to),
+		Symbol:   market,
+		Unit:     unit,
+		UnitSize: int32(unitSize),
+	})
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	chart := h.CandleService.GetChart(ctx, market, resolution, from, to)
+	rsp := &domain.ChartResponse{
+		Symbol: market,
+		O:      make([]float64, len(candles.Candles)),
+		H:      make([]float64, len(candles.Candles)),
+		L:      make([]float64, len(candles.Candles)),
+		C:      make([]float64, len(candles.Candles)),
+		V:      make([]float64, len(candles.Candles)),
+	}
 
-	bytes, err := json.Marshal(chart)
+	for i := range candles.Candles {
+		c := candles.Candles[i]
+		rsp.O[i], err = strconv.ParseFloat(c.Open, 64)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rsp.H[i], err = strconv.ParseFloat(c.High, 64)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rsp.L[i], err = strconv.ParseFloat(c.Low, 64)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rsp.C[i], err = strconv.ParseFloat(c.Close, 64)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rsp.V[i], err = strconv.ParseFloat(c.Volume, 64)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rsp.T[i] = c.OpenTime.AsTime().Unix()
+	}
+
+	bytes, err := json.Marshal(rsp)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 

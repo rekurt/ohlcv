@@ -22,6 +22,7 @@ import (
 
 	"bitbucket.org/novatechnologies/ohlcv/client/market"
 
+	c "bitbucket.org/novatechnologies/candles/protocol/candle"
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/deal"
@@ -35,23 +36,23 @@ import (
 
 func main() {
 	ctx := infra.GetContext()
-	conf := infra.SetConfig("./config/.env")
+	cfg := infra.SetConfig("./config/.env")
 
-	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
+	consumer := infra.NewConsumer(ctx, cfg.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 	fmt.Println(model.GetAvailableResolutions())
-	marketsMap, marketsInfo := buildAvailableMarkets(conf)
+	marketsMap, marketsInfo := buildAvailableMarkets(cfg)
 	broadcaster := centrifuge.NewBroadcaster(
-		centrifuge.NewPublisher(conf.CentrifugeConfig),
+		centrifuge.NewPublisher(cfg.CentrifugeConfig),
 		eventsBroker,
 		marketsMap,
 	)
 	broadcaster.SubscribeForCharts()
-	mongoDbClient := mongo.NewMongoClient(ctx, conf.MongoDbConfig)
+	mongoDbClient := mongo.NewMongoClient(ctx, cfg.MongoDbConfig)
 	dealsCollection := mongo.GetOrCreateDealsCollection(
 		ctx,
 		mongoDbClient,
-		conf.MongoDbConfig,
+		cfg.MongoDbConfig,
 	)
 
 	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
@@ -60,7 +61,7 @@ func main() {
 	go dealCache.LoadCache(ctx)
 
 	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
-	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	dealsTopic := cfg.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
 
 	candleService := candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)
 	klineRepository := repository.NewKline(dealsCollection)
@@ -69,11 +70,15 @@ func main() {
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
 	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
-
-	httpServer := http.NewServer(candleService, dealCache, conf)
+	candlesConn, err := grpc.Dial(cfg.CandlesGRPCEndpoint, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("unable to connect to deal service: %v", err)
+	}
+	candleClient := c.NewCandleServiceClient(candlesConn)
+	httpServer := http.NewServer(candleClient, dealCache, cfg)
 	httpServer.Start(ctx)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPCConfig.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCConfig.Port))
 	if err != nil {
 		log.Fatal(err)
 	}

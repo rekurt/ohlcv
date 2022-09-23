@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bitbucket.org/novatechnologies/candles/protocol/candle"
 	"context"
 	"fmt"
 	"net"
@@ -12,15 +13,14 @@ import (
 
 	openapi "bitbucket.org/novatechnologies/ohlcv/api/generated/go"
 	"bitbucket.org/novatechnologies/ohlcv/api/http/handler"
-	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type Server struct {
-	srv http.Server
+	srv *http.Server
 }
 
-func NewServer(candleService *candle.Service, dealService domain.Service, conf infra.Config) *Server {
+func NewServer(candlesClient candle.CandleServiceClient, dealService domain.Service, conf infra.Config) *Server {
 	mux := http.NewServeMux()
 
 	marketClient, err := market.New(
@@ -33,7 +33,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service, conf i
 		log.Fatal("can't market.New:" + err.Error())
 	}
 
-	candleHandler := handler.NewCandleHandler(candleService)
+	candleHandler := handler.NewCandleHandler(candlesClient)
 	MarketApiService := openapi.NewMarketApiService(dealService, market.NewCache(marketClient))
 	MarketApiController := openapi.NewMarketApiController(MarketApiService)
 
@@ -41,7 +41,7 @@ func NewServer(candleService *candle.Service, dealService domain.Service, conf i
 	mux.Handle("/", router)
 	mux.HandleFunc("/api/candles", candleHandler.GetCandleChart)
 
-	srv := http.Server{
+	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", conf.HttpConfig.Port),
 		Handler: mux,
 	}
