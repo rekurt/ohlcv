@@ -13,7 +13,7 @@ type Kline struct {
 	Close       primitive.Decimal128 `bson:"close"`
 	Volume      primitive.Decimal128 `bson:"volume"`
 	CloseTime   time.Time            `bson:"closeTime"`
-	Quote       primitive.Decimal128 `bson:"quote"`
+	Quotes      primitive.Decimal128 `bson:"quotes"`
 	Trades      int                  `bson:"trades"`
 	TakerAssets primitive.Decimal128 `bson:"takerAssets"`
 	TakerQuotes primitive.Decimal128 `bson:"takerQuotes"`

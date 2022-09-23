@@ -39,7 +39,7 @@ message Kline {
   string close = 5;
   string volume = 6;
   google.protobuf.Timestamp closeTime = 7;
-  string quoteVolume = 8;
+  string quotes = 8;
   string takerAssets = 9;
   string takerQuotes = 10;
   int32 trades = 11;

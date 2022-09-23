@@ -56,7 +56,7 @@ func (r *Kline) Get(ctx context.Context, from, to time.Time) ([]*model.Kline, er
 		{"low", bson.D{{"$min", "$data.price"}}},
 		{"close", bson.D{{"$first", "$data.price"}}},
 		{"volume", bson.D{{"$sum", "$data.volume"}}},
-		{"quote", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
+		{"quotes", bson.D{{"$sum", bson.D{{"$multiply", bson.A{"$data.price", "$data.volume"}}}}}},
 		{"trades", bson.D{{"$count", bson.D{}}}},
 		{"takerAssets", bson.D{{"$sum", bson.D{
 			{"$switch", bson.D{
@@ -98,7 +98,7 @@ func (r *Kline) Get(ctx context.Context, from, to time.Time) ([]*model.Kline, er
 			{"low", "$low"},
 			{"close", "$close"},
 			{"volume", "$volume"},
-			{"quote", "$quote"},
+			{"quotes", "$quotes"},
 			{"trades", "$trades"},
 			{"takerAssets", "$takerAssets"},
 			{"takerQuotes", "$takerQuotes"},

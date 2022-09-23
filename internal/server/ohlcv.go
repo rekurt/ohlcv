@@ -55,7 +55,7 @@ func (h Ohlcv) GenerateMinutesKlines(ctx context.Context, request *ohlcv.Generat
 			Close:       klns[i].Close.String(),
 			Symbol:      klns[i].Symbol,
 			Volume:      klns[i].Volume.String(),
-			QuoteVolume: klns[i].Volume.String(),
+			Quotes:      klns[i].Quotes.String(),
 			OpenTime:    timestamppb.New(klns[i].OpenTime),
 			CloseTime:   timestamppb.New(klns[i].CloseTime),
 			Trades:      int32(klns[i].Trades),
