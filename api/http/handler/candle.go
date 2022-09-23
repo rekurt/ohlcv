@@ -99,6 +99,7 @@ func (h CandleHandler) GetCandleChart(
 		L:      make([]float64, len(candles.Candles)),
 		C:      make([]float64, len(candles.Candles)),
 		V:      make([]float64, len(candles.Candles)),
+		T:      make([]int64, len(candles.Candles)),
 	}
 
 	for i := range candles.Candles {
