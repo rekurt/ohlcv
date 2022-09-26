@@ -26,6 +26,7 @@ pipelines:
             - export CGO_ENABLED=1
             - export GO111MODULE=on
             - go mod tidy -v
+            - go test ./... -cover -race
             - go build -tags=jsoniter -a -o service cmd/consumer/main.go
           artifacts:
             - service
