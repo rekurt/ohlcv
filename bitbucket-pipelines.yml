@@ -118,7 +118,6 @@ pipelines:
                 --set mongodb.auth.password=${MONGODB_PASSWORD}
                 --set mongodb.auth.database=${MONGODB_NAME}
 
-
   branches:
     production:
       - step:
@@ -141,14 +140,13 @@ pipelines:
           deployment: Staging-master
           trigger: automatic
 
-
-    master2:
+    dev:
       - step: *building
       - step: *packing_docker
       - step: *security_scan
       - step:
           <<: *deploy_k8s
-          deployment: Staging-master2
+          deployment: development
           trigger: automatic
 
   tags:
