@@ -58,11 +58,11 @@ func (r *Candle) GenerateMinuteCandles(ctx context.Context, from, to time.Time) 
 		{"$project", bson.D{
 			{"t", "$_id.t"},
 			{"s", "$_id.s"},
-			{"o", "$o"},
-			{"h", "$h"},
-			{"l", "$l"},
-			{"c", "$c"},
-			{"v", "$v"},
+			{"o", bson.D{{"$toDecimal", "$o"}}},
+			{"h", bson.D{{"$toDecimal", "$h"}}},
+			{"l", bson.D{{"$toDecimal", "$l"}}},
+			{"c", bson.D{{"$toDecimal", "$c"}}},
+			{"v", bson.D{{"$toDecimal", "$v"}}},
 		}},
 	}
 	opts := options.Aggregate()

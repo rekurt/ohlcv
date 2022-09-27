@@ -154,7 +154,7 @@ func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marke
 			Var24hChangePercent: s.PriceChangePercent,
 			Var24hHigh:          s.HighPrice,
 			Var24hLow:           s.LowPrice,
-			Var24hVolume:        s.Volume,
+			Var24hVolume:        s.QuoteVolume,
 			BaseCurrency:        marketInfo.BaseCurrency.Symbol,
 			QuotedCurrency:      marketInfo.QuotedCurrency.Symbol,
 		}
