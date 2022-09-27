@@ -165,12 +165,6 @@ func (s *cacheService) LoadCache(ctx context.Context) {
 				Infof("loaded %d tickers from db", len(currentTickers))
 
 			for _, ct := range currentTickers {
-				if ct.Symbol == "BTC_LINK" {
-					logger.FromContext(ctx).
-						WithField("op", op).
-						Debugf("setting %s ticker in cache: %+v", ct.Symbol, ct)
-				}
-
 				s.cache.Set(
 					key{24 * time.Hour, ct.Symbol},
 					ct,
