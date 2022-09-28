@@ -18,4 +18,6 @@ type Kline struct {
 	TakerAssets primitive.Decimal128 `bson:"takerAssets"`
 	TakerQuotes primitive.Decimal128 `bson:"takerQuotes"`
 	Symbol      string               `bson:"symbol"`
+	First       time.Time            `bson:"first"`
+	Last        time.Time            `bson:"last"`
 }

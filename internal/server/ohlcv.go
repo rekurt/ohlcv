@@ -61,6 +61,8 @@ func (h Ohlcv) GenerateMinutesKlines(ctx context.Context, request *ohlcv.Generat
 			Trades:      int32(klns[i].Trades),
 			TakerQuotes: klns[i].TakerQuotes.String(),
 			TakerAssets: klns[i].TakerAssets.String(),
+			First:       timestamppb.New(klns[i].First),
+			Last:        timestamppb.New(klns[i].Last),
 		}
 	}
 	return rsp, nil

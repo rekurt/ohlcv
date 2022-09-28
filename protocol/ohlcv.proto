@@ -44,6 +44,8 @@ message Kline {
   string takerQuotes = 10;
   int32 trades = 11;
   string symbol = 12;
+  google.protobuf.Timestamp first = 13;
+  google.protobuf.Timestamp last = 14;
 }
 
 message GenerateMinuteKlinesResponse {
