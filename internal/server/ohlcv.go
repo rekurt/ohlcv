@@ -1,21 +1,31 @@
 package server
 
 import (
+	"context"
+
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
-	"context"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Ohlcv struct {
 	candleService *service.Candle
 	klineService  *service.Kline
+	dealService   *service.Deal
 	ohlcv.UnimplementedOHLCVServiceServer
 }
 
-func NewOhlcv(candleService *service.Candle, klineService *service.Kline) *Ohlcv {
-	return &Ohlcv{candleService: candleService, klineService: klineService}
+func NewOhlcv(
+	candleService *service.Candle,
+	klineService *service.Kline,
+	dealService *service.Deal,
+) *Ohlcv {
+	return &Ohlcv{
+		candleService: candleService,
+		klineService:  klineService,
+		dealService:   dealService,
+	}
 }
 
 // GenerateMinutesCandle returns all minute candles
@@ -65,5 +75,28 @@ func (h Ohlcv) GenerateMinutesKlines(ctx context.Context, request *ohlcv.Generat
 			Last:        timestamppb.New(klns[i].Last),
 		}
 	}
+	return rsp, nil
+}
+
+func (h Ohlcv) GetLastTrades(ctx context.Context, request *ohlcv.GetLastTradesRequest) (*ohlcv.GetLastTradesResponse, error) {
+	trades, err := h.dealService.GetLastTrades(ctx, request.Symbol, request.Limit)
+	if err != nil {
+		logger.FromContext(ctx).Errorf("error getting last trades: %v", err)
+		return nil, err
+	}
+
+	rsp := &ohlcv.GetLastTradesResponse{Trades: make([]*ohlcv.Trade, len(trades))}
+
+	for i := range trades {
+		rsp.Trades[i] = &ohlcv.Trade{
+			Id:           trades[i].Data.DealId,
+			Price:        trades[i].Data.Price.String(),
+			Qty:          trades[i].Data.Volume.String(),
+			QuoteQty:     trades[i].Data.Volume.String(),
+			Time:         trades[i].T.Time().UnixNano(),
+			IsBuyerMaker: trades[i].Data.IsBuyerMaker,
+		}
+	}
+
 	return rsp, nil
 }

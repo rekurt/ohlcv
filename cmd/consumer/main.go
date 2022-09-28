@@ -1,20 +1,22 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
-	"context"
-	"fmt"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/common/infra/logger"
@@ -24,7 +26,6 @@ import (
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
@@ -54,10 +55,10 @@ func main() {
 		conf.MongoDbConfig,
 	)
 
-	dealService := deal.NewService(dealsCollection, marketsMap, marketsInfo)
-	dealCache := deal.NewCacheService(dealService, marketsMap)
+	dealRepository := repository.NewDeal(dealsCollection, marketsMap, marketsInfo)
+	dealService := service.NewDeal(dealRepository, marketsMap)
 
-	go dealCache.LoadCache(ctx)
+	go dealService.LoadCache(ctx)
 
 	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
@@ -68,16 +69,21 @@ func main() {
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
-	dealCache.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
+	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
 
-	httpServer := http.NewServer(candleService, dealCache, conf)
+	httpServer := http.NewServer(candleService, dealService, conf)
 	httpServer.Start(ctx)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.GRPCConfig.Port))
 	if err != nil {
 		log.Fatal(err)
 	}
-	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)), klineService)
+	ohlcvSrv := server.NewOhlcv(
+		service.NewCandle(repository.NewCandle(dealsCollection)),
+		klineService,
+		dealService,
+	)
+
 	s := grpc.NewServer()
 	ohlcv.RegisterOHLCVServiceServer(s, ohlcvSrv)
 

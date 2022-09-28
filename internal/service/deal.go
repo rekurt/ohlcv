@@ -1,4 +1,4 @@
-package deal
+package service
 
 import (
 	"context"
@@ -14,24 +14,24 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type cacheService struct {
+type Deal struct {
 	under      domain.Service
 	cache      *cache.Cache
 	marketsMap map[string]string
 }
 
-func NewCacheService(
+func NewDeal(
 	under domain.Service,
 	marketsMap map[string]string,
-) *cacheService {
-	return &cacheService{
+) *Deal {
+	return &Deal{
 		under:      under,
 		cache:      cache.New(time.Second * 10),
 		marketsMap: marketsMap,
 	}
 }
 
-func (s *cacheService) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*domain.Deal, error) {
+func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*domain.Deal, error) {
 	deal, err := s.under.SaveDeal(ctx, dealMessage)
 	if err != nil {
 		return nil, err
@@ -40,11 +40,11 @@ func (s *cacheService) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) 
 	return deal, nil
 }
 
-func (s *cacheService) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]domain.Deal, error) {
+func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]domain.Deal, error) {
 	return s.under.GetLastTrades(ctx, symbol, limit)
 }
 
-func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
 	const op = "cacheService_GetTickerPriceChangeStatistics"
 
 	result := make([]domain.TickerPriceChangeStatistics, 0)
@@ -92,11 +92,11 @@ func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, durat
 	return result, nil
 }
 
-func (s *cacheService) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
+func (s *Deal) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
 	return s.under.GetAvgPrice(ctx, duration, market)
 }
 
-func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
+func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
 	go func() {
 		err := func() error {
 			return consumer.Consume(
@@ -118,7 +118,7 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 							"unmarshal error with protobuf deals msg",
 						)
 					}
-					err := currentCandles.AddDeal(dealMessage)
+					err := currentCandles.AddDeal(&dealMessage)
 					if err != nil {
 						logger.FromContext(ctx).
 							WithField("method", "currentCandles.AddDeal in consuming").
@@ -134,13 +134,13 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 		if err != nil {
 			logger.FromContext(ctx).
 				WithField("err", err).
-				WithField("svc", "cacheService").
+				WithField("svc", "Deal").
 				Errorf("Consuming session was finished with error", err)
 		}
 	}()
 }
 
-func (s *cacheService) LoadCache(ctx context.Context) {
+func (s *Deal) LoadCache(ctx context.Context) {
 	const op = "cacheService_LoadCache"
 
 	ticker := time.NewTicker(time.Second)

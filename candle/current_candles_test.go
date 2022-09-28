@@ -1,13 +1,14 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
@@ -17,7 +18,7 @@ import (
 )
 
 func Test_updateCandle(t *testing.T) {
-	candle, err := updateCandle(domain.Candle{}, matcher.Deal{Price: "866.13", Amount: "710.47"})
+	candle, err := updateCandle(domain.Candle{}, &matcher.Deal{Price: "866.13", Amount: "710.47"})
 	require.NoError(t, err)
 	assert.Equal(t, domain.Candle{
 		Open:   mustParseDecimal128(t, "866.13"),
@@ -26,7 +27,7 @@ func Test_updateCandle(t *testing.T) {
 		Close:  mustParseDecimal128(t, "866.13"),
 		Volume: mustParseDecimal128(t, "710.47"),
 	}, candle)
-	candle, err = updateCandle(candle, matcher.Deal{Price: "861.60", Amount: "153.78"})
+	candle, err = updateCandle(candle, &matcher.Deal{Price: "861.60", Amount: "153.78"})
 	require.NoError(t, err)
 	assert.Equal(t, domain.Candle{
 		Open:   mustParseDecimal128(t, "866.13"),
@@ -101,7 +102,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			}, candle, "inherit ohlc values from previous candle")
 		require.Len(t, updatesStream, 0)
 		//when first deal arrives
-		require.NoError(t, candles.AddDeal(matcher.Deal{
+		require.NoError(t, candles.AddDeal(&matcher.Deal{
 			Market:    "ETH/BTC",
 			CreatedAt: time.Date(2020, 4, 14, 15, 46, 53, 0, time.UTC).UnixNano(),
 			Price:     "0.013",
@@ -160,7 +161,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime:  time.Date(2020, 4, 14, 16, 0, 0, 0, time.UTC),
 			}, candle)
 		//make a deal
-		require.NoError(t, candles.AddDeal(matcher.Deal{
+		require.NoError(t, candles.AddDeal(&matcher.Deal{
 			Market:    "ETH/BTC",
 			CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
 			Price:     "0.019",
@@ -258,7 +259,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//make a deal
-		require.NoError(t, candles.AddDeal(matcher.Deal{
+		require.NoError(t, candles.AddDeal(&matcher.Deal{
 			Market:    "ETH/BTC",
 			CreatedAt: time.Date(2020, 4, 14, 15, 45, 50, 0, time.UTC).UnixNano(),
 			Price:     "0.019",
@@ -282,7 +283,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 				CloseTime:  time.Date(2020, 4, 14, 15, 46, 0, 0, time.UTC),
 			}, candle)
 		//make another deal
-		require.NoError(t, candles.AddDeal(matcher.Deal{
+		require.NoError(t, candles.AddDeal(&matcher.Deal{
 			Market:    "ETH/BTC",
 			CreatedAt: time.Date(2020, 4, 14, 15, 45, 53, 0, time.UTC).UnixNano(),
 			Price:     "0.013",
@@ -306,7 +307,7 @@ func TestNewCurrentCandles_updates(t *testing.T) {
 			}, candle)
 		require.Len(t, updatesStream, 0)
 		//make miss deal with a non-existent market
-		require.NoError(t, candles.AddDeal(matcher.Deal{
+		require.NoError(t, candles.AddDeal(&matcher.Deal{
 			Market:    "ETH/CRONA",
 			CreatedAt: time.Date(2020, 4, 14, 15, 45, 53, 0, time.UTC).UnixNano(),
 			Price:     "0.013",
@@ -361,7 +362,7 @@ func Test_concurrent(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 100; i++ {
-				require.NoError(t, candles.AddDeal(matcher.Deal{
+				require.NoError(t, candles.AddDeal(&matcher.Deal{
 					Market:    markets[rand.Intn(len(markets))],
 					CreatedAt: time.Now().UnixNano(),
 					Price:     strconv.FormatFloat(rand.Float64()*float64(rand.Intn(100)), 'f', 5, 64),

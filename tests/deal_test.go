@@ -1,8 +1,6 @@
 package tests
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/client/market"
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"log"
@@ -10,6 +8,10 @@ import (
 	"os/signal"
 	"testing"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/client/market"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 
 	"bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 	mongodriver "go.mongodb.org/mongo-driver/mongo"
@@ -20,7 +22,6 @@ import (
 
 	"bitbucket.org/novatechnologies/ohlcv/api/http"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
@@ -69,7 +70,7 @@ func TestSaveDeal(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	dealService := deal.NewService(dealCollection, getTestMarkets(), nil)
+	dealRepo := repository.NewDeal(dealCollection, getTestMarkets(), nil)
 	market := "BTC-USDT"
 
 	d1 := &matcher.Deal{
@@ -81,7 +82,7 @@ func TestSaveDeal(t *testing.T) {
 		Price:        "102.300",
 		Amount:       "0.0031",
 	}
-	_, err := dealService.SaveDeal(ctx, d1)
+	_, err := dealRepo.SaveDeal(ctx, d1)
 
 	d2 := &matcher.Deal{
 		Id:           "1234567",
@@ -92,7 +93,7 @@ func TestSaveDeal(t *testing.T) {
 		Price:        "152.300",
 		Amount:       "0.0031",
 	}
-	_, err = dealService.SaveDeal(ctx, d2)
+	_, err = dealRepo.SaveDeal(ctx, d2)
 
 	if err != nil {
 		t.Failed()
@@ -107,7 +108,7 @@ func TestSaveDeal(t *testing.T) {
 		Price:        "52.300",
 		Amount:       "0.0121",
 	}
-	_, err = dealService.SaveDeal(ctx, d3)
+	_, err = dealRepo.SaveDeal(ctx, d3)
 
 	if err != nil {
 		t.Fail()
@@ -116,7 +117,7 @@ func TestSaveDeal(t *testing.T) {
 	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 	from := time.Now().Add(-5 * time.Minute)
 	to := time.Now()
-	chart5Min, _ := candleService.GetChart(
+	chart5Min := candleService.GetChart(
 		ctx,
 		market,
 		model.Candle5MResolution,
@@ -157,10 +158,10 @@ func TestDealGenerator(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(dealCollection, GetAvailableMarkets(), nil)
+	dealRepo := repository.NewDeal(dealCollection, GetAvailableMarkets(), nil)
 	candleService := InitCandleService(conf, dealCollection, eventsBroker)
 
-	server := http.NewServer(candleService, dealService, conf)
+	server := http.NewServer(candleService, dealRepo, conf)
 	server.Start(ctx)
 
 	// shutdown
@@ -188,10 +189,10 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	service := deal.NewService(dealCollection, getTestMarkets(), nil)
+	dealRepo := repository.NewDeal(dealCollection, getTestMarkets(), nil)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancelFunc()
-	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
+	statistics, err := dealRepo.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
 	require.NoError(t, err)
 	for _, s := range statistics {
 		// fmt.Printf("%+v\n", s)
@@ -212,8 +213,8 @@ func Test_GetLastTrades(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(dealCollection, getTestMarkets(), nil)
-	trades, err := dealService.GetLastTrades(ctx, "ETH/LTC", 10)
+	dealRepo := repository.NewDeal(dealCollection, getTestMarkets(), nil)
+	trades, err := dealRepo.GetLastTrades(ctx, "ETH/LTC", 10)
 	require.NoError(t, err)
 	assert.Len(t, trades, 10)
 	for _, tr := range trades {
@@ -249,8 +250,8 @@ func Test_GetAvgPrice(t *testing.T) {
 		conf.MongoDbConfig,
 		conf.MongoDbConfig.DealCollectionName,
 	)
-	dealService := deal.NewService(dealCollection, getTestMarkets(), buildAvailableMarkets(conf))
-	avg, err := dealService.GetAvgPrice(ctx, time.Hour*24*40, "ETH_TRX")
+	dealRepo := repository.NewDeal(dealCollection, getTestMarkets(), buildAvailableMarkets(conf))
+	avg, err := dealRepo.GetAvgPrice(ctx, time.Hour*24*40, "ETH_TRX")
 	require.NoError(t, err)
 	fmt.Println(avg)
 }

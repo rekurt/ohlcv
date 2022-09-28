@@ -1,4 +1,4 @@
-package deal
+package repository
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"bitbucket.org/novatechnologies/common/events/topics"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 
 	"bitbucket.org/novatechnologies/interfaces/matcher"
@@ -22,25 +21,21 @@ import (
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
-func TopicName(prefix string) string {
-	return prefix + "_" + topics.MatcherMDDeals
-}
-
-type Service struct {
+type Deal struct {
 	DbCollection *mongo.Collection
 	MarketsMap   map[string]string
 	markets      []string
 	marketsInfo  []market.Market
 }
 
-func NewService(dbCollection *mongo.Collection, marketsMap map[string]string, marketsInfo []market.Market) *Service {
+func NewDeal(dbCollection *mongo.Collection, marketsMap map[string]string, marketsInfo []market.Market) *Deal {
 	markets := make([]string, 0, len(marketsMap))
 
 	for _, m := range marketsMap {
 		markets = append(markets, m)
 	}
 
-	return &Service{
+	return &Deal{
 		DbCollection: dbCollection,
 		MarketsMap:   marketsMap,
 		marketsInfo:  marketsInfo,
@@ -48,7 +43,7 @@ func NewService(dbCollection *mongo.Collection, marketsMap map[string]string, ma
 	}
 }
 
-func (s *Service) SaveDeal(
+func (s *Deal) SaveDeal(
 	ctx context.Context,
 	dealMessage *matcher.Deal,
 ) (*domain.Deal, error) {
@@ -84,7 +79,7 @@ func (s *Service) SaveDeal(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealService]Failed save deal.", deal)
+		).Errorf("[DealDeal]Failed save deal.", deal)
 		return nil, err
 	}
 	var deals = make([]*domain.Deal, 1)
@@ -93,7 +88,7 @@ func (s *Service) SaveDeal(
 	return deal, nil
 }
 
-func (s *Service) GetLastTrades(
+func (s *Deal) GetLastTrades(
 	ctx context.Context,
 	symbol string,
 	limit int32,
@@ -118,7 +113,7 @@ func (s *Service) GetLastTrades(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealService]Failed GetLastTrades")
+		).Errorf("[DealDeal]Failed GetLastTrades")
 		return nil, err
 	}
 	var deals []domain.Deal
@@ -127,13 +122,13 @@ func (s *Service) GetLastTrades(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealService]Failed GetLastTrades")
+		).Errorf("[DealDeal]Failed GetLastTrades")
 		return nil, err
 	}
 	return deals, nil
 }
 
-func (s *Service) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
 	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
 
 	markets := []interface{}{market}
@@ -308,7 +303,7 @@ func calcChange(closePrice, openPrice primitive.Decimal128) (float64, float64) {
 	return change, priceChangePercent
 }
 
-func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
+func (s *Deal) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
 	matchStageValue := bson.D{
 		{"t", bson.D{
 			{"$gte", primitive.NewDateTimeFromTime(time.Now().Add(-duration))},
@@ -349,7 +344,7 @@ func (s *Service) GetAvgPrice(ctx context.Context, duration time.Duration, marke
 	return s.roundByMarket(resp[0]["avg"].(primitive.Decimal128), market)
 }
 
-func (s *Service) roundByMarket(decimal128 primitive.Decimal128, market string) (string, error) {
+func (s *Deal) roundByMarket(decimal128 primitive.Decimal128, market string) (string, error) {
 	f, err := strconv.ParseFloat(decimal128.String(), 64)
 	if err != nil {
 		return "0", nil

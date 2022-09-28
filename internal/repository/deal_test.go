@@ -1,4 +1,4 @@
-package deal
+package repository
 
 import (
 	"context"
@@ -16,7 +16,7 @@ func TestService_GetLastTrades(t *testing.T) {
 	defer mt.Close()
 	mt.Run(
 		"success", func(mt *mtest.T) {
-			s := Service{DbCollection: mt.Coll}
+			s := Deal{DbCollection: mt.Coll}
 			first := mtest.CreateCursorResponse(
 				1, "foo.bar", mtest.FirstBatch, bson.D{
 					{"_id", primitive.NewObjectID()},

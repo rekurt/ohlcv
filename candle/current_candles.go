@@ -1,11 +1,12 @@
 package candle
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
@@ -15,7 +16,7 @@ import (
 )
 
 type CurrentCandles interface {
-	AddDeal(deal matcher.Deal) error
+	AddDeal(deal *matcher.Deal) error
 	AddCandle(market string, resolution model.Resolution, candle domain.Candle) error
 }
 
@@ -81,7 +82,7 @@ func (c *currentCandles) AddCandle(market string, resolution model.Resolution, c
 	return nil
 }
 
-func (c *currentCandles) AddDeal(deal matcher.Deal) error {
+func (c *currentCandles) AddDeal(deal *matcher.Deal) error {
 	c.candlesLock.Lock()
 	defer c.candlesLock.Unlock()
 	resolutions := c.candles[deal.Market]
@@ -145,7 +146,7 @@ func (c *currentCandles) buildFreshCandle(market string, resolution model.Resolu
 	}
 }
 
-func updateCandle(candle domain.Candle, deal matcher.Deal) (domain.Candle, error) {
+func updateCandle(candle domain.Candle, deal *matcher.Deal) (domain.Candle, error) {
 	dealPrice, err := primitive.ParseDecimal128(deal.Price)
 	if err != nil {
 		return domain.Candle{}, err
