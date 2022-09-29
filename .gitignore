@@ -15,4 +15,3 @@ docker/.volumes/*
 !docker/.volumes/redis/.gitkeep
 !/docker/builder.key
 vendor
-consumer

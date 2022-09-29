@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bitbucket.org/novatechnologies/common/events/topics"
 	"context"
 	"fmt"
 	"math"
@@ -16,7 +17,6 @@ import (
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
-	"bitbucket.org/novatechnologies/interfaces/topics"
 	"github.com/centrifugal/centrifuge-go"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"

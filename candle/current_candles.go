@@ -1,12 +1,11 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"sync"
 	"time"
-
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"

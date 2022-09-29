@@ -1,14 +1,13 @@
 package candle
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
-
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/domain"

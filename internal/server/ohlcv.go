@@ -4,14 +4,18 @@ import (
 	"context"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Ohlcv struct {
 	candleService *service.Candle
 	klineService  *service.Kline
+	dealConsumer  *consumer.Deal
 	dealService   *service.Deal
 	ohlcv.UnimplementedOHLCVServiceServer
 }
@@ -20,11 +24,13 @@ func NewOhlcv(
 	candleService *service.Candle,
 	klineService *service.Kline,
 	dealService *service.Deal,
+	dealConsumer *consumer.Deal,
 ) *Ohlcv {
 	return &Ohlcv{
 		candleService: candleService,
 		klineService:  klineService,
 		dealService:   dealService,
+		dealConsumer:  dealConsumer,
 	}
 }
 
@@ -99,4 +105,36 @@ func (h Ohlcv) GetLastTrades(ctx context.Context, request *ohlcv.GetLastTradesRe
 	}
 
 	return rsp, nil
+}
+
+func (h Ohlcv) SubscribeDeals(_ *ohlcv.SubscribeDealsRequest, server ohlcv.OHLCVService_SubscribeDealsServer) error {
+	log := logger.FromContext(server.Context())
+	id, err := uuid.NewUUID()
+	if err != nil {
+		log.Errorf("can't create uuid %v", err)
+		return err
+	}
+	ch := make(chan *model.Deal, 1024)
+	h.dealConsumer.Subscribe(id.String(), ch)
+	defer func() {
+		h.dealConsumer.UnSubscribe(id.String())
+	}()
+	for {
+		select {
+		case <-server.Context().Done():
+			return nil
+		case d := <-ch:
+			err := server.Send(&ohlcv.SubscribeDealsResponse{
+				Time:         timestamppb.New(d.T.Time()),
+				DealId:       d.Data.DealId,
+				Price:        d.Data.Price.String(),
+				Volume:       d.Data.Volume.String(),
+				Symbol:       d.Data.Market,
+				IsBuyerMaker: d.Data.IsBuyerMaker,
+			})
+			if err != nil {
+				logger.FromContext(server.Context()).Errorf("can't send deals %v", err)
+			}
+		}
+	}
 }

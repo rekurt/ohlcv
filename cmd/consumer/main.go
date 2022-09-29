@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
 	"context"
 	"fmt"
 
@@ -38,7 +39,7 @@ func main() {
 	ctx := infra.GetContext()
 	conf := infra.SetConfig("./config/.env")
 
-	consumer := infra.NewConsumer(ctx, conf.KafkaConfig)
+	csmr := infra.NewConsumer(ctx, conf.KafkaConfig)
 	eventsBroker := broker.NewInMemory()
 	fmt.Println(model.GetAvailableResolutions())
 	marketsMap, marketsInfo := buildAvailableMarkets(conf)
@@ -54,9 +55,9 @@ func main() {
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
-
+	eventChannel := make(chan *model.Deal, 1024)
 	dealRepository := repository.NewDeal(dealsCollection, marketsMap, marketsInfo)
-	dealService := service.NewDeal(dealRepository, marketsMap)
+	dealService := service.NewDeal(dealRepository, marketsMap, eventChannel)
 
 	go dealService.LoadCache(ctx)
 
@@ -69,7 +70,7 @@ func main() {
 	updatesStream := make(chan domain.Candle, 512)
 	go listenCurrentCandlesUpdates(ctx, updatesStream, eventsBroker, marketsMap)
 	currentCandles := initCurrentCandles(ctx, candleService, marketsMap, updatesStream)
-	dealService.RunConsuming(ctx, consumer, dealsTopic, currentCandles)
+	dealService.RunConsuming(ctx, csmr, dealsTopic, currentCandles)
 
 	httpServer := http.NewServer(candleService, dealService, conf)
 	httpServer.Start(ctx)
@@ -78,12 +79,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ohlcvSrv := server.NewOhlcv(
-		service.NewCandle(repository.NewCandle(dealsCollection)),
-		klineService,
-		dealService,
-	)
-
+	dealConsumer := consumer.NewDeal(eventChannel)
+	go dealConsumer.Consume(ctx)
+	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)), klineService, dealService, dealConsumer)
 	s := grpc.NewServer()
 	ohlcv.RegisterOHLCVServiceServer(s, ohlcvSrv)
 

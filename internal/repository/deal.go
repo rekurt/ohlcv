@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"context"
 	"fmt"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 
-	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -43,56 +43,22 @@ func NewDeal(dbCollection *mongo.Collection, marketsMap map[string]string, marke
 	}
 }
 
-func (s *Deal) SaveDeal(
-	ctx context.Context,
-	dealMessage *matcher.Deal,
-) (*domain.Deal, error) {
-	defer func() {
-		if r := recover(); r != "" {
-			logger.FromContext(ctx).Errorf(r)
-			// TODO: sending notification manually to the sentry or alternative.
-		}
-	}()
-
-	if dealMessage.TakerOrderId == "" || dealMessage.MakerOrderId == "" {
-		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
-		return nil, nil
-	}
-	t := time.Unix(0, dealMessage.CreatedAt)
-	marketName := s.MarketsMap[dealMessage.Market]
-	deal := &domain.Deal{
-		T: primitive.NewDateTimeFromTime(t),
-		Data: domain.DealData{
-			Price:        domain.MustParseDecimal(dealMessage.Price),
-			Volume:       domain.MustParseDecimal(dealMessage.Amount),
-			DealId:       dealMessage.Id,
-			Market:       marketName,
-			IsBuyerMaker: dealMessage.IsBuyerMaker,
-		},
-	}
-	if err := deal.Validate(); err != nil {
-		return nil, err
-	}
-
+func (s *Deal) Save(ctx context.Context, deal *model.Deal) error {
 	_, err := s.DbCollection.InsertOne(ctx, deal)
 	if err != nil {
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
 		).Errorf("[DealDeal]Failed save deal.", deal)
-		return nil, err
+		return err
 	}
-	var deals = make([]*domain.Deal, 1)
+	var deals = make([]*model.Deal, 1)
 	deals[0] = deal
 
-	return deal, nil
+	return nil
 }
 
-func (s *Deal) GetLastTrades(
-	ctx context.Context,
-	symbol string,
-	limit int32,
-) ([]domain.Deal, error) {
+func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]*model.Deal, error) {
 	ctx, cancelFunc := context.WithTimeout(ctx, time.Second)
 	defer cancelFunc()
 
@@ -113,22 +79,22 @@ func (s *Deal) GetLastTrades(
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealDeal]Failed GetLastTrades")
+		).Errorf("[DealService]Failed GetLastTrades")
 		return nil, err
 	}
-	var deals []domain.Deal
+	var deals []*model.Deal
 	err = cursor.All(ctx, &deals)
 	if err != nil {
 		logger.FromContext(ctx).WithField(
 			"error",
 			err.Error(),
-		).Errorf("[DealDeal]Failed GetLastTrades")
+		).Errorf("[DealService]Failed GetLastTrades")
 		return nil, err
 	}
 	return deals, nil
 }
 
-func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]*domain.TickerPriceChangeStatistics, error) {
 	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
 
 	markets := []interface{}{market}
@@ -210,20 +176,20 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time
 		return nil, nil
 	}
 
-	statistics := make([]domain.TickerPriceChangeStatistics, 0, len(resp))
+	statistics := make([]*domain.TickerPriceChangeStatistics, 0, len(resp))
 	for _, v := range resp {
 		statistics = append(statistics, parseStatistics(v))
 	}
 	return statistics, nil
 }
 
-func parseStatistics(m bson.M) domain.TickerPriceChangeStatistics {
+func parseStatistics(m bson.M) *domain.TickerPriceChangeStatistics {
 	closePrice := m["closePrice"].(primitive.Decimal128)
 	openPrice := m["openPrice"].(primitive.Decimal128)
 	quoteVolume := m["quoteVolume"].(primitive.Decimal128)
 	volume := m["volume"].(primitive.Decimal128)
 	priceChange, priceChangePercent := calcChange(closePrice, openPrice)
-	return domain.TickerPriceChangeStatistics{
+	return &domain.TickerPriceChangeStatistics{
 		Symbol:             m["_id"].(string),
 		WeightedAvgPrice:   calcVwap(quoteVolume, volume),
 		LastPrice:          closePrice.String(),
