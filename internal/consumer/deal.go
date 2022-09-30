@@ -15,7 +15,8 @@ type Deal struct {
 
 func NewDeal(dealChan chan *model.Deal) *Deal {
 	return &Deal{
-		dealChan: dealChan,
+		dealChan:    dealChan,
+		subscribers: make(map[string]chan *model.Deal),
 	}
 }
 
