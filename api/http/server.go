@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"context"
 	"fmt"
 	"net"
@@ -13,14 +14,13 @@ import (
 	openapi "bitbucket.org/novatechnologies/ohlcv/api/generated/go"
 	"bitbucket.org/novatechnologies/ohlcv/api/http/handler"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/domain"
 )
 
 type Server struct {
 	srv http.Server
 }
 
-func NewServer(candleService *candle.Service, dealService domain.Service, conf infra.Config) *Server {
+func NewServer(candleService *candle.Service, dealService *service.Deal, conf infra.Config) *Server {
 	mux := http.NewServeMux()
 
 	marketClient, err := market.New(

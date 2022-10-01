@@ -10,6 +10,8 @@
 package openapi
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"context"
 	"strings"
 	"time"
@@ -24,12 +26,12 @@ import (
 // This service should implement the business logic for every endpoint for the MarketApi API.
 // Include any external packages or services that will be required by this service.
 type MarketApiService struct {
-	dealService  domain.Service
+	dealService  *service.Deal
 	marketClient market.Client
 }
 
 // NewMarketApiService creates a default api service
-func NewMarketApiService(dealService domain.Service, marketClient market.Client) MarketApiServicer {
+func NewMarketApiService(dealService *service.Deal, marketClient market.Client) MarketApiServicer {
 	return &MarketApiService{dealService: dealService, marketClient: marketClient}
 }
 
@@ -88,10 +90,10 @@ func convertStatistics(statistics []domain.TickerPriceChangeStatistics) []Ticker
 	return tickers
 }
 
-func convertDeals(tr []domain.Deal) []Trade {
-	trades := make([]Trade, len(tr))
+func convertDeals(tr []*model.Deal) []*Trade {
+	trades := make([]*Trade, len(tr))
 	for i := range tr {
-		trades[i] = Trade{
+		trades[i] = &Trade{
 			Id:           tr[i].Data.DealId,
 			Price:        tr[i].Data.Price.String(),
 			Qty:          tr[i].Data.Volume.String(),

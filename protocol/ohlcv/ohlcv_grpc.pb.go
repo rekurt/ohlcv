@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 type OHLCVServiceClient interface {
 	GenerateMinutesCandle(ctx context.Context, in *GenerateMinuteCandlesRequest, opts ...grpc.CallOption) (*GenerateMinuteCandlesResponse, error)
 	GenerateMinutesKlines(ctx context.Context, in *GenerateMinuteKlinesRequest, opts ...grpc.CallOption) (*GenerateMinuteKlinesResponse, error)
+	SubscribeDeals(ctx context.Context, in *SubscribeDealsRequest, opts ...grpc.CallOption) (OHLCVService_SubscribeDealsClient, error)
+	GetLastTrades(ctx context.Context, in *GetLastTradesRequest, opts ...grpc.CallOption) (*GetLastTradesResponse, error)
 }
 
 type oHLCVServiceClient struct {
@@ -48,12 +50,55 @@ func (c *oHLCVServiceClient) GenerateMinutesKlines(ctx context.Context, in *Gene
 	return out, nil
 }
 
+func (c *oHLCVServiceClient) SubscribeDeals(ctx context.Context, in *SubscribeDealsRequest, opts ...grpc.CallOption) (OHLCVService_SubscribeDealsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &OHLCVService_ServiceDesc.Streams[0], "/ohlcv.OHLCVService/SubscribeDeals", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &oHLCVServiceSubscribeDealsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type OHLCVService_SubscribeDealsClient interface {
+	Recv() (*SubscribeDealsResponse, error)
+	grpc.ClientStream
+}
+
+type oHLCVServiceSubscribeDealsClient struct {
+	grpc.ClientStream
+}
+
+func (x *oHLCVServiceSubscribeDealsClient) Recv() (*SubscribeDealsResponse, error) {
+	m := new(SubscribeDealsResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *oHLCVServiceClient) GetLastTrades(ctx context.Context, in *GetLastTradesRequest, opts ...grpc.CallOption) (*GetLastTradesResponse, error) {
+	out := new(GetLastTradesResponse)
+	err := c.cc.Invoke(ctx, "/ohlcv.OHLCVService/GetLastTrades", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OHLCVServiceServer is the server API for OHLCVService service.
 // All implementations must embed UnimplementedOHLCVServiceServer
 // for forward compatibility
 type OHLCVServiceServer interface {
 	GenerateMinutesCandle(context.Context, *GenerateMinuteCandlesRequest) (*GenerateMinuteCandlesResponse, error)
 	GenerateMinutesKlines(context.Context, *GenerateMinuteKlinesRequest) (*GenerateMinuteKlinesResponse, error)
+	SubscribeDeals(*SubscribeDealsRequest, OHLCVService_SubscribeDealsServer) error
+	GetLastTrades(context.Context, *GetLastTradesRequest) (*GetLastTradesResponse, error)
 	mustEmbedUnimplementedOHLCVServiceServer()
 }
 
@@ -66,6 +111,12 @@ func (UnimplementedOHLCVServiceServer) GenerateMinutesCandle(context.Context, *G
 }
 func (UnimplementedOHLCVServiceServer) GenerateMinutesKlines(context.Context, *GenerateMinuteKlinesRequest) (*GenerateMinuteKlinesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateMinutesKlines not implemented")
+}
+func (UnimplementedOHLCVServiceServer) SubscribeDeals(*SubscribeDealsRequest, OHLCVService_SubscribeDealsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeDeals not implemented")
+}
+func (UnimplementedOHLCVServiceServer) GetLastTrades(context.Context, *GetLastTradesRequest) (*GetLastTradesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLastTrades not implemented")
 }
 func (UnimplementedOHLCVServiceServer) mustEmbedUnimplementedOHLCVServiceServer() {}
 
@@ -116,6 +167,45 @@ func _OHLCVService_GenerateMinutesKlines_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OHLCVService_SubscribeDeals_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeDealsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(OHLCVServiceServer).SubscribeDeals(m, &oHLCVServiceSubscribeDealsServer{stream})
+}
+
+type OHLCVService_SubscribeDealsServer interface {
+	Send(*SubscribeDealsResponse) error
+	grpc.ServerStream
+}
+
+type oHLCVServiceSubscribeDealsServer struct {
+	grpc.ServerStream
+}
+
+func (x *oHLCVServiceSubscribeDealsServer) Send(m *SubscribeDealsResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _OHLCVService_GetLastTrades_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLastTradesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OHLCVServiceServer).GetLastTrades(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ohlcv.OHLCVService/GetLastTrades",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OHLCVServiceServer).GetLastTrades(ctx, req.(*GetLastTradesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OHLCVService_ServiceDesc is the grpc.ServiceDesc for OHLCVService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -131,7 +221,17 @@ var OHLCVService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GenerateMinutesKlines",
 			Handler:    _OHLCVService_GenerateMinutesKlines_Handler,
 		},
+		{
+			MethodName: "GetLastTrades",
+			Handler:    _OHLCVService_GetLastTrades_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeDeals",
+			Handler:       _OHLCVService_SubscribeDeals_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "ohlcv.proto",
 }

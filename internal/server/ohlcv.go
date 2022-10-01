@@ -1,21 +1,37 @@
 package server
 
 import (
+	"context"
+
 	"bitbucket.org/novatechnologies/common/infra/logger"
+	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"bitbucket.org/novatechnologies/ohlcv/protocol/ohlcv"
-	"context"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Ohlcv struct {
 	candleService *service.Candle
 	klineService  *service.Kline
+	dealConsumer  *consumer.Deal
+	dealService   *service.Deal
 	ohlcv.UnimplementedOHLCVServiceServer
 }
 
-func NewOhlcv(candleService *service.Candle, klineService *service.Kline) *Ohlcv {
-	return &Ohlcv{candleService: candleService, klineService: klineService}
+func NewOhlcv(
+	candleService *service.Candle,
+	klineService *service.Kline,
+	dealService *service.Deal,
+	dealConsumer *consumer.Deal,
+) *Ohlcv {
+	return &Ohlcv{
+		candleService: candleService,
+		klineService:  klineService,
+		dealService:   dealService,
+		dealConsumer:  dealConsumer,
+	}
 }
 
 // GenerateMinutesCandle returns all minute candles
@@ -61,7 +77,64 @@ func (h Ohlcv) GenerateMinutesKlines(ctx context.Context, request *ohlcv.Generat
 			Trades:      int32(klns[i].Trades),
 			TakerQuotes: klns[i].TakerQuotes.String(),
 			TakerAssets: klns[i].TakerAssets.String(),
+			First:       timestamppb.New(klns[i].First),
+			Last:        timestamppb.New(klns[i].Last),
 		}
 	}
 	return rsp, nil
+}
+
+func (h Ohlcv) GetLastTrades(ctx context.Context, request *ohlcv.GetLastTradesRequest) (*ohlcv.GetLastTradesResponse, error) {
+	trades, err := h.dealService.GetLastTrades(ctx, request.Symbol, request.Limit)
+	if err != nil {
+		logger.FromContext(ctx).Errorf("error getting last trades: %v", err)
+		return nil, err
+	}
+
+	rsp := &ohlcv.GetLastTradesResponse{Trades: make([]*ohlcv.Trade, len(trades))}
+
+	for i := range trades {
+		rsp.Trades[i] = &ohlcv.Trade{
+			Id:           trades[i].Data.DealId,
+			Price:        trades[i].Data.Price.String(),
+			Qty:          trades[i].Data.Volume.String(),
+			QuoteQty:     trades[i].Data.Volume.String(),
+			Time:         trades[i].T.Time().UnixNano(),
+			IsBuyerMaker: trades[i].Data.IsBuyerMaker,
+		}
+	}
+
+	return rsp, nil
+}
+
+func (h Ohlcv) SubscribeDeals(_ *ohlcv.SubscribeDealsRequest, server ohlcv.OHLCVService_SubscribeDealsServer) error {
+	log := logger.FromContext(server.Context())
+	id, err := uuid.NewUUID()
+	if err != nil {
+		log.Errorf("can't create uuid %v", err)
+		return err
+	}
+	ch := make(chan *model.Deal, 1024)
+	h.dealConsumer.Subscribe(id.String(), ch)
+	defer func() {
+		h.dealConsumer.UnSubscribe(id.String())
+	}()
+	for {
+		select {
+		case <-server.Context().Done():
+			return nil
+		case d := <-ch:
+			err := server.Send(&ohlcv.SubscribeDealsResponse{
+				Time:         timestamppb.New(d.T.Time()),
+				DealId:       d.Data.DealId,
+				Price:        d.Data.Price.String(),
+				Volume:       d.Data.Volume.String(),
+				Symbol:       d.Data.Market,
+				IsBuyerMaker: d.Data.IsBuyerMaker,
+			})
+			if err != nil {
+				logger.FromContext(server.Context()).Errorf("can't send deals %v", err)
+			}
+		}
+	}
 }

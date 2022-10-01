@@ -5,10 +5,10 @@ import (
 	"os/signal"
 	"testing"
 
-	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
 	"bitbucket.org/novatechnologies/ohlcv/infra/mongo"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"bitbucket.org/novatechnologies/ohlcv/tests"
 )
 
@@ -26,7 +26,7 @@ func Test_Server_manual(t *testing.T) {
 		conf.MongoDbConfig.DealCollectionName,
 	)
 
-	dealService := deal.NewService(dealCollection, tests.GetAvailableMarkets(), nil)
+	dealService := repository.NewDeal(dealCollection, tests.GetAvailableMarkets(), nil)
 	candleService := tests.InitCandleService(conf, dealCollection, eventsBroker)
 
 	server := NewServer(candleService, dealService, conf)

@@ -7,6 +7,21 @@ package ohlcv;
 service OHLCVService {
   rpc GenerateMinutesCandle (GenerateMinuteCandlesRequest) returns (GenerateMinuteCandlesResponse);
   rpc GenerateMinutesKlines (GenerateMinuteKlinesRequest) returns (GenerateMinuteKlinesResponse);
+  rpc SubscribeDeals(SubscribeDealsRequest) returns (stream SubscribeDealsResponse);
+  rpc GetLastTrades (GetLastTradesRequest) returns (GetLastTradesResponse);
+}
+
+message SubscribeDealsRequest{
+
+}
+message SubscribeDealsResponse{
+  google.protobuf.Timestamp time = 1;
+  string price = 2;
+  string volume = 3;
+  string symbol = 4;
+  string dealId = 5;
+  bool isBuyerMaker = 6;
+
 }
 
 message GenerateMinuteCandlesRequest {
@@ -44,8 +59,30 @@ message Kline {
   string takerQuotes = 10;
   int32 trades = 11;
   string symbol = 12;
+  google.protobuf.Timestamp first = 13;
+  google.protobuf.Timestamp last = 14;
 }
 
 message GenerateMinuteKlinesResponse {
   repeated Kline klines = 1;
+}
+
+
+message GetLastTradesRequest {
+  string symbol = 1;
+  int32 limit = 2;
+}
+
+message Trade {
+  string id = 1;
+  string price = 2;
+  string qty = 3;
+  string quoteQty = 4;
+  int64 time = 5;
+  bool isBuyerMaker = 6;
+  bool isBestMatch = 7;
+}
+
+message GetLastTradesResponse {
+  repeated Trade trades =1 ;
 }

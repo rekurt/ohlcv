@@ -1,7 +1,10 @@
-package deal
+package service
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	pubsub "bitbucket.org/novatechnologies/common/events"
@@ -14,37 +17,60 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type cacheService struct {
-	under      domain.Service
-	cache      *cache.Cache
-	marketsMap map[string]string
+type Deal struct {
+	under       *repository.Deal
+	cache       *cache.Cache
+	marketsMap  map[string]string
+	eventChanel chan *model.Deal
 }
 
-func NewCacheService(
-	under domain.Service,
+func NewDeal(
+	repository *repository.Deal,
 	marketsMap map[string]string,
-) *cacheService {
-	return &cacheService{
-		under:      under,
-		cache:      cache.New(time.Second * 10),
-		marketsMap: marketsMap,
+	eventChanel chan *model.Deal,
+) *Deal {
+	return &Deal{
+		under:       repository,
+		cache:       cache.New(time.Second * 10),
+		marketsMap:  marketsMap,
+		eventChanel: eventChanel,
 	}
 }
 
-func (s *cacheService) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*domain.Deal, error) {
-	deal, err := s.under.SaveDeal(ctx, dealMessage)
-	if err != nil {
+func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.Deal, error) {
+	if dealMessage.TakerOrderId == "" || dealMessage.MakerOrderId == "" {
+		logger.FromContext(ctx).Infof("The deal have empty TakerOrderId or MakerOrderId field. Skip. Dont save to mongo.")
+		return nil, nil
+	}
+	t := time.Unix(0, dealMessage.CreatedAt)
+	marketName := s.marketsMap[dealMessage.Market]
+	deal := &model.Deal{
+		T: primitive.NewDateTimeFromTime(t),
+		Data: model.DealData{
+			Price:        model.MustParseDecimal(dealMessage.Price),
+			Volume:       model.MustParseDecimal(dealMessage.Amount),
+			DealId:       dealMessage.Id,
+			Market:       marketName,
+			IsBuyerMaker: dealMessage.IsBuyerMaker,
+		},
+	}
+	if err := deal.Validate(); err != nil {
 		return nil, err
 	}
 
+	err := s.under.Save(ctx, deal)
+	if err != nil {
+		return nil, err
+	}
+	select {
+	case s.eventChanel <- deal:
+	default:
+		logger.FromContext(ctx).Errorf("deal channel overloaded")
+	}
 	return deal, nil
 }
 
-func (s *cacheService) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]domain.Deal, error) {
-	return s.under.GetLastTrades(ctx, symbol, limit)
-}
-
-func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
 	const op = "cacheService_GetTickerPriceChangeStatistics"
 
 	result := make([]domain.TickerPriceChangeStatistics, 0)
@@ -92,11 +118,15 @@ func (s *cacheService) GetTickerPriceChangeStatistics(ctx context.Context, durat
 	return result, nil
 }
 
-func (s *cacheService) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
+func (s *Deal) GetAvgPrice(ctx context.Context, duration time.Duration, market string) (string, error) {
 	return s.under.GetAvgPrice(ctx, duration, market)
 }
 
-func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
+func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]*model.Deal, error) {
+	return s.under.GetLastTrades(ctx, symbol, limit)
+}
+
+func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, topic string, currentCandles candle.CurrentCandles) {
 	go func() {
 		err := func() error {
 			return consumer.Consume(
@@ -107,8 +137,8 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 					metadata map[string]string,
 					msg []byte,
 				) error {
-					dealMessage := matcher.Deal{}
-					if err := proto.Unmarshal(msg, &dealMessage); err != nil {
+					dealMessage := &matcher.Deal{}
+					if err := proto.Unmarshal(msg, dealMessage); err != nil {
 						logger.FromContext(ctx).
 							WithField("method", "consumer.deals.Unmarshal").
 							Errorf(err)
@@ -124,7 +154,7 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 							WithField("method", "currentCandles.AddDeal in consuming").
 							Errorf(err)
 					}
-					if deal, err := s.SaveDeal(ctx, &dealMessage); err != nil {
+					if deal, err := s.SaveDeal(ctx, dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					}
 					return nil
@@ -134,13 +164,13 @@ func (s *cacheService) RunConsuming(ctx context.Context, consumer pubsub.Subscri
 		if err != nil {
 			logger.FromContext(ctx).
 				WithField("err", err).
-				WithField("svc", "cacheService").
+				WithField("svc", "Deal").
 				Errorf("Consuming session was finished with error", err)
 		}
 	}()
 }
 
-func (s *cacheService) LoadCache(ctx context.Context) {
+func (s *Deal) LoadCache(ctx context.Context) {
 	const op = "cacheService_LoadCache"
 
 	ticker := time.NewTicker(time.Second)

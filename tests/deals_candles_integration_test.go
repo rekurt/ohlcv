@@ -1,15 +1,18 @@
 package tests
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/common/events/topics"
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"math"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
+	"github.com/stretchr/testify/require"
 
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/infra/logger"
@@ -27,7 +30,6 @@ import (
 	cfge "bitbucket.org/novatechnologies/ohlcv/infra/centrifuge"
 
 	"bitbucket.org/novatechnologies/ohlcv/candle"
-	"bitbucket.org/novatechnologies/ohlcv/deal"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
 	"bitbucket.org/novatechnologies/ohlcv/infra"
 	"bitbucket.org/novatechnologies/ohlcv/infra/broker"
@@ -177,7 +179,7 @@ type candlesIntegrationTestSuite struct {
 	kafkaConsumer  pubsub.Subscriber
 	kafkaPublisher pubsub.Publisher
 
-	deals      *deal.Service
+	deals      *repository.Deal
 	dealsTopic string
 	candles    *candle.Service
 
@@ -213,8 +215,8 @@ func (suite *candlesIntegrationTestSuite) setupServicesUnderTests(
 	eventsBroker := broker.NewInMemory()
 
 	// Deals service setup
-	suite.dealsTopic = deal.TopicName(conf.KafkaConfig.TopicPrefix)
-	suite.deals = deal.NewService(dealsCollection, GetAvailableMarkets(), nil)
+	suite.dealsTopic = conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
+	suite.deals = repository.NewDeal(dealsCollection, GetAvailableMarkets(), nil)
 
 	// Candles service setup
 	suite.candles = candle.NewService(&candle.Storage{DealsDbCollection: dealsCollection}, new(candle.Aggregator), eventsBroker)

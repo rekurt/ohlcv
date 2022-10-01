@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"context"
+)
 
 type EventType = string
 
@@ -73,8 +76,8 @@ func (m *Event) MustGetCharts() []*Chart {
 	return m.payload.([]*Chart)
 }
 
-func (m *Event) MustGetDeals() []*Deal {
-	return m.payload.([]*Deal)
+func (m *Event) MustGetDeals() []*model.Deal {
+	return m.payload.([]*model.Deal)
 }
 
 func (m *Event) Payload() interface{} {
