@@ -39,7 +39,7 @@ pipelines:
               - cp ~/.docker/config.json ./config.json && chmod 666 ./config.json
               - docker run
                 -v $BITBUCKET_CLONE_DIR/config.json:/kaniko/.docker/config.json
-                -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:latest
+                -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:v1.8.1
                 --cache=true
                 --cache-copy-layers
                 --use-new-run
