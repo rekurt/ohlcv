@@ -26,6 +26,7 @@ pipelines:
             - export CGO_ENABLED=1
             - export GO111MODULE=on
             - go mod tidy -v
+            - # go test ./... -cover -race
             - go build -tags=jsoniter -a -o service cmd/consumer/main.go
           artifacts:
             - service
@@ -38,7 +39,7 @@ pipelines:
               - cp ~/.docker/config.json ./config.json && chmod 666 ./config.json
               - docker run
                 -v $BITBUCKET_CLONE_DIR/config.json:/kaniko/.docker/config.json
-                -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:latest
+                -v $BITBUCKET_CLONE_DIR/.:/workspace gcr.io/kaniko-project/executor:v1.8.1
                 --cache=true
                 --cache-copy-layers
                 --use-new-run

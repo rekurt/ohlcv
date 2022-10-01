@@ -60,7 +60,6 @@ type Config struct {
 	ExchangeMarketsServerURL string `envconfig:"EXCHANGE_MARKETS_SERVER_URL"`
 	ExchangeMarketsServerSSL bool   `envconfig:"EXCHANGE_MARKETS_SERVER_SSL" default:"true"`
 	ExchangeMarketsToken     string `envconfig:"EXCHANGE_MARKETS_TOKEN"`
-	CandlesGRPCEndpoint      string `envconfig:"CANDLES_GRPC_ENDPOINT" default:"candles:8387"`
 }
 
 func SetConfig(configPath string) Config {
