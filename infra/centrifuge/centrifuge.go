@@ -73,7 +73,7 @@ func (c centrifuge) Publish(ctx context.Context, message MessageData) {
 	if err != nil {
 		log.Errorf("Error calling publish: %v", err)
 	}
-	log.Debugf(
+	log.Tracef(
 		"Publish into channel %s successful, stream position {offset: %d, epoch: %s}",
 		message.Channel,
 		result.Offset,
@@ -102,5 +102,5 @@ func (c centrifuge) BatchPublish(ctx context.Context, messages []MessageData) {
 			log.Errorf("Error in pipe reply: %v", err)
 		}
 	}
-	log.Debugf("Sent %d publish commands in one HTTP request ", len(replies))
+	log.Tracef("Sent %d publish commands in one HTTP request ", len(replies))
 }
