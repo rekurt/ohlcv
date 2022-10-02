@@ -73,7 +73,9 @@ func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([
 	cursor, err := s.DbCollection.Find(
 		ctx,
 		bson.M{"data.market": symbol},
-		options.Find().SetLimit(int64(limit)),
+		options.Find().
+			SetLimit(int64(limit)).
+			SetSort(bson.M{"t": -1}),
 	)
 	if err != nil {
 		logger.FromContext(ctx).WithField(
