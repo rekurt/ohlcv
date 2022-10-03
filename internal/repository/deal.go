@@ -96,8 +96,8 @@ func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([
 	return deals, nil
 }
 
-func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]*domain.TickerPriceChangeStatistics, error) {
-	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-duration))
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string) ([]*domain.TickerPriceChangeStatistics, error) {
+	fromTime := primitive.NewDateTimeFromTime(time.Now().Add(-24 * time.Hour))
 
 	markets := []interface{}{market}
 

@@ -176,7 +176,7 @@ func Test_GetTickerPriceChangeStatistics(t *testing.T) {
 	service := service.NewDeal(repository.NewDeal(dealCollection, getTestMarkets(), nil), getTestMarkets(), make(chan *model.Deal))
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancelFunc()
-	statistics, err := service.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
+	statistics, err := service.GetTickerPriceChangeStatistics(ctx, "")
 	require.NoError(t, err)
 	for _, s := range statistics {
 		// fmt.Printf("%+v\n", s)

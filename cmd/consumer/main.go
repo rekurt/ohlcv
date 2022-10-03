@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
 	"context"
 	"fmt"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
 
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
@@ -57,7 +58,8 @@ func main() {
 	)
 	eventChannel := make(chan *model.Deal, 1024)
 	dealRepository := repository.NewDeal(dealsCollection, marketsMap, marketsInfo)
-	dealService := service.NewDeal(dealRepository, marketsMap, eventChannel)
+	tickerCache := repository.NewTicker()
+	dealService := service.NewDeal(dealRepository, tickerCache, marketsMap, eventChannel)
 
 	go dealService.LoadCache(ctx)
 

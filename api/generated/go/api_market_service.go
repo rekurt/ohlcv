@@ -10,11 +10,12 @@
 package openapi
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
-	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"context"
 	"strings"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 
@@ -54,7 +55,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 }
 
 func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string) (ImplResponse, error) {
-	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, market)
 	if err != nil {
 		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
 		return Response(500, RespError{}), nil
@@ -62,7 +63,7 @@ func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string
 	return Response(200, convertStatistics(statistics)), nil
 }
 
-func convertStatistics(statistics []domain.TickerPriceChangeStatistics) []Ticker {
+func convertStatistics(statistics []*domain.TickerPriceChangeStatistics) []Ticker {
 	tickers := make([]Ticker, len(statistics))
 	for i, s := range statistics {
 		tickers[i] = Ticker{
@@ -106,7 +107,7 @@ func convertDeals(tr []*model.Deal) []*Trade {
 }
 
 func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
-	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, market)
 	if err != nil {
 		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
 		return Response(500, RespError{}), nil
@@ -136,7 +137,7 @@ func buildMarketsMap(markets []market.Market) map[string]market.Market {
 	return m
 }
 
-func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marketsMap map[string]market.Market) []TickerAll {
+func convertStatisticsAll(statistics []*domain.TickerPriceChangeStatistics, marketsMap map[string]market.Market) []TickerAll {
 	tickers := make([]TickerAll, len(statistics))
 	for i, s := range statistics {
 		marketInfo := marketsMap[s.Symbol]
