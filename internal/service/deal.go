@@ -97,17 +97,16 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 		return result, nil
 	}
 
+	logger.
+		FromContext(ctx).
+		WithField("op", op).
+		WithField("markets map", s.marketsMap).
+		Debugf("error getting 24hr ticker: no data in cache")
+
 	for _, m := range s.marketsMap {
 		k := key{market: m}
 
 		resp, ok := s.cache.Get(k)
-		logger.
-			FromContext(ctx).
-			WithField("op", op).
-			WithField("market", m).
-			WithField("k", k).
-			WithField("resp", resp).
-			Debugf("Debug Data from cache")
 		if !ok {
 			logger.
 				FromContext(ctx).
@@ -205,7 +204,7 @@ func (s *Deal) LoadCache(ctx context.Context) {
 			for _, ct := range currentTickers {
 				logger.FromContext(ctx).
 					WithField("op", op).
-					WithField("ct", ct).
+					WithField("Symbol", ct.Symbol).
 					Debugf("loaded %d tickers from db", len(currentTickers))
 
 				s.cache.Set(
