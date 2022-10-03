@@ -10,11 +10,12 @@
 package openapi
 
 import (
-	"bitbucket.org/novatechnologies/ohlcv/internal/model"
-	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 	"context"
 	"strings"
 	"time"
+
+	"bitbucket.org/novatechnologies/ohlcv/internal/model"
+	"bitbucket.org/novatechnologies/ohlcv/internal/service"
 
 	"bitbucket.org/novatechnologies/common/infra/logger"
 
@@ -62,7 +63,7 @@ func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string
 	return Response(200, convertStatistics(statistics)), nil
 }
 
-func convertStatistics(statistics []domain.TickerPriceChangeStatistics) []Ticker {
+func convertStatistics(statistics []*domain.TickerPriceChangeStatistics) []Ticker {
 	tickers := make([]Ticker, len(statistics))
 	for i, s := range statistics {
 		tickers[i] = Ticker{
@@ -136,7 +137,7 @@ func buildMarketsMap(markets []market.Market) map[string]market.Market {
 	return m
 }
 
-func convertStatisticsAll(statistics []domain.TickerPriceChangeStatistics, marketsMap map[string]market.Market) []TickerAll {
+func convertStatisticsAll(statistics []*domain.TickerPriceChangeStatistics, marketsMap map[string]market.Market) []TickerAll {
 	tickers := make([]TickerAll, len(statistics))
 	for i, s := range statistics {
 		marketInfo := marketsMap[s.Symbol]

@@ -1,37 +1,38 @@
 package service
 
 import (
+	"context"
+	"time"
+
 	"bitbucket.org/novatechnologies/ohlcv/internal/model"
 	"bitbucket.org/novatechnologies/ohlcv/internal/repository"
-	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 
 	pubsub "bitbucket.org/novatechnologies/common/events"
 	"bitbucket.org/novatechnologies/common/infra/logger"
 	"bitbucket.org/novatechnologies/interfaces/matcher"
 	"bitbucket.org/novatechnologies/ohlcv/candle"
 	"bitbucket.org/novatechnologies/ohlcv/domain"
-	"github.com/akyoto/cache"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 )
 
 type Deal struct {
 	under       *repository.Deal
-	cache       *cache.Cache
+	tickerCache *repository.Ticker
 	marketsMap  map[string]string
 	eventChanel chan *model.Deal
 }
 
 func NewDeal(
-	repository *repository.Deal,
+	dealRepository *repository.Deal,
+	tickerCache *repository.Ticker,
 	marketsMap map[string]string,
 	eventChanel chan *model.Deal,
 ) *Deal {
 	return &Deal{
-		under:       repository,
-		cache:       cache.New(time.Second * 10),
+		under:       dealRepository,
+		tickerCache: tickerCache,
 		marketsMap:  marketsMap,
 		eventChanel: eventChanel,
 	}
@@ -70,31 +71,24 @@ func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.
 	return deal, nil
 }
 
-func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string) ([]*domain.TickerPriceChangeStatistics, error) {
 	const op = "cacheService_GetTickerPriceChangeStatistics"
 
-	result := make([]domain.TickerPriceChangeStatistics, 0)
+	result := make([]*domain.TickerPriceChangeStatistics, 0)
 
 	if market != "" {
-		k := key{market: market}
-
-		resp, ok := s.cache.Get(k)
+		resp, ok := s.tickerCache.Get(market)
 		if !ok {
 			logger.
 				FromContext(ctx).
 				WithField("op", op).
-				WithField("k", k).
 				WithField("market", market).
 				Errorf("error getting 24hr ticker: no data in cache")
 
 			return result, nil
 		}
 
-		if r, ok := resp.(domain.TickerPriceChangeStatistics); ok {
-			return []domain.TickerPriceChangeStatistics{r}, nil
-		}
-
-		return result, nil
+		return []*domain.TickerPriceChangeStatistics{resp}, nil
 	}
 
 	logger.
@@ -104,9 +98,7 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 		Debugf("error getting 24hr ticker: no data in cache")
 
 	for _, m := range s.marketsMap {
-		k := key{market: m}
-
-		resp, ok := s.cache.Get(k)
+		resp, ok := s.tickerCache.Get(m)
 		if !ok {
 			logger.
 				FromContext(ctx).
@@ -117,9 +109,7 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 			continue
 		}
 
-		if r, ok := resp.(domain.TickerPriceChangeStatistics); ok {
-			result = append(result, r)
-		}
+		result = append(result, resp)
 	}
 
 	return result, nil
@@ -207,16 +197,8 @@ func (s *Deal) LoadCache(ctx context.Context) {
 					WithField("Symbol", ct.Symbol).
 					Debugf("loaded %d tickers from db", len(currentTickers))
 
-				s.cache.Set(
-					key{market: ct.Symbol},
-					ct,
-					5*time.Minute,
-				)
+				s.tickerCache.Set(ct.Symbol, ct)
 			}
 		}
 	}
-}
-
-type key struct {
-	market string
 }
