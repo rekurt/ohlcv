@@ -54,7 +54,7 @@ func (s *MarketApiService) ApiV1TradesGet(
 }
 
 func (s *MarketApiService) ApiV3Ticker24hrGet(ctx context.Context, market string) (ImplResponse, error) {
-	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, market)
 	if err != nil {
 		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
 		return Response(500, RespError{}), nil
@@ -106,7 +106,7 @@ func convertDeals(tr []*model.Deal) []*Trade {
 }
 
 func (s *MarketApiService) V1TradingStats24hAllGet(ctx context.Context, market string) (ImplResponse, error) {
-	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, time.Hour*24, market)
+	statistics, err := s.dealService.GetTickerPriceChangeStatistics(ctx, market)
 	if err != nil {
 		logger.FromContext(ctx).WithField("err", err.Error()).Errorf("GetTickerPriceChangeStatistics error")
 		return Response(500, RespError{}), nil

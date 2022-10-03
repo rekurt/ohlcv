@@ -70,19 +70,20 @@ func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.
 	return deal, nil
 }
 
-func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time.Duration, market string) ([]domain.TickerPriceChangeStatistics, error) {
+func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string) ([]domain.TickerPriceChangeStatistics, error) {
 	const op = "cacheService_GetTickerPriceChangeStatistics"
 
 	result := make([]domain.TickerPriceChangeStatistics, 0)
 
 	if market != "" {
-		k := key{duration: duration, market: market}
+		k := key{market: market}
 
 		resp, ok := s.cache.Get(k)
 		if !ok {
 			logger.
 				FromContext(ctx).
 				WithField("op", op).
+				WithField("k", k).
 				WithField("market", market).
 				Errorf("error getting 24hr ticker: no data in cache")
 
@@ -97,9 +98,16 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, duration time
 	}
 
 	for _, m := range s.marketsMap {
-		k := key{duration: duration, market: m}
+		k := key{market: m}
 
 		resp, ok := s.cache.Get(k)
+		logger.
+			FromContext(ctx).
+			WithField("op", op).
+			WithField("market", m).
+			WithField("k", k).
+			WithField("resp", resp).
+			Debugf("Debug Data from cache")
 		if !ok {
 			logger.
 				FromContext(ctx).
@@ -180,7 +188,7 @@ func (s *Deal) LoadCache(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			currentTickers, err := s.under.GetTickerPriceChangeStatistics(ctx, 24*time.Hour, "")
+			currentTickers, err := s.under.GetTickerPriceChangeStatistics(ctx, "")
 			if err != nil {
 				logger.FromContext(ctx).
 					WithField("err", err).
@@ -195,8 +203,13 @@ func (s *Deal) LoadCache(ctx context.Context) {
 				Infof("loaded %d tickers from db", len(currentTickers))
 
 			for _, ct := range currentTickers {
+				logger.FromContext(ctx).
+					WithField("op", op).
+					WithField("ct", ct).
+					Debugf("loaded %d tickers from db", len(currentTickers))
+
 				s.cache.Set(
-					key{24 * time.Hour, ct.Symbol},
+					key{market: ct.Symbol},
 					ct,
 					5*time.Minute,
 				)
@@ -206,6 +219,5 @@ func (s *Deal) LoadCache(ctx context.Context) {
 }
 
 type key struct {
-	duration time.Duration
-	market   string
+	market string
 }
