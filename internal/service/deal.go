@@ -65,6 +65,7 @@ func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.
 	}
 	select {
 	case s.eventChanel <- deal:
+		logger.FromContext(ctx).Infof("send deal to consumer %v", *deal)
 	default:
 		logger.FromContext(ctx).Errorf("deal channel overloaded")
 	}
@@ -145,6 +146,7 @@ func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, top
 							"unmarshal error with protobuf deals msg",
 						)
 					}
+					logger.FromContext(ctx).Infof("got deal %v", dealMessage.Market)
 					err := currentCandles.AddDeal(dealMessage)
 					if err != nil {
 						logger.FromContext(ctx).
@@ -154,6 +156,7 @@ func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, top
 					if deal, err := s.SaveDeal(ctx, dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					}
+					logger.FromContext(ctx).Infof("saved deal %v", dealMessage.Market)
 					return nil
 				},
 			)
