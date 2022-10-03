@@ -92,12 +92,6 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 		return []*domain.TickerPriceChangeStatistics{resp}, nil
 	}
 
-	logger.
-		FromContext(ctx).
-		WithField("op", op).
-		WithField("markets map", s.marketsMap).
-		Debugf("error getting 24hr ticker: no data in cache")
-
 	for _, m := range s.marketsMap {
 		resp, ok := s.tickerCache.Get(m)
 		if !ok {
@@ -172,9 +166,7 @@ func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, top
 
 func (s *Deal) LoadCache(ctx context.Context) {
 	const op = "cacheService_LoadCache"
-
 	ticker := time.NewTicker(time.Second)
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -189,17 +181,7 @@ func (s *Deal) LoadCache(ctx context.Context) {
 
 				continue
 			}
-
-			logger.FromContext(ctx).
-				WithField("op", op).
-				Infof("loaded %d tickers from db", len(currentTickers))
-
 			for _, ct := range currentTickers {
-				logger.FromContext(ctx).
-					WithField("op", op).
-					WithField("Symbol", ct.Symbol).
-					Debugf("loaded %d tickers from db", len(currentTickers))
-
 				s.tickerCache.Set(ct.Symbol, ct)
 			}
 		}
