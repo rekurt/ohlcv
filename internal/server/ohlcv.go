@@ -116,17 +116,14 @@ func (h Ohlcv) SubscribeDeals(_ *ohlcv.SubscribeDealsRequest, server ohlcv.OHLCV
 	}
 	ch := make(chan *model.Deal, 1024)
 	h.dealConsumer.Subscribe(id.String(), ch)
-	logger.FromContext(server.Context()).Infof("subscribed for deals %s", id.String())
 	defer func() {
 		h.dealConsumer.UnSubscribe(id.String())
-		logger.FromContext(server.Context()).Infof("unsubscribed from deals %s", id.String())
 	}()
 	for {
 		select {
 		case <-server.Context().Done():
 			return nil
 		case d := <-ch:
-			logger.FromContext(server.Context()).Infof("send deals %v", *d)
 			err := server.Send(&ohlcv.SubscribeDealsResponse{
 				Time:         timestamppb.New(d.T.Time()),
 				DealId:       d.Data.DealId,
