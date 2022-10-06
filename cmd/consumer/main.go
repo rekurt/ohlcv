@@ -56,12 +56,13 @@ func main() {
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
-	eventChannel := make(chan *model.Deal, 1024)
+	dealChannel := make(chan *model.Deal, 1024)
 	dealRepository := repository.NewDeal(dealsCollection, marketsMap, marketsInfo)
-	tickerCache := repository.NewTicker()
-	dealService := service.NewDeal(dealRepository, tickerCache, marketsMap, eventChannel)
+	tickerCache := consumer.NewTicker(marketsMap)
+	dealService := service.NewDeal(dealRepository, tickerCache, marketsMap, dealChannel)
 
 	go dealService.LoadCache(ctx)
+	go tickerCache.ConsumeNewDeals(ctx)
 
 	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
 	dealsTopic := conf.KafkaConfig.TopicPrefix + "_" + topics.MatcherMDDeals
@@ -81,7 +82,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dealConsumer := consumer.NewDeal(eventChannel)
+	dealConsumer := consumer.NewDeal(dealChannel)
 	go dealConsumer.Consume(ctx)
 	ohlcvSrv := server.NewOhlcv(service.NewCandle(repository.NewCandle(dealsCollection)), klineService, dealService, dealConsumer)
 	s := grpc.NewServer()

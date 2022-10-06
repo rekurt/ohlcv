@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bitbucket.org/novatechnologies/ohlcv/internal/consumer"
 	"context"
 	"time"
 
@@ -19,22 +20,22 @@ import (
 
 type Deal struct {
 	under       *repository.Deal
-	tickerCache *repository.Ticker
+	tickerCache *consumer.Ticker
 	marketsMap  map[string]string
-	eventChanel chan *model.Deal
+	dealChanel  chan *model.Deal
 }
 
 func NewDeal(
 	dealRepository *repository.Deal,
-	tickerCache *repository.Ticker,
+	tickerCache *consumer.Ticker,
 	marketsMap map[string]string,
-	eventChanel chan *model.Deal,
+	dealChanel chan *model.Deal,
 ) *Deal {
 	return &Deal{
 		under:       dealRepository,
 		tickerCache: tickerCache,
 		marketsMap:  marketsMap,
-		eventChanel: eventChanel,
+		dealChanel:  dealChanel,
 	}
 }
 
@@ -58,13 +59,12 @@ func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.
 	if err := deal.Validate(); err != nil {
 		return nil, err
 	}
-
 	err := s.under.Save(ctx, deal)
 	if err != nil {
 		return nil, err
 	}
 	select {
-	case s.eventChanel <- deal:
+	case s.dealChanel <- deal:
 	default:
 		logger.FromContext(ctx).Errorf("deal channel overloaded")
 	}
@@ -145,6 +145,7 @@ func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, top
 							WithField("method", "currentCandles.AddDeal in consuming").
 							Errorf(err)
 					}
+					s.tickerCache.UpdateWithNewDeal(dealMessage.GetMarket(), dealMessage)
 					if deal, err := s.SaveDeal(ctx, dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					}

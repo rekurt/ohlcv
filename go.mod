@@ -6,7 +6,6 @@ require (
 	bitbucket.org/novatechnologies/common v0.11.6
 	bitbucket.org/novatechnologies/interfaces v0.0.19
 	github.com/AlekSi/pointer v1.2.0
-	github.com/akyoto/cache v1.0.6
 	github.com/centrifugal/centrifuge-go v0.8.2
 	github.com/centrifugal/gocent/v3 v3.2.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
