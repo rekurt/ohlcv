@@ -59,7 +59,7 @@ func (s *Deal) Save(ctx context.Context, deal *model.Deal) error {
 }
 
 func (s *Deal) GetLastTrades(ctx context.Context, symbol string, limit int32) ([]*model.Deal, error) {
-	ctx, cancelFunc := context.WithTimeout(ctx, time.Second)
+	ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelFunc()
 
 	if strings.TrimSpace(symbol) == "" || limit <= 0 || limit >= 1000 {

@@ -69,22 +69,20 @@ func (c *Ticker) UnSubscribe(key string) {
 
 func (c *Ticker) UpdateWithNewDeal(key string, value *matcher.Deal) {
 	c.mu.Lock()
-
 	c.subscribers[key] <- value
-
 	c.mu.Unlock()
 }
 
 func (c *Ticker) ConsumeNewDeals(ctx context.Context) {
-	for _, m := range c.mm {
+	for k, m := range c.mm {
 		ch := make(chan *matcher.Deal, 1024)
-		c.Subscribe(m, ch)
+		c.Subscribe(k, ch)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case deal := <-ch:
-				ticker, ok := c.Get(deal.GetMarket())
+				ticker, ok := c.Get(m)
 				if !ok {
 					logger.FromContext(ctx).
 						WithField("method", "deal.UpdateTickerFromDeal in consuming").
