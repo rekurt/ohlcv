@@ -112,7 +112,6 @@ func (r *Kline) Get(ctx context.Context, from, to time.Time) ([]*model.Kline, er
 	opts := options.Aggregate()
 	adu := true
 	opts.AllowDiskUse = &adu
-	opts.Hint = "trades"
 	cursor, err := r.dealsDbCollection.Aggregate(
 		ctx,
 		mongo.Pipeline{matchStage, firstSortStage, firstGroupStage, projectStage},
