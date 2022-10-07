@@ -67,9 +67,19 @@ func (c *Ticker) UnSubscribe(key string) {
 	c.mu.Unlock()
 }
 
-func (c *Ticker) UpdateWithNewDeal(key string, value *matcher.Deal) {
+func (c *Ticker) UpdateWithNewDeal(ctx context.Context, key string, value *matcher.Deal) {
 	c.mu.Lock()
-	c.subscribers[key] <- value
+	ch, ok := c.subscribers[key]
+	if !ok {
+		logger.FromContext(ctx).Errorf("can't find subscriber %s", key)
+	} else {
+		select {
+		case ch <- value:
+		default:
+			logger.FromContext(ctx).Errorf("update ticker chanel overloaded")
+		}
+
+	}
 	c.mu.Unlock()
 }
 

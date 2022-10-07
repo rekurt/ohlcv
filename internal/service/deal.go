@@ -145,7 +145,7 @@ func (s *Deal) RunConsuming(ctx context.Context, consumer pubsub.Subscriber, top
 							WithField("method", "currentCandles.AddDeal in consuming").
 							Errorf(err)
 					}
-					s.tickerCache.UpdateWithNewDeal(dealMessage.GetMarket(), dealMessage)
+					s.tickerCache.UpdateWithNewDeal(ctx, dealMessage.GetMarket(), dealMessage)
 					if deal, err := s.SaveDeal(ctx, dealMessage); err != nil {
 						return errors.Wrapf(err, "while saving deal %v into DB", deal)
 					}
