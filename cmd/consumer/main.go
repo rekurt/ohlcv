@@ -56,12 +56,14 @@ func main() {
 		mongoDbClient,
 		conf.MongoDbConfig,
 	)
+
 	dealChannel := make(chan *model.Deal, 1024)
 	dealRepository := repository.NewDeal(dealsCollection, marketsMap, marketsInfo)
 	tickerCache := consumer.NewTicker(marketsMap)
 	dealService := service.NewDeal(dealRepository, tickerCache, marketsMap, dealChannel)
 
 	go dealService.LoadCache(ctx)
+
 	go tickerCache.ConsumeNewDeals(ctx)
 
 	// Start consuming, preparing, savFApiV3Ticker24hrGeting deals into DB and notifying others.
@@ -95,6 +97,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
+
 	//shutdown
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt)

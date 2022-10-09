@@ -1,16 +1,13 @@
 image: amazonlinux:2.0.20211005.0
 clone:
   depth: 1
-
 options:
   docker: true
   size: 2x
-
 definitions:
   services:
     docker:
       memory: 7128
-
 pipelines:
   default:
       - step: &building

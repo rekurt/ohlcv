@@ -9,6 +9,7 @@ service OHLCVService {
   rpc GenerateMinutesKlines (GenerateMinuteKlinesRequest) returns (GenerateMinuteKlinesResponse);
   rpc SubscribeDeals(SubscribeDealsRequest) returns (stream SubscribeDealsResponse);
   rpc GetLastTrades (GetLastTradesRequest) returns (GetLastTradesResponse);
+  rpc GetTicker (GetTickerRequest) returns (GetTickerResponse);
 }
 
 message SubscribeDealsRequest{
@@ -21,7 +22,6 @@ message SubscribeDealsResponse{
   string symbol = 4;
   string dealId = 5;
   bool isBuyerMaker = 6;
-
 }
 
 message GenerateMinuteCandlesRequest {
@@ -67,7 +67,6 @@ message GenerateMinuteKlinesResponse {
   repeated Kline klines = 1;
 }
 
-
 message GetLastTradesRequest {
   string symbol = 1;
   int32 limit = 2;
@@ -84,5 +83,37 @@ message Trade {
 }
 
 message GetLastTradesResponse {
-  repeated Trade trades =1 ;
+  repeated Trade trades = 1 ;
+}
+
+message Ticker {
+  string Symbol = 1;
+  string PriceChange = 2;
+  string PriceChangePercent = 3;
+  string WeightedAvgPrice = 4;
+  string PrevClosePrice = 5;
+  string LastPrice = 6;
+  string LastQty = 7;
+  string BidPrice = 8;
+  string BidQty = 9;
+  string AskPrice = 10;
+  string AskQty = 11;
+  string OpenPrice = 12;
+  string HighPrice = 13;
+  string LowPrice = 14;
+  string Volume = 15;
+  string QuoteVolume = 16;
+  int64 OpenTime = 17;
+  int64 CloseTime = 18;
+  string FirstId = 19;
+  string LastId = 20;
+  int32 Count = 21;
+}
+
+message GetTickerResponse{
+  repeated Ticker tickers = 1 ;
+}
+
+message GetTickerRequest{
+  string symbol = 1;
 }

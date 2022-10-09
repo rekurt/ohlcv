@@ -73,9 +73,7 @@ func (s *Deal) SaveDeal(ctx context.Context, dealMessage *matcher.Deal) (*model.
 
 func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string) ([]*domain.TickerPriceChangeStatistics, error) {
 	const op = "cacheService_GetTickerPriceChangeStatistics"
-
 	result := make([]*domain.TickerPriceChangeStatistics, 0)
-
 	if market != "" {
 		resp, ok := s.tickerCache.Get(market)
 		if !ok {
@@ -84,10 +82,8 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 				WithField("op", op).
 				WithField("market", market).
 				Errorf("error getting 24hr ticker: no data in cache")
-
 			return result, nil
 		}
-
 		return []*domain.TickerPriceChangeStatistics{resp}, nil
 	}
 
@@ -102,7 +98,6 @@ func (s *Deal) GetTickerPriceChangeStatistics(ctx context.Context, market string
 
 			continue
 		}
-
 		result = append(result, resp)
 	}
 

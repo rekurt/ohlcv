@@ -107,6 +107,42 @@ func (h Ohlcv) GetLastTrades(ctx context.Context, request *ohlcv.GetLastTradesRe
 	return rsp, nil
 }
 
+func (h Ohlcv) GetTicker(ctx context.Context, r *ohlcv.GetTickerRequest) (*ohlcv.GetTickerResponse, error) {
+	tickers, err := h.dealService.GetTickerPriceChangeStatistics(ctx, r.Symbol)
+	if err != nil {
+		logger.FromContext(ctx).Errorf("error getting tickers: %v", err)
+		return nil, err
+	}
+	rsp := &ohlcv.GetTickerResponse{Tickers: make([]*ohlcv.Ticker, len(tickers))}
+	for i := range tickers {
+		rsp.Tickers[i] = &ohlcv.Ticker{
+			Symbol:             tickers[i].Symbol,
+			PriceChange:        tickers[i].PriceChange,
+			PriceChangePercent: tickers[i].PriceChangePercent,
+			WeightedAvgPrice:   tickers[i].WeightedAvgPrice,
+			PrevClosePrice:     tickers[i].PrevClosePrice,
+			LastPrice:          tickers[i].LastPrice,
+			LastQty:            tickers[i].LastQty,
+			BidPrice:           tickers[i].BidPrice,
+			BidQty:             tickers[i].BidQty,
+			AskPrice:           tickers[i].AskPrice,
+			AskQty:             tickers[i].AskQty,
+			OpenPrice:          tickers[i].OpenPrice,
+			HighPrice:          tickers[i].HighPrice,
+			LowPrice:           tickers[i].LowPrice,
+			Volume:             tickers[i].Volume,
+			QuoteVolume:        tickers[i].QuoteVolume,
+			OpenTime:           tickers[i].OpenTime,
+			CloseTime:          tickers[i].CloseTime,
+			FirstId:            tickers[i].FirstId,
+			LastId:             tickers[i].LastId,
+			Count:              int32(tickers[i].Count),
+		}
+	}
+	return rsp, nil
+
+}
+
 func (h Ohlcv) SubscribeDeals(_ *ohlcv.SubscribeDealsRequest, server ohlcv.OHLCVService_SubscribeDealsServer) error {
 	log := logger.FromContext(server.Context())
 	id, err := uuid.NewUUID()
