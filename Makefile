@@ -4,6 +4,7 @@ $(shell cp config/.env.sample config/.env)
 -include config/.env
 export
 
+
 REGISTRY          = bitbucket.org/novatechnologies
 CGO_ENABLED       ?= 0
 GO                =  go
